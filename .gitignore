@@ -15,6 +15,7 @@ Thumbs.db
 *.aab
 *.jks
 *.keystore
+!debug.keystore
 
 # Logs
 *.log

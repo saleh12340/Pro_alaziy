@@ -49,6 +49,12 @@ jobs:
           java -version
           ./gradlew --version
 
+      - name: Ensure debug keystore
+        run: |
+          if [ ! -f debug.keystore ]; then
+            keytool -genkeypair -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
       - name: Run unit tests
         run: ./gradlew :app:testDebugUnitTest --stacktrace --no-daemon
 
@@ -58,7 +64,15 @@ jobs:
       - name: Verify install identity for side-by-side installation
         run: |
           APK=app/build/outputs/apk/debug/app-debug.apk
-          BADGING=$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK")
+          if [ -x "$ANDROID_HOME/build-tools/35.0.0/aapt" ]; then
+            AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          else
+            AAPT=$(find "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools" -name aapt | sort -V | tail -n 1)
+          fi
+          if [ -z "$AAPT" ] || [ ! -x "$AAPT" ]; then
+            AAPT="aapt"
+          fi
+          BADGING=$("$AAPT" dump badging "$APK")
           echo "$BADGING" | grep -F "package: name='com.saleh.enezi.manager.pro'"
           for EXISTING_ID in com.saleh.enezi com.saleh.alazzigrocery.newapp com.saleh.alazzigrocery.sidebyside com.saleh.alazzigrocery.v3; do
             if echo "$BADGING" | grep -Fq "package: name='$EXISTING_ID'"; then
