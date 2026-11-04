@@ -7586,7 +7586,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         }
         Cursor notePages(){return getReadableDatabase().rawQuery("SELECT p.id,p.title,p.date,COUNT(i.id) FROM note_pages p LEFT JOIN note_items i ON i.page_id=p.id GROUP BY p.id ORDER BY datetime(p.date) DESC,p.id DESC",null);}
         String now(){return new SimpleDateFormat("yyyy-MM-dd HH:mm",Locale.US).format(new Date());}
-        long supplierIdByName(String n){Cursor c=getReadableDatabase().rawQuery("SELECT id FROM suppliers WHERE lower(trim(name))=lower(trim(?)) LIMIT 1",new String[]{n==null?"":n.trim()});long x=c.moveToFirst()?c.getLong(0):-1;c.close();return x;}
+        long supplierIdByName(String n){Cursor c=getReadableDatabase().rawQuery("SELECT id FROM suppliers WHERE normalized_name=? LIMIT 1",new String[]{norm(n)});long x=c.moveToFirst()?c.getLong(0):-1;c.close();return x;}
         void updateSupplierPhone(long id,String phone){if(id>0){ContentValues v=new ContentValues();v.put("phone",phone==null?"":phone.trim());getWritableDatabase().update("suppliers",v,"id=?",new String[]{String.valueOf(id)});}}
         long addSupplierPayment(long supplierId,double amount,String details,String invoiceNo){ContentValues v=new ContentValues();v.put("supplier_id",supplierId);v.put("amount",Math.abs(amount));v.put("details",details==null?"":details);v.put("type",2);v.put("date",now());v.put("invoice_no",invoiceNo==null?"":invoiceNo);return getWritableDatabase().insert("supplier_transactions",null,v);}
         void updateSupplierPayment(long id,double amount,String details,String invoiceNo){ContentValues v=new ContentValues();v.put("amount",Math.abs(amount));v.put("details",details==null?"":details);v.put("invoice_no",invoiceNo==null?"":invoiceNo);getWritableDatabase().update("supplier_transactions",v,"id=?",new String[]{String.valueOf(id)});}
@@ -7598,10 +7598,15 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
             try{ContentValues v=new ContentValues();v.put("name",name);v.put("normalized_name",key);return getWritableDatabase().insertOrThrow("customers",null,v);}
             catch(SQLiteConstraintException e){Cursor x=getReadableDatabase().rawQuery("SELECT id FROM customers WHERE normalized_name=? LIMIT 1",new String[]{key});long id=x.moveToFirst()?x.getLong(0):-1;x.close();return id;}
         }
-        void updateCustomer(long id,String oldName,String newName,String phone){
-            SQLiteDatabase d=getWritableDatabase(); ContentValues v=new ContentValues();v.put("name",newName);v.put("phone",phone);
-            d.update("customers",v,"id=?",new String[]{String.valueOf(id)});
-            if(oldName!=null&&!oldName.equals(newName)){ContentValues iv=new ContentValues();iv.put("customer",newName);d.update("invoices",iv,"customer=?",new String[]{oldName});}
+        boolean updateCustomer(long id,String oldName,String newName,String phone){
+            String name=canon(newName),key=norm(name);if(id<=0||key.isEmpty())return false;
+            SQLiteDatabase d=getWritableDatabase();
+            Cursor duplicate=d.rawQuery("SELECT id FROM customers WHERE normalized_name=? AND id<>? LIMIT 1",new String[]{key,String.valueOf(id)});
+            boolean exists=duplicate.moveToFirst();duplicate.close();if(exists)return false;
+            ContentValues v=new ContentValues();v.put("name",name);v.put("normalized_name",key);v.put("phone",phone==null?"":phone.trim());
+            int changed=d.update("customers",v,"id=?",new String[]{String.valueOf(id)});
+            if(changed>0&&oldName!=null&&!oldName.equals(name)){ContentValues iv=new ContentValues();iv.put("customer",name);d.update("invoices",iv,"customer=?",new String[]{oldName});}
+            return changed>0;
         }
         long addCustomer(String n,String p){
             String name=canon(n), key=norm(name); if(key.isEmpty())return -1;
@@ -7691,7 +7696,20 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
             c.close();int n=1;while(used.contains(n))n++;return Math.max(n,max+1);
         }
         String[] supplierNames(){Cursor c=getReadableDatabase().rawQuery("SELECT name FROM suppliers ORDER BY name",null);ArrayList<String>a=new ArrayList<>();while(c.moveToNext())a.add(c.getString(0));c.close();return a.toArray(new String[0]);}
-        long supplier(String n,String p){Cursor c=getReadableDatabase().rawQuery("SELECT id FROM suppliers WHERE name=? LIMIT 1",new String[]{n});if(c.moveToFirst()){long x=c.getLong(0);c.close();return x;}c.close();ContentValues v=new ContentValues();v.put("name",n);v.put("phone",p);return getWritableDatabase().insert("suppliers",null,v);}
+        long supplier(String n,String p){
+            String name=canon(n),key=norm(name);if(key.isEmpty())return -1;
+            SQLiteDatabase d=getWritableDatabase();
+            Cursor c=d.rawQuery("SELECT id FROM suppliers WHERE normalized_name=? LIMIT 1",new String[]{key});
+            if(c.moveToFirst()){
+                long id=c.getLong(0);c.close();
+                if(p!=null&&!p.trim().isEmpty()){ContentValues phone=new ContentValues();phone.put("phone",p.trim());d.update("suppliers",phone,"id=?",new String[]{String.valueOf(id)});}
+                return id;
+            }
+            c.close();
+            ContentValues v=new ContentValues();v.put("name",name);v.put("normalized_name",key);v.put("phone",p==null?"":p.trim());
+            try{return d.insertOrThrow("suppliers",null,v);}
+            catch(SQLiteConstraintException e){Cursor x=d.rawQuery("SELECT id FROM suppliers WHERE normalized_name=? LIMIT 1",new String[]{key});long id=x.moveToFirst()?x.getLong(0):-1;x.close();return id;}
+        }
         long addPurchase(String no,String supplier,double total,String date){
             SQLiteDatabase d=getWritableDatabase(); String requested=canon(no); if(requested.isEmpty())requested=String.valueOf(nextPurchaseNo());
             ContentValues v=new ContentValues();v.put("no",requested);v.put("supplier",supplier);v.put("total",total);v.put("date",date);
@@ -7777,7 +7795,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                     String name=c.getString(0)==null?"":c.getString(0).trim();
                     double q=c.getDouble(1);
                     if(name.isEmpty()||q<=0)continue;
-                    Cursor ic=d.rawQuery("SELECT id,qty FROM items WHERE lower(trim(name))=? LIMIT 1",new String[]{name.toLowerCase(Locale.ROOT)});
+                    Cursor ic=d.rawQuery("SELECT id,qty FROM items WHERE normalized_name=? LIMIT 1",new String[]{norm(name)});
                     if(ic.moveToFirst()){
                         long iid=ic.getLong(0); double current=ic.getDouble(1);
                         ContentValues v=new ContentValues(); v.put("qty",current+q);
@@ -7803,7 +7821,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                     if(!c.moveToFirst()){
                         c.close(); c=null;
                         ContentValues nv=new ContentValues();
-                        nv.put("name",name); nv.put("qty",-q); nv.put("min_qty",0); nv.put("cost",0); nv.put("sale",0);
+                        nv.put("name",name); nv.put("normalized_name",norm(name)); nv.put("qty",-q); nv.put("min_qty",0); nv.put("cost",0); nv.put("sale",0);
                         long iid=d.insert("items",null,nv);
                         if(iid>0){
                             ContentValues mv=new ContentValues(); mv.put("item_id",iid); mv.put("item_name",name); mv.put("qty",-q); mv.put("unit_cost",0); mv.put("source_type","sale"); mv.put("source_id",invoiceId); mv.put("created_at",now());
@@ -7846,8 +7864,18 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         }
         Cursor items(){return getReadableDatabase().rawQuery("SELECT id,name,qty,min_qty,cost,sale FROM items ORDER BY name",null);}
         boolean itemExists(String n){String key=norm(n);Cursor c=getReadableDatabase().rawQuery("SELECT id FROM items WHERE normalized_name=? LIMIT 1",new String[]{key});boolean x=c.moveToFirst();c.close();return x;}
-        void addItem(String n,double q,double m){if(n.isEmpty()||q<0||m<0)throw new IllegalArgumentException();SQLiteDatabase d=getWritableDatabase();Cursor c=d.rawQuery("SELECT id FROM items WHERE name=? LIMIT 1",new String[]{n});if(c.moveToFirst()){long id=c.getLong(0);c.close();ContentValues v=new ContentValues();v.put("qty",q);v.put("min_qty",m);d.update("items",v,"id=?",new String[]{String.valueOf(id)});return;}c.close();ContentValues v=new ContentValues();v.put("name",n);v.put("qty",q);v.put("min_qty",m);d.insert("items",null,v);}
-        void updateItem(long id,String n,double q,double m){if(id<1||n==null||n.trim().isEmpty()||q<0||m<0)throw new IllegalArgumentException();ContentValues v=new ContentValues();v.put("name",n.trim());v.put("qty",q);v.put("min_qty",m);getWritableDatabase().update("items",v,"id=?",new String[]{String.valueOf(id)});}
+        void addItem(String n,double q,double m){
+            String name=canon(n),key=norm(name);if(key.isEmpty()||q<0||m<0||Double.isNaN(q)||Double.isInfinite(q)||Double.isNaN(m)||Double.isInfinite(m))throw new IllegalArgumentException();
+            SQLiteDatabase d=getWritableDatabase();Cursor c=d.rawQuery("SELECT id FROM items WHERE normalized_name=? LIMIT 1",new String[]{key});
+            if(c.moveToFirst()){long id=c.getLong(0);c.close();ContentValues v=new ContentValues();v.put("name",name);v.put("normalized_name",key);v.put("qty",q);v.put("min_qty",m);d.update("items",v,"id=?",new String[]{String.valueOf(id)});return;}
+            c.close();ContentValues v=new ContentValues();v.put("name",name);v.put("normalized_name",key);v.put("qty",q);v.put("min_qty",m);d.insertOrThrow("items",null,v);
+        }
+        void updateItem(long id,String n,double q,double m){
+            String name=canon(n),key=norm(name);if(id<1||key.isEmpty()||q<0||m<0||Double.isNaN(q)||Double.isInfinite(q)||Double.isNaN(m)||Double.isInfinite(m))throw new IllegalArgumentException("بيانات الصنف غير صحيحة");
+            SQLiteDatabase d=getWritableDatabase();Cursor duplicate=d.rawQuery("SELECT id FROM items WHERE normalized_name=? AND id<>? LIMIT 1",new String[]{key,String.valueOf(id)});
+            boolean exists=duplicate.moveToFirst();duplicate.close();if(exists)throw new IllegalArgumentException("يوجد صنف آخر بالاسم نفسه");
+            ContentValues v=new ContentValues();v.put("name",name);v.put("normalized_name",key);v.put("qty",q);v.put("min_qty",m);d.update("items",v,"id=?",new String[]{String.valueOf(id)});
+        }
         void deleteItem(long id){if(id>0)getWritableDatabase().delete("items","id=?",new String[]{String.valueOf(id)});}
         int transactionCount(long id){Cursor c=getReadableDatabase().rawQuery("SELECT COUNT(*) FROM transactions WHERE customer_id=?",new String[]{String.valueOf(id)});int x=c.moveToFirst()?c.getInt(0):0;c.close();return x;}
         String invoiceNoFromTransaction(String details){if(details==null)return "";String p="فاتورة مبيعات رقم ";return details.startsWith(p)?details.substring(p.length()).trim():"";}
@@ -7995,11 +8023,18 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         double invoicePaidByNo(String no){Cursor c=getReadableDatabase().rawQuery("SELECT COALESCE(paid,0) FROM invoices WHERE no=? ORDER BY id DESC LIMIT 1",new String[]{no});double x=c.moveToFirst()?c.getDouble(0):0;c.close();return x;}
         String phoneByName(String n){Cursor c=getReadableDatabase().rawQuery("SELECT COALESCE(phone,'') FROM customers WHERE name=? LIMIT 1",new String[]{n});String x=c.moveToFirst()?c.getString(0):"";c.close();return x==null?"":x;}
         long customer(String n,String p){
-            String name=n==null?"":n.trim().replaceAll("\\s+"," "); if(name.isEmpty()) return -1;
+            String name=canon(n),key=norm(name);if(key.isEmpty())return -1;
             SQLiteDatabase d=getWritableDatabase();
-            Cursor c=d.rawQuery("SELECT id FROM customers WHERE lower(trim(name))=lower(?) ORDER BY id ASC LIMIT 1",new String[]{name});
-            if(c.moveToFirst()){long x=c.getLong(0);c.close();if(p!=null&&!p.trim().isEmpty()){ContentValues v=new ContentValues();v.put("phone",p.trim());d.update("customers",v,"id=?",new String[]{String.valueOf(x)});}return x;}c.close();
-            ContentValues v=new ContentValues();v.put("name",name);v.put("phone",p==null?"":p.trim());return d.insert("customers",null,v);
+            Cursor c=d.rawQuery("SELECT id FROM customers WHERE normalized_name=? LIMIT 1",new String[]{key});
+            if(c.moveToFirst()){
+                long id=c.getLong(0);c.close();
+                if(p!=null&&!p.trim().isEmpty()){ContentValues phone=new ContentValues();phone.put("phone",p.trim());d.update("customers",phone,"id=?",new String[]{String.valueOf(id)});}
+                return id;
+            }
+            c.close();
+            ContentValues v=new ContentValues();v.put("name",name);v.put("normalized_name",key);v.put("phone",p==null?"":p.trim());
+            try{return d.insertOrThrow("customers",null,v);}
+            catch(SQLiteConstraintException e){Cursor x=d.rawQuery("SELECT id FROM customers WHERE normalized_name=? LIMIT 1",new String[]{key});long id=x.moveToFirst()?x.getLong(0):-1;x.close();return id;}
         }
         double balanceByName(String n){Cursor c=getReadableDatabase().rawQuery("SELECT id FROM customers WHERE name=? ORDER BY id DESC LIMIT 1",new String[]{n});if(!c.moveToFirst()){c.close();return 0;}long id=c.getLong(0);c.close();return balance(id);}
         String invoiceNo(long id){Cursor c=getReadableDatabase().rawQuery("SELECT no FROM invoices WHERE id=?",new String[]{String.valueOf(id)});String x=c.moveToFirst()?c.getString(0):"";c.close();return x==null?"":x;}
