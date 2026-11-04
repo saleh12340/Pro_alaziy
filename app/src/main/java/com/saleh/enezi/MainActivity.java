@@ -8080,13 +8080,19 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         void replaceInvoiceLines(long id,ArrayList<Line> ls){SQLiteDatabase d=getWritableDatabase();d.delete("invoice_items","invoice_id=?",new String[]{String.valueOf(id)});for(Line l:ls){ContentValues v=new ContentValues();v.put("invoice_id",id);v.put("name",l.name);v.put("qty",l.qty);v.put("total",l.total);v.put("unit_cost",itemCostPrice(l.name));d.insert("invoice_items",null,v);}}
         void deleteInvoice(long id){
             if(id<=0)return;
-            String no=invoiceNo(id);
-            revertStockFromInvoice(id);
-            deleteInvoiceTransactions(no);
             SQLiteDatabase d=getWritableDatabase();
-            d.delete("invoice_items","invoice_id=?",new String[]{String.valueOf(id)});
-            d.delete("invoices","id=?",new String[]{String.valueOf(id)});
-            d.delete("stock_movements","source_id=? AND source_type IN ('sale','sale_reversal')",new String[]{String.valueOf(id)});
+            d.beginTransaction();
+            try{
+                String no=invoiceNo(id);
+                revertStockFromInvoice(id);
+                deleteInvoiceTransactions(no);
+                d.delete("invoice_items","invoice_id=?",new String[]{String.valueOf(id)});
+                d.delete("invoices","id=?",new String[]{String.valueOf(id)});
+                d.delete("stock_movements","source_id=? AND source_type IN ('sale','sale_reversal')",new String[]{String.valueOf(id)});
+                d.setTransactionSuccessful();
+            }finally{
+                if(d.inTransaction())d.endTransaction();
+            }
         }
         void deleteInvoiceTransaction(String no){deleteInvoiceTransactions(no);}
         void deleteInvoiceTransactions(String no){
@@ -8116,13 +8122,20 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         void updateTransaction(long id,double amount,String details,int type,String date){ContentValues v=new ContentValues();v.put("amount",amount);v.put("details",details);v.put("type",type);v.put("date",date);getWritableDatabase().update("transactions",v,"id=?",new String[]{String.valueOf(id)});}
         void deleteTransaction(long id){getWritableDatabase().delete("transactions","id=?",new String[]{String.valueOf(id)});}
         void deleteCustomer(long id){
+            if(id<=0)return;
             SQLiteDatabase d=getWritableDatabase();
-            Cursor c=d.rawQuery("SELECT id FROM invoices WHERE customer=(SELECT name FROM customers WHERE id=?)",new String[]{String.valueOf(id)});
-            ArrayList<Long> invoiceIds=new ArrayList<>();while(c.moveToNext())invoiceIds.add(c.getLong(0));c.close();
-            d.delete("transactions","customer_id=?",new String[]{String.valueOf(id)});
-            // حذف فواتير العميل عبر المسار الكامل حتى يُعاد المخزون قبل حذفها.
-            for(Long iid:invoiceIds)deleteInvoice(iid);
-            d.delete("customers","id=?",new String[]{String.valueOf(id)});
+            d.beginTransaction();
+            try{
+                Cursor c=d.rawQuery("SELECT id FROM invoices WHERE customer=(SELECT name FROM customers WHERE id=?)",new String[]{String.valueOf(id)});
+                ArrayList<Long> invoiceIds=new ArrayList<>();while(c.moveToNext())invoiceIds.add(c.getLong(0));c.close();
+                d.delete("transactions","customer_id=?",new String[]{String.valueOf(id)});
+                // حذف فواتير العميل عبر المسار الكامل حتى يُعاد المخزون قبل حذفها.
+                for(Long iid:invoiceIds)deleteInvoice(iid);
+                d.delete("customers","id=?",new String[]{String.valueOf(id)});
+                d.setTransactionSuccessful();
+            }finally{
+                if(d.inTransaction())d.endTransaction();
+            }
         }
     }
 
