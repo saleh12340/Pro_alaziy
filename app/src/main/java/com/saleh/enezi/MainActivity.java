@@ -10664,34 +10664,69 @@ void account(long id,String name){
 
                 String detailText=isInv?"فاتورة #"+inv:
                     (d==null||d.trim().isEmpty()?(type==1?"قيد سحب":"دفعة سداد"):d.trim());
-                TextView main=denseText(detailText,13f,9f,DARK);
+                TextView main=denseText(detailText,12.5f,10f,DARK);
                 main.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
                 main.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
-                main.setSingleLine(false);
-                main.setMaxLines(Integer.MAX_VALUE);
-                main.setEllipsize(null);
+                main.setSingleLine(true);
+                main.setMaxLines(1);
+                main.setEllipsize(android.text.TextUtils.TruncateAt.END);
                 main.setHorizontallyScrolling(false);
-                main.setIncludeFontPadding(true);
-                main.setPadding(0,dp(2),0,dp(2));
-                autoFitText(main,13f,9f,0.5f);
-                info.addView(main,new LinearLayout.LayoutParams(0,-2,1f));
+                main.setIncludeFontPadding(false);
+                main.setPadding(0,dp(1),0,dp(1));
+                autoFitText(main,12.5f,10f,0.5f);
+                info.addView(main,new LinearLayout.LayoutParams(0,dp(32),1f));
                 row.addView(info,new LinearLayout.LayoutParams(0,-2,1f));
 
                 // اليسار: الرصيد التراكمي فقط.
-                TextView bal=denseText(fmt(Math.abs(balanceAfter))+" ريال",12f,9.5f,
+                TextView bal=denseText(fmt(Math.abs(balanceAfter))+" ريال",11.5f,9.5f,
                     balanceAfter>0.005?RED:(balanceAfter<-0.005?BLUE:GREEN));
                 bal.setGravity(Gravity.CENTER);
                 bal.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
                 bal.setMaxLines(2);
-                bal.setPadding(dp(4),dp(3),dp(4),dp(3));
+                bal.setPadding(dp(3),dp(2),dp(3),dp(2));
                 bal.setBackground(glassFill(Color.argb(210,248,250,248)));
-                row.addView(bal,new LinearLayout.LayoutParams(dp(96),-2));
+                row.addView(bal,new LinearLayout.LayoutParams(dp(88),-2));
 
-                row.setOnClickListener(v->showOperationDetails(name,tid,d,a,type));
+                // التفاصيل الكاملة مخفية افتراضياً لتقليل ارتفاع السجل وإظهار عمليات أكثر.
+                LinearLayout expanded=new LinearLayout(this);
+                expanded.setOrientation(LinearLayout.VERTICAL);
+                expanded.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+                expanded.setPadding(dp(10),dp(7),dp(10),dp(7));
+                expanded.setBackground(glassFill(Color.argb(225,242,247,253)));
+                expanded.setVisibility(View.GONE);
+                String expandedText;
+                if(isInv){
+                    expandedText=db.invoiceCompactDetails(inv)+"\n"+(d==null?"":d);
+                }else{
+                    expandedText=(d==null||d.trim().isEmpty()?detailText:d.trim());
+                }
+                TextView expandedDetails=denseText(expandedText,11.5f,10f,DARK);
+                expandedDetails.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+                expandedDetails.setTextDirection(View.TEXT_DIRECTION_RTL);
+                expandedDetails.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+                expandedDetails.setSingleLine(false);
+                expandedDetails.setMaxLines(5);
+                expandedDetails.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                expanded.addView(expandedDetails,new LinearLayout.LayoutParams(-1,-2));
+                TextView hint=denseText("اضغط مطولاً لخيارات العملية • اضغط الصف لعرض التفاصيل",9.5f,9f,MUTED);
+                hint.setGravity(Gravity.RIGHT);
+                expanded.addView(hint,new LinearLayout.LayoutParams(-1,-2));
+
+                LinearLayout itemCard=new LinearLayout(this);
+                itemCard.setOrientation(LinearLayout.VERTICAL);
+                itemCard.setBackground(glassFill(Color.argb(190,255,255,255)));
+                itemCard.addView(row,new LinearLayout.LayoutParams(-1,-2));
+                itemCard.addView(expanded,new LinearLayout.LayoutParams(-1,-2));
+                final boolean[] isExpanded={false};
+                row.setOnClickListener(v->{
+                    isExpanded[0]=!isExpanded[0];
+                    expanded.setVisibility(isExpanded[0]?View.VISIBLE:View.GONE);
+                    if(isExpanded[0])expandedDetails.setText(expandedText+"\nالرصيد بعد العملية: "+fmt(Math.abs(balanceAfter))+" ريال");
+                });
                 row.setOnLongClickListener(v->{operationActions(id,name,tid,d,a,type);return true;});
                 LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);
-                rp.setMargins(0,0,0,dp(4));
-                list.addView(row,rp);
+                rp.setMargins(0,0,0,dp(3));
+                list.addView(itemCard,rp);
             }
             if(count==0){
                 LinearLayout emptyBox=card();emptyBox.setPadding(dp(16),dp(14),dp(16),dp(14));emptyBox.setGravity(Gravity.CENTER);
