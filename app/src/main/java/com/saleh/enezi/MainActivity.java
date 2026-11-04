@@ -3767,10 +3767,12 @@ void operationActions(long customerId,String customerName,long tid,String detail
         qty.setTextSize(14.5f);
         EditText name=field("اكتب اسم الصنف...");
         name.setTextSize(14.5f);
-        fields.addView(qty,new LinearLayout.LayoutParams(0,dp(46),.8f));
+        // RTL: اسم الصنف في أقصى اليمين أولاً، ثم الكمية إلى يساره.
         LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(0,dp(46),2.1f);
-        np.setMargins(dp(6),0,0,0);
         fields.addView(name,np);
+        LinearLayout.LayoutParams qp=new LinearLayout.LayoutParams(0,dp(46),.8f);
+        qp.setMargins(dp(6),0,0,0);
+        fields.addView(qty,qp);
         form.addView(fields,new LinearLayout.LayoutParams(-1,-2));
         addSpaceTo(form,6);
 
@@ -3868,7 +3870,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
             LinearLayout row=new LinearLayout(this);
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+            // اتجاه الصف RTL: اسم الصنف أولاً يميناً، ثم الكمية، ثم الحذف يساراً.
+            row.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
             row.setPadding(dp(2),dp(padV),dp(2),dp(padV));
             row.setBackground(outlined(CARD,1,9));
             row.setClickable(true);
@@ -3879,15 +3882,19 @@ void operationActions(long customerId,String customerName,long tid,String detail
             del.setOnClickListener(v->{db.deleteNoteItem(pid,it.name,it.qty,it.side);notes();});
             TextView nm=tv(it.name,noteFontSize);
             nm.setTextColor(Color.BLACK);
+            nm.setTextDirection(View.TEXT_DIRECTION_RTL);
+            nm.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
             nm.setSingleLine(false);
             nm.setMaxLines(10);
             nm.setEllipsize(null);
             TextView q=tv(fmt(it.qty),noteFontSize);
+            q.setTextDirection(View.TEXT_DIRECTION_LTR);
             q.setGravity(Gravity.CENTER);
             q.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-            row.addView(del,new LinearLayout.LayoutParams(dp(Math.max(28,noteFontSize+14)), dp(itemH)));
+            // ترتيب العرض ثابت: الصنف من اليمين، الكمية إلى يساره، والحذف في أقصى اليسار.
             row.addView(nm,new LinearLayout.LayoutParams(0,-2,1));
             row.addView(q,new LinearLayout.LayoutParams(dp(Math.max(35,noteFontSize*2+10)), dp(itemH)));
+            row.addView(del,new LinearLayout.LayoutParams(dp(Math.max(28,noteFontSize+14)), dp(itemH)));
             LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);
             rp.setMargins(0,0,0,dp(Math.max(2, noteFontSize/4)));
             col.addView(row,rp);
@@ -4086,8 +4093,9 @@ void operationActions(long customerId,String customerName,long tid,String detail
             String lName=lItem!=null&&lItem.name!=null?lItem.name.trim():"";
             String lQty=lItem!=null?fmt(lItem.qty):"";
 
-            drawNotesItem(canvas, rightColLeft, y, colW, rowH, rName, rQty, bodyP, qtyP, scale);
-            drawNotesItem(canvas, leftColLeft, y, colW, rowH, lName, lQty, bodyP, qtyP, scale);
+            // side=1 يظهر أولاً من اليمين في واجهة RTL، لذلك نرسمه في النصف الأيمن.
+            drawNotesItem(canvas, rightColLeft, y, colW, rowH, lName, lQty, bodyP, qtyP, scale);
+            drawNotesItem(canvas, leftColLeft, y, colW, rowH, rName, rQty, bodyP, qtyP, scale);
             y+=rowH;
         }
 
@@ -4194,8 +4202,9 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 String lName = lItem!=null && lItem.name!=null ? lItem.name.trim() : "";
                 String lQty = lItem!=null ? fmt(lItem.qty) : "";
 
-                drawNotesItem(canvas, rightColLeft, y, colW, rowH, rName, rQty, bodyP, qtyP);
-                drawNotesItem(canvas, leftColLeft, y, colW, rowH, lName, lQty, bodyP, qtyP);
+                // PDF يطابق ترتيب واجهة RTL: side=1 يميناً وside=2 يساراً.
+                drawNotesItem(canvas, rightColLeft, y, colW, rowH, lName, lQty, bodyP, qtyP);
+                drawNotesItem(canvas, leftColLeft, y, colW, rowH, rName, rQty, bodyP, qtyP);
 
                 y+=rowH;
             }
