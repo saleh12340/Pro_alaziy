@@ -51,6 +51,30 @@ public final class DocumentCenter {
         }
     }
 
+    public static void sharePdfToWhatsApp(Activity a, File file, String caption){
+        if(a==null)return;
+        if(file==null||!file.isFile()||file.length()<=0){
+            Toast.makeText(a,"ملف PDF غير موجود أو فارغ",Toast.LENGTH_SHORT).show();
+            return;
+        }
+        try{
+            Uri uri=FileProvider.getUriForFile(a,a.getPackageName()+".fileprovider",file);
+            Intent intent=new Intent(Intent.ACTION_SEND);
+            intent.setType("application/pdf");
+            intent.putExtra(Intent.EXTRA_STREAM,uri);
+            if(caption!=null&&!caption.isEmpty())intent.putExtra(Intent.EXTRA_TEXT,caption);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.setPackage("com.whatsapp");
+            try{a.startActivity(intent);return;}catch(Exception ignored){}
+            intent.setPackage("com.whatsapp.w4b");
+            try{a.startActivity(intent);return;}catch(Exception ignored){}
+            intent.setPackage(null);
+            a.startActivity(Intent.createChooser(intent,"إرسال ملف PDF"));
+        }catch(Exception e){
+            Toast.makeText(a,"تعذر مشاركة ملف PDF عبر واتساب أو التطبيقات المتاحة",Toast.LENGTH_LONG).show();
+        }
+    }
+
     public static void sharePdf(Activity a, File file, String caption, String chooser){
         shareFile(a, file, "application/pdf", caption, chooser == null ? "مشاركة ملف PDF" : chooser);
     }
