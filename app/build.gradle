@@ -10,8 +10,8 @@ android {
         applicationId 'com.saleh.enezi.manager.pro'
         minSdk 23
         targetSdk 35
-        versionCode 4
-        versionName '1.0.3-pro'
+        versionCode 5
+        versionName '1.0.4-pro'
     }
 
     // Let the Android Gradle Plugin generate/use its standard debug keystore.
