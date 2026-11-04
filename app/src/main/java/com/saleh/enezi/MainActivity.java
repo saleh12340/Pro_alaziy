@@ -2322,7 +2322,7 @@ void showGeneralActions(){
         qty.setOnClickListener(v->editLineQuantity(l,parent,all,baseBal));
         item.setOnClickListener(v->editLineName(l,parent,all,baseBal));
         del.setOnClickListener(v->{all.remove(l);redrawInvoiceRows(parent,all,baseBal);});
-        r.setBackground(outline(Color.WHITE,dp(1),dp(10)));
+        r.setBackground(outlined(Color.WHITE,dp(1),dp(10)));
         LinearLayout.LayoutParams rowLp=new LinearLayout.LayoutParams(-1,-2);rowLp.setMargins(0,0,0,dp(5));
         parent.addView(r,rowLp);
     }
@@ -3182,7 +3182,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 actions.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
 
                 Button editBtn=button("✏️ تعديل");
-                editBtn.setTextSize(12f); editBtn.setTextColor(BLUE); editBtn.setBackground(outline(Color.rgb(239,246,255),dp(1),dp(10)));
+                editBtn.setTextSize(12f); editBtn.setTextColor(BLUE); editBtn.setBackground(outlined(Color.rgb(239,246,255),dp(1),dp(10)));
 
                 Button deleteBtn=button("🗑️ حذف");
                 deleteBtn.setTextSize(11.5f); deleteBtn.setTextColor(RED); deleteBtn.setBackground(outline(CARD,8));
@@ -5155,7 +5155,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 row.setOrientation(LinearLayout.VERTICAL);
                 row.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
                 row.setPadding(dp(10),dp(7),dp(10),dp(7));
-                row.setBackground(outline(Color.WHITE,dp(1),dp(12)));
+                row.setBackground(outlined(Color.WHITE,dp(1),dp(12)));
                 LinearLayout head=new LinearLayout(this);
                 head.setOrientation(LinearLayout.HORIZONTAL);
                 head.setGravity(Gravity.CENTER_VERTICAL);
@@ -5173,7 +5173,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 TextView lineTotal=tv(fmt(x.total)+" ر.ي",13);
                 lineTotal.setTextColor(sale?GREEN:GOLD);lineTotal.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
                 lineTotal.setGravity(Gravity.CENTER);
-                lineTotal.setBackground(outline(sale?Color.rgb(235,248,239):Color.rgb(255,247,231),dp(1),dp(9)));
+                lineTotal.setBackground(outlined(sale?Color.rgb(235,248,239):Color.rgb(255,247,231),dp(1),dp(9)));
                 lineTotal.setPadding(dp(7),dp(3),dp(7),dp(3));
                 head.addView(lineTotal,new LinearLayout.LayoutParams(-2,dp(30)));
                 row.addView(head,new LinearLayout.LayoutParams(-1,-2));
@@ -8205,7 +8205,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                 totalTv.setTextColor(GREEN); totalTv.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
                 totalTv.setGravity(Gravity.CENTER);
                 totalTv.setPadding(dp(8),dp(4),dp(8),dp(4));
-                totalTv.setBackground(outline(Color.rgb(235,248,239),dp(1),dp(10)));
+                totalTv.setBackground(outlined(Color.rgb(235,248,239),dp(1),dp(10)));
                 topRow.addView(totalTv,new LinearLayout.LayoutParams(-2,-2));
 
                 card.addView(topRow,new LinearLayout.LayoutParams(-1,-2));
@@ -8217,7 +8217,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                 actionRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
 
                 Button viewBtn=button("👁️ عرض");
-                viewBtn.setTextSize(12f); viewBtn.setTextColor(GREEN); viewBtn.setBackground(outline(Color.rgb(239,249,242),dp(1),dp(10)));
+                viewBtn.setTextSize(12f); viewBtn.setTextColor(GREEN); viewBtn.setBackground(outlined(Color.rgb(239,249,242),dp(1),dp(10)));
                 viewBtn.setOnClickListener(v->showInvoiceDialog(id,no,cn,total,date));
 
                 Button editBtn=button("✏️ تعديل");
@@ -8225,7 +8225,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                 editBtn.setOnClickListener(v->invoice(true,id));
 
                 Button delBtn=button("🗑️ حذف");
-                delBtn.setTextSize(12f); delBtn.setTextColor(RED); delBtn.setBackground(outline(Color.rgb(255,241,242),dp(1),dp(10)));
+                delBtn.setTextSize(12f); delBtn.setTextColor(RED); delBtn.setBackground(outlined(Color.rgb(255,241,242),dp(1),dp(10)));
                 delBtn.setOnClickListener(v->new AlertDialog.Builder(this)
                     .setTitle("حذف الفاتورة رقم "+no)
                     .setMessage("سيتم حذف الفاتورة وقيود الحساب.")
