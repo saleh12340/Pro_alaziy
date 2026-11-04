@@ -407,20 +407,22 @@ public class MainActivity extends Activity {
         b.setText(s);
         b.setTextSize(14.5f);
         b.setAllCaps(false);
-        b.setMinHeight(dp(40));
-        b.setMinimumHeight(dp(40));
-        b.setPadding(dp(8),dp(3),dp(8),dp(3));
+        b.setMinHeight(dp(44));
+        b.setMinimumHeight(dp(44));
+        b.setPadding(dp(12),dp(5),dp(12),dp(5));
         b.setGravity(Gravity.CENTER);
         b.setStateListAnimator(null);
         b.setIncludeFontPadding(false);
         if(Build.VERSION.SDK_INT>=28){try{b.setFallbackLineSpacing(true);}catch(Throwable ignored){}}
         b.setTextColor(TEXT);
         GradientDrawable bg=new GradientDrawable();
-        bg.setColor(CARD);
-        bg.setCornerRadius(dp(11));
-        bg.setStroke(dp(1),BORDER);
-        b.setBackground(bg);
-        b.setElevation(dp(1));
+        bg.setColor(Color.WHITE);
+        bg.setCornerRadius(dp(13));
+        bg.setStroke(dp(1),Color.rgb(218,228,239));
+        android.graphics.drawable.RippleDrawable ripple=new android.graphics.drawable.RippleDrawable(
+                android.content.res.ColorStateList.valueOf(Color.argb(32,30,91,170)),bg,null);
+        b.setBackground(ripple);
+        b.setElevation(dp(2));
         b.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         return b;
     }
@@ -438,8 +440,8 @@ public class MainActivity extends Activity {
     EditText field(String h){
         EditText e=new EditText(this);
         e.setHint(h);
-        e.setTextSize(14f);
-        e.setMinHeight(dp(44));
+        e.setTextSize(15f);
+        e.setMinHeight(dp(50));
         e.setSingleLine(true);
         e.setMaxLines(1);
         e.setEllipsize(null);
@@ -451,7 +453,7 @@ public class MainActivity extends Activity {
         e.setTextColor(TEXT);
         e.setHintTextColor(Color.rgb(105,105,105));
         e.setPadding(dp(10),0,dp(10),0);
-        e.setBackground(outlined(Color.WHITE,dp(1),11));
+        e.setBackground(outlined(Color.rgb(250,252,255),dp(1),13));
         e.setElevation(dp(1));
         e.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
         e.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
@@ -472,7 +474,7 @@ public class MainActivity extends Activity {
         }catch(Throwable ignored){}
         e.setOnFocusChangeListener((v,has)->{
             if(has){
-                e.setBackground(outlined(Color.WHITE,dp(2),12));
+                e.setBackground(outlined(Color.rgb(255,255,255),dp(2),13));
                 e.postDelayed(() -> e.selectAll(),60);
             }else{
                 e.setBackground(outlined(Color.WHITE,dp(1),12));
@@ -2287,7 +2289,7 @@ void showGeneralActions(){
     }
     GradientDrawable bg(int color,float radius){return rounded(color,dp((int)radius));}
     GradientDrawable outline(int color,float radius){return outlined(color,1,dp((int)radius));}
-    LinearLayout card(){LinearLayout c=new LinearLayout(this);c.setOrientation(LinearLayout.VERTICAL);c.setPadding(dp(12),dp(9),dp(12),dp(9));c.setBackground(darkCardMode ? rounded(Color.BLACK,dp(14)) : outline(CARD,14));c.setElevation(dp(2));c.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);return c;}
+    LinearLayout card(){LinearLayout c=new LinearLayout(this);c.setOrientation(LinearLayout.VERTICAL);c.setPadding(dp(13),dp(11),dp(13),dp(11));c.setBackground(darkCardMode ? rounded(Color.BLACK,dp(16)) : outline(Color.WHITE,16));c.setElevation(dp(3));c.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);return c;}
     void addCard(View v,int h){content.addView(v,new LinearLayout.LayoutParams(-1,dp(Math.max(50,h-18))));space(4);}
     void add(View v,int h){content.addView(v,new LinearLayout.LayoutParams(-1,dp(Math.max(42,h-12))));space(4);}
     void space(int h){addSpace(dp(h));}
@@ -2302,8 +2304,8 @@ void showGeneralActions(){
         TextView qty=tv(fmt(l.qty),13);qty.setGravity(Gravity.CENTER);qty.setSingleLine(true);
         TextView item=tv(l.name,12);item.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);item.setMaxLines(Integer.MAX_VALUE);item.setEllipsize(null);
         TextView unit=tv(l.qty==0?"0":fmt(l.total/l.qty),12);unit.setTextColor(MUTED);unit.setGravity(Gravity.CENTER);unit.setSingleLine(true);
-        Button del=button("حذف");del.setTextSize(10);del.setTextColor(Color.RED);del.setBackgroundColor(Color.TRANSPARENT);
-        total.setBackground(outline(Color.WHITE,6));qty.setBackground(outline(Color.WHITE,6));item.setBackground(outline(Color.WHITE,6));
+        Button del=button("×");del.setTextSize(19);del.setTextColor(Color.rgb(190,45,55));del.setContentDescription("حذف الصنف من الفاتورة");del.setBackground(rounded(Color.rgb(255,238,239),dp(9)));
+        total.setBackground(outline(Color.rgb(245,249,255),8));qty.setBackground(outline(Color.rgb(245,249,255),8));item.setBackground(outline(Color.WHITE,8));
         total.setContentDescription("تعديل إجمالي الصنف");qty.setContentDescription("تعديل كمية الصنف");item.setContentDescription("تعديل اسم الصنف أو التفاصيل");
         total.setMinHeight(dp(32)); qty.setMinHeight(dp(32)); item.setMinHeight(dp(32)); unit.setMinHeight(dp(32)); del.setMinHeight(dp(32));
         View[] cells={total,qty,item,unit,del};for(int i=0;i<cells.length;i++)r.addView(cells[i],new LinearLayout.LayoutParams(0,-2,w[i]));
@@ -2311,7 +2313,9 @@ void showGeneralActions(){
         qty.setOnClickListener(v->editLineQuantity(l,parent,all,baseBal));
         item.setOnClickListener(v->editLineName(l,parent,all,baseBal));
         del.setOnClickListener(v->{all.remove(l);redrawInvoiceRows(parent,all,baseBal);});
-        parent.addView(r,new LinearLayout.LayoutParams(-1,-2));
+        r.setBackground(outline(Color.WHITE,dp(1),dp(10)));
+        LinearLayout.LayoutParams rowLp=new LinearLayout.LayoutParams(-1,-2);rowLp.setMargins(0,0,0,dp(5));
+        parent.addView(r,rowLp);
     }
     void editLineTotal(Line line,LinearLayout parent,ArrayList<Line> all,double baseBal){
         EditText e=numberField("الإجمالي");e.setText(fmt(line.total));e.setSelectAllOnFocus(true);
@@ -10540,10 +10544,10 @@ void customers(){
                 long id=cur.getLong(0);String name=cur.getString(1);double bal=db.balance(id);count++;
                 LinearLayout row=card();row.setPadding(dp(10),dp(7),dp(10),dp(7));row.setOnClickListener(v->account(id,name));row.setOnLongClickListener(v->{customerActions(id,name);return true;});
                 LinearLayout top=new LinearLayout(this);top.setOrientation(LinearLayout.HORIZONTAL);top.setGravity(Gravity.CENTER_VERTICAL);top.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-                TextView avatar=tv(name==null||name.isEmpty()?"ب":name.substring(0,1),16);avatar.setGravity(Gravity.CENTER);avatar.setTextColor(Color.WHITE);avatar.setTypeface(Typeface.DEFAULT,Typeface.BOLD);avatar.setBackground(rounded(GREEN,dp(18)));
+                TextView avatar=tv(name==null||name.isEmpty()?"ب":name.substring(0,1),16);avatar.setGravity(Gravity.CENTER);avatar.setTextColor(Color.WHITE);avatar.setTypeface(Typeface.DEFAULT,Typeface.BOLD);avatar.setBackground(rounded(BLUE_PRIMARY,dp(13)));avatar.setElevation(dp(2));
                 top.addView(avatar,new LinearLayout.LayoutParams(dp(38),dp(38)));
                 TextView nm=tv(name,16);nm.setTextColor(TEXT);nm.setTypeface(Typeface.DEFAULT,Typeface.BOLD);nm.setPadding(dp(9),0,dp(5),0);nm.setSingleLine(false);nm.setMaxLines(Integer.MAX_VALUE);nm.setEllipsize(null);nm.setHorizontallyScrolling(false);autoFitText(nm,16f,11f,0.5f);top.addView(nm,new LinearLayout.LayoutParams(0,-2,1));
-                TextView bv=tv(fmt(Math.abs(bal))+" ريال",15);bv.setTextColor(balanceColor(bal));bv.setTypeface(Typeface.DEFAULT,Typeface.BOLD);bv.setGravity(Gravity.CENTER);bv.setBackground(outlined(CARD,dp(1),12));top.addView(bv,new LinearLayout.LayoutParams(dp(125),dp(36)));
+                TextView bv=tv((bal>0.005?"عليه ":bal<-0.005?"له ":"متوازن ")+fmt(Math.abs(bal))+" ريال",13.5f);bv.setTextColor(balanceColor(bal));bv.setTypeface(Typeface.DEFAULT,Typeface.BOLD);bv.setGravity(Gravity.CENTER);bv.setPadding(dp(7),0,dp(7),0);bv.setBackground(outlined(bal>0.005?Color.rgb(255,240,241):(bal<-0.005?Color.rgb(235,247,255):Color.rgb(240,245,248)),dp(1),12));top.addView(bv,new LinearLayout.LayoutParams(dp(132),dp(38)));
                 row.addView(top,new LinearLayout.LayoutParams(-1,-2));LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.setMargins(0,0,0,dp(6));list.addView(row,rp);
             } cur.close();
             if(count==0){TextView empty=tv("لا يوجد عميل مطابق.",14);empty.setTextColor(MUTED);empty.setGravity(Gravity.CENTER);list.addView(empty,new LinearLayout.LayoutParams(-1,dp(70)));}
