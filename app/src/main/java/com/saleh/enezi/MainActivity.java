@@ -3177,7 +3177,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 actions.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
 
                 Button editBtn=button("✏️ تعديل");
-                editBtn.setTextSize(11.5f); editBtn.setTextColor(BLUE); editBtn.setBackground(outline(CARD,8));
+                editBtn.setTextSize(12f); editBtn.setTextColor(BLUE); editBtn.setBackground(outline(Color.rgb(239,246,255),dp(1),dp(10));
 
                 Button deleteBtn=button("🗑️ حذف");
                 deleteBtn.setTextSize(11.5f); deleteBtn.setTextColor(RED); deleteBtn.setBackground(outline(CARD,8));
@@ -4532,9 +4532,9 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 TextView badge=tv("#"+displayInvoiceNo(no),11.5f);
                 badge.setTextColor(GOLD); badge.setTypeface(Typeface.DEFAULT,Typeface.BOLD); badge.setGravity(Gravity.CENTER);
                 GradientDrawable bBg=new GradientDrawable();
-                bBg.setColor(Color.WHITE);
-                bBg.setCornerRadius(dp(8));
-                bBg.setStroke(dp(1),Color.rgb(220,220,220));
+                bBg.setColor(Color.rgb(235,244,255));
+                bBg.setCornerRadius(dp(9));
+                bBg.setStroke(dp(1),Color.rgb(203,222,244));
                 badge.setBackground(bBg);
                 topR.addView(badge,new LinearLayout.LayoutParams(dp(50),dp(28)));
 
@@ -8160,11 +8160,11 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                 card.setPadding(dp(10),dp(8),dp(10),dp(8));
                 card.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
                 GradientDrawable cBg=new GradientDrawable();
-                cBg.setColor(CARD);
-                cBg.setCornerRadius(dp(12));
-                cBg.setStroke(dp(1),Color.rgb(220,220,220));
+                cBg.setColor(Color.WHITE);
+                cBg.setCornerRadius(dp(16));
+                cBg.setStroke(dp(1),Color.rgb(220,232,244));
                 card.setBackground(cBg);
-                card.setElevation(dp(2));
+                card.setElevation(dp(3));
 
                 // السطر الأول: رقم الفاتورة + العميل + المبلغ
                 LinearLayout topRow=new LinearLayout(this);
@@ -8185,7 +8185,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                 infoCol.setOrientation(LinearLayout.VERTICAL);
                 infoCol.setPadding(dp(8),0,dp(8),0);
 
-                TextView nameTv=tv("العميل: "+customerName,13);
+                TextView nameTv=tv(customerName,14);
                 nameTv.setTextColor(TEXT); nameTv.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
                 nameTv.setMaxLines(1);
                 infoCol.addView(nameTv,new LinearLayout.LayoutParams(-1,dp(20)));
@@ -8196,8 +8196,11 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
 
                 topRow.addView(infoCol,new LinearLayout.LayoutParams(0,-2,1));
 
-                TextView totalTv=tv(fmt(total)+" ر.ي",14);
+                TextView totalTv=tv(fmt(total)+" ر.ي",15);
                 totalTv.setTextColor(GREEN); totalTv.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+                totalTv.setGravity(Gravity.CENTER);
+                totalTv.setPadding(dp(8),dp(4),dp(8),dp(4));
+                totalTv.setBackground(outline(Color.rgb(235,248,239),dp(1),dp(10));
                 topRow.addView(totalTv,new LinearLayout.LayoutParams(-2,-2));
 
                 card.addView(topRow,new LinearLayout.LayoutParams(-1,-2));
@@ -8209,7 +8212,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                 actionRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
 
                 Button viewBtn=button("👁️ عرض");
-                viewBtn.setTextSize(11.5f); viewBtn.setTextColor(GREEN); viewBtn.setBackground(outline(CARD,8));
+                viewBtn.setTextSize(12f); viewBtn.setTextColor(GREEN); viewBtn.setBackground(outline(Color.rgb(239,249,242),dp(1),dp(10));
                 viewBtn.setOnClickListener(v->showInvoiceDialog(id,no,cn,total,date));
 
                 Button editBtn=button("✏️ تعديل");
@@ -8217,20 +8220,20 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                 editBtn.setOnClickListener(v->invoice(true,id));
 
                 Button delBtn=button("🗑️ حذف");
-                delBtn.setTextSize(11.5f); delBtn.setTextColor(RED); delBtn.setBackground(outline(CARD,8));
+                delBtn.setTextSize(12f); delBtn.setTextColor(RED); delBtn.setBackground(outline(Color.rgb(255,241,242),dp(1),dp(10));
                 delBtn.setOnClickListener(v->new AlertDialog.Builder(this)
                     .setTitle("حذف الفاتورة رقم "+no)
                     .setMessage("سيتم حذف الفاتورة وقيود الحساب.")
                     .setPositiveButton("حذف",(d,w)->{db.deleteInvoice(id); refreshList[0].run();})
                     .setNegativeButton("إلغاء",null).show());
 
-                actionRow.addView(viewBtn,new LinearLayout.LayoutParams(0,dp(32),1));
-                LinearLayout.LayoutParams elp=new LinearLayout.LayoutParams(0,dp(32),1); elp.setMargins(dp(4),0,0,0);
+                actionRow.addView(viewBtn,new LinearLayout.LayoutParams(0,dp(38),1));
+                LinearLayout.LayoutParams elp=new LinearLayout.LayoutParams(0,dp(38),1); elp.setMargins(dp(5),0,0,0);
                 actionRow.addView(editBtn,elp);
-                LinearLayout.LayoutParams dlp=new LinearLayout.LayoutParams(0,dp(32),1); dlp.setMargins(dp(4),0,0,0);
+                LinearLayout.LayoutParams dlp=new LinearLayout.LayoutParams(0,dp(38),1); dlp.setMargins(dp(5),0,0,0);
                 actionRow.addView(delBtn,dlp);
 
-                card.addView(actionRow,new LinearLayout.LayoutParams(-1,dp(46)));
+                card.addView(actionRow,new LinearLayout.LayoutParams(-1,dp(42)));
 
                 card.setOnClickListener(v->showInvoiceDialog(id,no,cn,total,date));
 
