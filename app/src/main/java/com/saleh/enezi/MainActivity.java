@@ -7846,21 +7846,21 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         double itemCostPrice(String n){if(n==null||n.trim().isEmpty())return 0;Cursor c=getReadableDatabase().rawQuery("SELECT COALESCE(cost,0) FROM items WHERE normalized_name=? LIMIT 1",new String[]{norm(n)});double p=c.moveToFirst()?c.getDouble(0):0;c.close();return p;}
         double itemQty(String n){if(n==null||n.trim().isEmpty())return 0;Cursor c=getReadableDatabase().rawQuery("SELECT COALESCE(qty,0) FROM items WHERE normalized_name=? LIMIT 1",new String[]{norm(n)});double q=c.moveToFirst()?c.getDouble(0):0;c.close();return q;}
         void learnItemPrice(String name, double sale, double cost){
-            if(name==null||name.trim().isEmpty())return;
-            String n=name.trim();
+            String n=canon(name),key=norm(n);
+            if(key.isEmpty()||Double.isNaN(sale)||Double.isInfinite(sale)||Double.isNaN(cost)||Double.isInfinite(cost))return;
             SQLiteDatabase d=getWritableDatabase();
-            Cursor c=d.rawQuery("SELECT id FROM items WHERE name=? LIMIT 1",new String[]{n});
+            Cursor c=d.rawQuery("SELECT id FROM items WHERE normalized_name=? LIMIT 1",new String[]{key});
             if(c.moveToFirst()){
                 long id=c.getLong(0);c.close();
                 ContentValues v=new ContentValues();
-                if(sale>0) v.put("sale",sale);
-                if(cost>0) v.put("cost",cost);
-                if(v.size()>0) d.update("items",v,"id=?",new String[]{String.valueOf(id)});
+                if(sale>0)v.put("sale",sale);
+                if(cost>0)v.put("cost",cost);
+                if(v.size()>0)d.update("items",v,"id=?",new String[]{String.valueOf(id)});
             }else{
                 c.close();
                 ContentValues v=new ContentValues();
-                v.put("name",n);v.put("qty",0);v.put("min_qty",0);v.put("cost",cost);v.put("sale",sale);
-                d.insert("items",null,v);
+                v.put("name",n);v.put("normalized_name",key);v.put("qty",0);v.put("min_qty",0);v.put("cost",cost);v.put("sale",sale);
+                d.insertOrThrow("items",null,v);
             }
         }
         Cursor items(){return getReadableDatabase().rawQuery("SELECT id,name,qty,min_qty,cost,sale FROM items ORDER BY name",null);}
