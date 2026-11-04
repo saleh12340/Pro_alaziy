@@ -622,6 +622,9 @@ public class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.WHITE);
         root.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        root.setFocusableInTouchMode(true);
+        root.setClipChildren(false);
+        root.setClipToPadding(false);
 
         LinearLayout bar=new LinearLayout(this);
         bar.setOrientation(LinearLayout.HORIZONTAL);
@@ -648,7 +651,17 @@ public class MainActivity extends Activity {
         root.addView(bar,new LinearLayout.LayoutParams(-1,-2));
 
         ScrollView sv=new ScrollView(this);
-        sv.setFillViewport(true); sv.setClipToPadding(false);
+        sv.setTag("pageScrollContainer");
+        sv.setFillViewport(true);
+        sv.setClipToPadding(false);
+        sv.setSmoothScrollingEnabled(true);
+        sv.setVerticalScrollBarEnabled(true);
+        sv.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
+        sv.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
+        sv.setFocusable(false);
+        sv.setFocusableInTouchMode(false);
+        sv.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+        sv.setSaveEnabled(true);
         content=new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(dp(6),dp(4),dp(6),dp(8));
@@ -663,9 +676,59 @@ public class MainActivity extends Activity {
         bottom.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         root.addView(bottom,new LinearLayout.LayoutParams(-1,-2));
         setContentView(root);
+        root.requestFocus();
+        installStableViewport(root);
         // إعادة قياس متدرجة بعد اكتمال كل البطاقات والصفوف تمنع قص النص والتداخل.
         finalizeAdaptiveLayout(root);
         if(withDefaultNav) attachDefaultBottomNav(title);
+    }
+
+    /**
+     * يثبت رأس الصفحة وشريط التنقل أسفلها، ويترك منطقة المحتوى وحدها قابلة للتمرير.
+     * عند ظهور لوحة المفاتيح يخفي شريط التنقل مؤقتاً ويعيد إظهاره عند إغلاقها،
+     * كما يمرر الحقل النشط إلى مجال الرؤية بدلاً من أن تغطيه لوحة المفاتيح.
+     */
+    void installStableViewport(View pageRoot){
+        if(pageRoot==null)return;
+        pageRoot.getViewTreeObserver().addOnGlobalLayoutListener(()->{
+            try{
+                android.graphics.Rect visible=new android.graphics.Rect();
+                pageRoot.getWindowVisibleDisplayFrame(visible);
+                int total=pageRoot.getRootView().getHeight();
+                boolean keyboardVisible=total-visible.bottom>dp(160);
+                if(bottom!=null && bottom.getParent()==pageRoot){
+                    int wanted=keyboardVisible?View.GONE:View.VISIBLE;
+                    if(bottom.getVisibility()!=wanted)bottom.setVisibility(wanted);
+                }
+            }catch(Throwable ignored){}
+        });
+        pageRoot.getViewTreeObserver().addOnGlobalFocusChangeListener((oldFocus,newFocus)->{
+            if(!(newFocus instanceof EditText))return;
+            pageRoot.postDelayed(()->{
+                try{
+                    ScrollView scroll=findPageScroll(pageRoot);
+                    if(scroll==null||newFocus.getWindowToken()==null)return;
+                    android.graphics.Rect rect=new android.graphics.Rect();
+                    newFocus.getDrawingRect(rect);
+                    scroll.offsetDescendantRectToMyCoords(newFocus,rect);
+                    rect.bottom+=dp(28);
+                    scroll.requestChildRectangleOnScreen(newFocus,rect,true);
+                }catch(Throwable ignored){}
+            },180);
+        });
+    }
+
+    ScrollView findPageScroll(View view){
+        if(view==null)return null;
+        if(view instanceof ScrollView && "pageScrollContainer".equals(view.getTag()))return (ScrollView)view;
+        if(view instanceof ViewGroup){
+            ViewGroup group=(ViewGroup)view;
+            for(int i=0;i<group.getChildCount();i++){
+                ScrollView found=findPageScroll(group.getChildAt(i));
+                if(found!=null)return found;
+            }
+        }
+        return null;
     }
 
     void attachDefaultBottomNav(String activeTitle){
