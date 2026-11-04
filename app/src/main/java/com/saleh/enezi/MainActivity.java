@@ -7954,7 +7954,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
             int index=0;
             while(c.moveToNext()){
                 index++;
-                out.append("\\n").append(index).append(" ـ ").append(c.getString(0))
+                out.append("\n").append(index).append(" ـ ").append(c.getString(0))
                     .append(" | الكمية: ").append(fmt(c.getDouble(1)))
                     .append(" | الإجمالي: ").append(fmt(c.getDouble(2))).append(" ريال");
             }
