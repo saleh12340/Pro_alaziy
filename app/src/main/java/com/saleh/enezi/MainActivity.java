@@ -8827,9 +8827,14 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
             .setTitle("حذف فاتورة الشراء")
             .setMessage("حذف فاتورة الشراء رقم #"+no+"؟ سيتم خصم الكميات من المخزون.")
             .setPositiveButton("حذف",(d,w)->{
-                db.deletePurchase(id);
-                Toast.makeText(this,"تم حذف فاتورة الشراء وتعديل المخزون",Toast.LENGTH_SHORT).show();
-                purchaseInvoices();
+                try{
+                    db.deletePurchase(id);
+                    Toast.makeText(this,"تم حذف فاتورة الشراء وتعديل المخزون والحساب",Toast.LENGTH_SHORT).show();
+                    purchaseInvoices();
+                }catch(Exception e){
+                    android.util.Log.e("AlAzziPurchase","Purchase deletion failed",e);
+                    Toast.makeText(this,"تعذر حذف فاتورة الشراء؛ لم يتم اعتماد التغييرات",Toast.LENGTH_LONG).show();
+                }
             })
             .setNegativeButton("إلغاء",null)
             .show();
