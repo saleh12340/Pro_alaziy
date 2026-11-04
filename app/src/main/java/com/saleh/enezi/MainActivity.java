@@ -5319,15 +5319,15 @@ void operationActions(long customerId,String customerName,long tid,String detail
             }
             tx=db.getWritableDatabase();
             tx.beginTransaction();
-            db.supplier(savedSupplier,"");
+            long supplierId=db.supplier(savedSupplier,"");
+            if(supplierId<=0)throw new Exception("supplier");
             purchaseId=db.addPurchaseAuto(savedSupplier,sum,db.now());
             if(purchaseId<=0)throw new Exception("purchase");
             savedNo=db.purchaseNo(purchaseId);
             db.replacePurchaseLines(purchaseId,lines);
             db.updateStockFromPurchase(lines,purchaseId);
             tx.execSQL("UPDATE purchase_invoices SET paid=? WHERE id=?",new Object[]{paid,purchaseId});
-            long supplierId=db.supplierIdByName(savedSupplier);
-            if(supplierId>0&&paid>0)db.addSupplierPayment(supplierId,paid,"دفعة فاتورة شراء رقم "+savedNo,savedNo);
+            if(paid>0)db.addSupplierPayment(supplierId,paid,"دفعة فاتورة شراء رقم "+savedNo,savedNo);
             tx.setTransactionSuccessful();
             tx.endTransaction();
             tx=null;
