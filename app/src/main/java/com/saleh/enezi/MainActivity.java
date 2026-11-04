@@ -9707,7 +9707,42 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         return p;
     }
 
+    /**
+     * يفتح محادثة العميل نفسها في واتساب مع نص جاهز؛ لا يكتفي بفتح قائمة المشاركة.
+     * ملفات PDF والصور تبقى عبر ACTION_SEND لأن رابط wa.me لا يقبل إرفاق ملف مباشرة.
+     */
+    void openWhatsAppCustomerChat(String phone,String text){
+        String p=normalizeWhatsAppPhone(phone);
+        if(p.isEmpty()||!p.matches("\\d{10,15}")){
+            Toast.makeText(this,"أضف رقم هاتف العميل بصيغة صحيحة مع مفتاح الدولة لفتح محادثة واتساب",Toast.LENGTH_LONG).show();
+            return;
+        }
+        String message=text==null?"":text;
+        Uri chatUri=Uri.parse("https://wa.me/"+p+(message.isEmpty()?"":"?text="+Uri.encode(message)));
+        Intent chat=new Intent(Intent.ACTION_VIEW,chatUri);
+        try{
+            chat.setPackage("com.whatsapp");
+            startActivity(chat);
+            return;
+        }catch(Exception ignored){}
+        try{
+            chat.setPackage("com.whatsapp.w4b");
+            startActivity(chat);
+            return;
+        }catch(Exception ignored){}
+        try{
+            chat.setPackage(null);
+            startActivity(chat);
+        }catch(Exception e){
+            Toast.makeText(this,"تعذر فتح محادثة واتساب. تأكد من تثبيت واتساب وصحة الرقم.",Toast.LENGTH_LONG).show();
+        }
+    }
+
     void shareWhatsAppToCustomer(String phone,String text,Uri image){
+        if(image==null){
+            openWhatsAppCustomerChat(phone,text);
+            return;
+        }
         Intent i=new Intent(Intent.ACTION_SEND);
         i.setType(image!=null?"image/png":"text/plain");
         if(text!=null&&!text.isEmpty())i.putExtra(Intent.EXTRA_TEXT,text);
@@ -10608,7 +10643,8 @@ void account(long id,String name){
             call.setOnClickListener(v->{try{startActivity(new Intent(Intent.ACTION_DIAL,Uri.parse("tel:"+clean)));}catch(Exception ignored){}});
             head.addView(call,new LinearLayout.LayoutParams(dp(30),dp(34)));
             Button wa=button("💬"); wa.setTextSize(13); wa.setTextColor(Color.rgb(105,105,105)); wa.setPadding(0,0,0,0); wa.setBackgroundColor(Color.TRANSPARENT);
-            wa.setOnClickListener(v->shareWhatsAppToCustomer(customerPhone,"بقالة العزي للمواد الغذائية\n"+balanceText(currentBal),null));
+            wa.setOnClickListener(v->openWhatsAppCustomerChat(customerPhone,
+                "السلام عليكم "+name+"\nبقالة العزي للمواد الغذائية\n"+balanceText(currentBal)));
             head.addView(wa,new LinearLayout.LayoutParams(dp(30),dp(34)));
         }
         Button edit=button("⋮"); edit.setTextSize(16); edit.setPadding(0,0,0,0); edit.setBackgroundColor(Color.TRANSPARENT);
@@ -10676,7 +10712,8 @@ void account(long id,String name){
         }
         pdf.setOnClickListener(v->shareAccountPdfToWhatsApp(id,name));
         img.setOnClickListener(v->saveAccountStatementImage(id,name));
-        waShare.setOnClickListener(v->shareAccountPdfToWhatsApp(id,name));
+        waShare.setOnClickListener(v->openWhatsAppCustomerChat(customerPhone,
+            "السلام عليكم "+name+"\nبقالة العزي للمواد الغذائية\nكشف حساب العميل\nالرصيد الحالي: "+balanceText(db.balance(id))));
         printAll.setOnClickListener(v->printAccountStatementBluetooth(id,name));
         shareSel.setOnClickListener(v->{if(selectedIds.isEmpty())Toast.makeText(this,"حدد عملية أولاً",Toast.LENGTH_SHORT).show();else shareSelectedTransactions(id,name,new ArrayList<>(selectedIds));});
         printSel.setOnClickListener(v->{if(selectedIds.isEmpty())Toast.makeText(this,"حدد عملية أولاً",Toast.LENGTH_SHORT).show();else printSelectedTransactions(id,name,new ArrayList<>(selectedIds));});
