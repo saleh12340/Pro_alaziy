@@ -3742,14 +3742,12 @@ void operationActions(long customerId,String customerName,long tid,String detail
         content.addView(top1);
 
         LinearLayout top2=new LinearLayout(this);top2.setOrientation(LinearLayout.HORIZONTAL);top2.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);addSpace(5);
-        Button print=button("🖨 طباعة"),shareNotes=button("📲 واتساب"),saveImage=button("💾 حفظ صورة"),clear=button("🧹 تفريغ");clear.setTextColor(RED);
-        top2.addView(print,new LinearLayout.LayoutParams(0,dp(44),1));
-        LinearLayout.LayoutParams y1=new LinearLayout.LayoutParams(0,dp(44),1);y1.setMargins(dp(5),0,0,0);top2.addView(shareNotes,y1);
-        LinearLayout.LayoutParams y2=new LinearLayout.LayoutParams(0,dp(44),1);y2.setMargins(dp(5),0,0,0);top2.addView(saveImage,y2);
-        LinearLayout.LayoutParams y3=new LinearLayout.LayoutParams(0,dp(44),1);y3.setMargins(dp(5),0,0,0);top2.addView(clear,y3);
+        Button print=button("🖨 طباعة"),shareNotes=button("📲 واتساب"),saveImage=button("💾 صورة"),savePdf=button("📄 PDF"),clear=button("🧹 تفريغ");clear.setTextColor(RED);
+        Button[] noteActions={print,shareNotes,saveImage,savePdf,clear};
+        for(Button action:noteActions){LinearLayout.LayoutParams ap=new LinearLayout.LayoutParams(0,dp(44),1);ap.setMargins(dp(2),0,dp(2),0);top2.addView(action,ap);}
         content.addView(top2);addSpace(6);
         fresh.setOnClickListener(v->newNotesPage());history.setOnClickListener(v->showNotesHistory());
-        shareNotes.setOnClickListener(v->shareCurrentNotes());saveImage.setOnClickListener(v->saveCurrentNotesImage());
+        shareNotes.setOnClickListener(v->shareCurrentNotes());saveImage.setOnClickListener(v->saveCurrentNotesImage());savePdf.setOnClickListener(v->saveCurrentNotesPdf());
         print.setOnClickListener(v->printCurrentNotes());print.setOnLongClickListener(v->{showSmartPrintDialog();return true;});clear.setOnClickListener(v->clearNotesPage());
 
         LinearLayout controls=card();LinearLayout cr=new LinearLayout(this);cr.setGravity(Gravity.CENTER);Button minus=button("−");TextView fs=tv("حجم الخط "+noteFontSize,11);fs.setGravity(Gravity.CENTER);Button plus=button("+");minus.setOnClickListener(v->{noteFontSize=Math.max(10,noteFontSize-1); saveNotePrefs(); notes();});plus.setOnClickListener(v->{noteFontSize=Math.min(24,noteFontSize+1); saveNotePrefs(); notes();});cr.addView(minus,new LinearLayout.LayoutParams(dp(38),dp(34)));cr.addView(fs,new LinearLayout.LayoutParams(dp(100),dp(34)));cr.addView(plus,new LinearLayout.LayoutParams(dp(38),dp(34)));Switch sw=new Switch(this);sw.setText("وضع التمرير: "+(noteScrollMode?"مفعل":"متوقف"));sw.setChecked(noteScrollMode);sw.setOnCheckedChangeListener((b,x)->{noteScrollMode=x;b.setText("وضع التمرير: "+(x?"مفعل":"متوقف"));});cr.addView(sw,new LinearLayout.LayoutParams(-2,dp(34)));controls.addView(cr);content.addView(controls,new LinearLayout.LayoutParams(-1,dp(44)));addSpace(5);
@@ -4338,11 +4336,72 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 savedUri=Uri.fromFile(file);
                 sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,savedUri));
             }
+            notifySavedDocument("تم حفظ صورة الملاحظة","اضغط لفتح الصورة",savedUri,"image/png","صورة الملاحظات");
             Toast.makeText(this,"تم حفظ صورة الملاحظة في الصور",Toast.LENGTH_LONG).show();
         }catch(Exception e){
             android.util.Log.e("AlAzziNotes","Save note image failed",e);
             Toast.makeText(this,"تعذر حفظ صورة الملاحظة",Toast.LENGTH_LONG).show();
         }
+    }
+
+    void saveCurrentNotesPdf(){
+        if(currentNotePageId<=0){Toast.makeText(this,"لا توجد صفحة ملاحظات للحفظ",Toast.LENGTH_SHORT).show();return;}
+        try{
+            File source=createNotesPrintPdf(currentNotePageId);
+            String name="ملاحظات_"+currentNotePageId+"_"+new SimpleDateFormat("yyyyMMdd_HHmmss",Locale.US).format(new Date())+".pdf";
+            Uri uri=null;
+            if(Build.VERSION.SDK_INT>=29){
+                ContentValues values=new ContentValues();
+                values.put(MediaStore.Downloads.DISPLAY_NAME,name);
+                values.put(MediaStore.Downloads.MIME_TYPE,"application/pdf");
+                values.put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOCUMENTS+"/بقالة العزي/الملاحظات");
+                values.put(MediaStore.Downloads.IS_PENDING,1);
+                uri=getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
+                if(uri==null)throw new IllegalStateException("تعذر إنشاء ملف PDF");
+                try(InputStream in=new FileInputStream(source);OutputStream out=getContentResolver().openOutputStream(uri)){
+                    if(out==null)throw new IllegalStateException("تعذر فتح ملف PDF للحفظ");
+                    byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);out.flush();
+                }
+                ContentValues done=new ContentValues();done.put(MediaStore.Downloads.IS_PENDING,0);
+                getContentResolver().update(uri,done,null,null);
+            }else{
+                File dir=new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS),"بقالة العزي/الملاحظات");
+                if(!dir.exists()&&!dir.mkdirs())throw new IllegalStateException("تعذر إنشاء مجلد PDF");
+                File dest=new File(dir,name);
+                try(InputStream in=new FileInputStream(source);OutputStream out=new FileOutputStream(dest)){
+                    byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);out.flush();
+                }
+                uri=FileProvider.getUriForFile(this,getPackageName()+".fileprovider",dest);
+            }
+            notifySavedDocument("تم حفظ ملف PDF","اضغط لفتح كشف الملاحظات",uri,"application/pdf","ملف PDF");
+            Toast.makeText(this,"تم حفظ ملف PDF في المستندات",Toast.LENGTH_LONG).show();
+        }catch(Exception e){
+            android.util.Log.e("AlAzziNotes","Save PDF failed",e);
+            Toast.makeText(this,"تعذر إنشاء أو حفظ ملف PDF",Toast.LENGTH_LONG).show();
+        }
+    }
+
+    void notifySavedDocument(String title,String message,Uri uri,String mime,String fallbackName){
+        try{
+            if(uri==null)return;
+            if(Build.VERSION.SDK_INT>=33&&checkSelfPermission("android.permission.POST_NOTIFICATIONS")!=PackageManager.PERMISSION_GRANTED){
+                Toast.makeText(this,"تم الحفظ؛ فعّل إذن الإشعارات لتلقي إشعار فتح الملف",Toast.LENGTH_LONG).show();return;
+            }
+            String channel="saved_files";
+            android.app.NotificationManager manager=(android.app.NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+            if(Build.VERSION.SDK_INT>=26){
+                android.app.NotificationChannel ch=new android.app.NotificationChannel(channel,"الملفات المحفوظة",android.app.NotificationManager.IMPORTANCE_DEFAULT);
+                ch.setDescription("إشعار فتح الملفات بعد حفظها");manager.createNotificationChannel(ch);
+            }
+            Intent open=new Intent(Intent.ACTION_VIEW);
+            open.setDataAndType(uri,mime);
+            open.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            PendingIntent pending=PendingIntent.getActivity(this,(int)(System.currentTimeMillis()&0x7fffffff),open,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            android.app.Notification.Builder builder=Build.VERSION.SDK_INT>=26?new android.app.Notification.Builder(this,channel):new android.app.Notification.Builder(this);
+            builder.setSmallIcon(com.saleh.enezi.R.drawable.ic_store).setContentTitle(title).setContentText(message)
+                .setContentIntent(pending).setAutoCancel(true).setCategory(android.app.Notification.CATEGORY_STATUS);
+            manager.notify((int)(System.currentTimeMillis()%100000),builder.build());
+        }catch(Exception e){android.util.Log.e("AlAzziFiles","Could not notify saved file "+fallbackName,e);}
     }
 
     void printCurrentNotes(){
