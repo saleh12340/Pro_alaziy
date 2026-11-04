@@ -7948,6 +7948,19 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         void deleteItem(long id){if(id>0)getWritableDatabase().delete("items","id=?",new String[]{String.valueOf(id)});}
         int transactionCount(long id){Cursor c=getReadableDatabase().rawQuery("SELECT COUNT(*) FROM transactions WHERE customer_id=?",new String[]{String.valueOf(id)});int x=c.moveToFirst()?c.getInt(0):0;c.close();return x;}
         String invoiceNoFromTransaction(String details){if(details==null)return "";String p="فاتورة مبيعات رقم ";return details.startsWith(p)?details.substring(p.length()).trim():"";}
+        String invoiceFullDetails(String no){
+            Cursor c=getReadableDatabase().rawQuery("SELECT name,qty,total FROM invoice_items WHERE invoice_id=(SELECT id FROM invoices WHERE no=? ORDER BY id DESC LIMIT 1) ORDER BY id",new String[]{no});
+            StringBuilder out=new StringBuilder("تفاصيل الفاتورة:");
+            int index=0;
+            while(c.moveToNext()){
+                index++;
+                out.append("\\n").append(index).append(" ـ ").append(c.getString(0))
+                    .append(" | الكمية: ").append(fmt(c.getDouble(1)))
+                    .append(" | الإجمالي: ").append(fmt(c.getDouble(2))).append(" ريال");
+            }
+            c.close();
+            return index==0?"تفاصيل الأصناف غير متاحة":out.toString();
+        }
         String invoiceCompactDetails(String no){Cursor c=getReadableDatabase().rawQuery("SELECT name,qty,total FROM invoice_items WHERE invoice_id=(SELECT id FROM invoices WHERE no=? ORDER BY id DESC LIMIT 1) ORDER BY id",new String[]{no});StringBuilder s=new StringBuilder("تفاصيل: ");int n=0;while(c.moveToNext()&&n<6){if(n>0)s.append(" • ");s.append(c.getString(0)).append(" × ").append(fmt(c.getDouble(1))).append(" = ").append(fmt(c.getDouble(2)));n++;}c.close();return n==0?"تفاصيل الفاتورة غير متاحة":s.toString();}
         Cursor purchaseLines(long id){return getReadableDatabase().rawQuery("SELECT id,name,qty,cost,sale,total FROM purchase_items WHERE purchase_id=? ORDER BY id",new String[]{String.valueOf(id)});}
         String purchaseSupplier(long id){Cursor c=getReadableDatabase().rawQuery("SELECT COALESCE(supplier,'') FROM purchase_invoices WHERE id=?",new String[]{String.valueOf(id)});String x=c.moveToFirst()?c.getString(0):"";c.close();return x==null?"":x;}
@@ -10644,7 +10657,10 @@ void account(long id,String name){
                 operationBox.addView(opType,new LinearLayout.LayoutParams(-1,-2));
                 operationBox.addView(amt,new LinearLayout.LayoutParams(-1,-2));
                 operationBox.addView(dateTv,new LinearLayout.LayoutParams(-1,-2));
-                row.addView(operationBox,new LinearLayout.LayoutParams(dp(104),-2));
+                int screenWidthDp=getResources().getConfiguration().screenWidthDp;
+                int operationWidth=screenWidthDp<360?82:screenWidthDp<400?92:100;
+                int balanceWidth=screenWidthDp<360?68:screenWidthDp<400?76:84;
+                row.addView(operationBox,new LinearLayout.LayoutParams(dp(operationWidth),-2));
 
                 // الوسط: التفاصيل فقط. لا نضع التاريخ هنا حتى لا يضغط النص.
                 LinearLayout info=new LinearLayout(this);
@@ -10660,9 +10676,10 @@ void account(long id,String name){
                     if(on){if(!selectedIds.contains(tid))selectedIds.add(tid);}
                     else selectedIds.remove(tid);
                 });
-                info.addView(ck,new LinearLayout.LayoutParams(dp(28),-2));
+                info.addView(ck,new LinearLayout.LayoutParams(dp(screenWidthDp<360?22:26),-2));
 
-                String detailText=isInv?"فاتورة #"+inv:
+                String invoicePreview=isInv?db.invoiceCompactDetails(inv).replace("تفاصيل: ","").replace(" • ","، "):"";
+                String detailText=isInv?"فاتورة #"+inv+(invoicePreview.trim().isEmpty()?"":" • "+invoicePreview):
                     (d==null||d.trim().isEmpty()?(type==1?"قيد سحب":"دفعة سداد"):d.trim());
                 TextView main=denseText(detailText,12.5f,10f,DARK);
                 main.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
@@ -10685,7 +10702,7 @@ void account(long id,String name){
                 bal.setMaxLines(2);
                 bal.setPadding(dp(3),dp(2),dp(3),dp(2));
                 bal.setBackground(glassFill(Color.argb(210,248,250,248)));
-                row.addView(bal,new LinearLayout.LayoutParams(dp(88),-2));
+                row.addView(bal,new LinearLayout.LayoutParams(dp(balanceWidth),-2));
 
                 // التفاصيل الكاملة مخفية افتراضياً لتقليل ارتفاع السجل وإظهار عمليات أكثر.
                 LinearLayout expanded=new LinearLayout(this);
@@ -10696,7 +10713,7 @@ void account(long id,String name){
                 expanded.setVisibility(View.GONE);
                 String expandedText;
                 if(isInv){
-                    expandedText=db.invoiceCompactDetails(inv)+"\n"+(d==null?"":d);
+                    expandedText=db.invoiceFullDetails(inv)+"\n"+(d==null?"":d);
                 }else{
                     expandedText=(d==null||d.trim().isEmpty()?detailText:d.trim());
                 }
@@ -10705,10 +10722,10 @@ void account(long id,String name){
                 expandedDetails.setTextDirection(View.TEXT_DIRECTION_RTL);
                 expandedDetails.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
                 expandedDetails.setSingleLine(false);
-                expandedDetails.setMaxLines(5);
-                expandedDetails.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                expandedDetails.setMaxLines(40);
+                expandedDetails.setEllipsize(null);
                 expanded.addView(expandedDetails,new LinearLayout.LayoutParams(-1,-2));
-                TextView hint=denseText("اضغط مطولاً لخيارات العملية • اضغط الصف لعرض التفاصيل",9.5f,9f,MUTED);
+                TextView hint=denseText("اضغط مطولاً لخيارات العملية • اضغط الصف لإخفاء التفاصيل",9f,8.5f,MUTED);
                 hint.setGravity(Gravity.RIGHT);
                 expanded.addView(hint,new LinearLayout.LayoutParams(-1,-2));
 
