@@ -14,18 +14,12 @@ android {
         versionName '1.0.3-pro'
     }
 
-    signingConfigs {
-        debugConfig {
-            storeFile file("${rootDir}/debug.keystore")
-            storePassword "android"
-            keyAlias "androiddebugkey"
-            keyPassword "android"
-        }
-    }
+    // Let the Android Gradle Plugin generate/use its standard debug keystore.
+    // A custom root-level keystore is not guaranteed to exist in CI runners.
 
     buildTypes {
         debug {
-            signingConfig signingConfigs.debugConfig
+            // Standard debug signing is applied automatically.
         }
     }
 
