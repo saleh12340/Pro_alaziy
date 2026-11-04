@@ -3177,7 +3177,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 actions.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
 
                 Button editBtn=button("✏️ تعديل");
-                editBtn.setTextSize(12f); editBtn.setTextColor(BLUE); editBtn.setBackground(outline(Color.rgb(239,246,255),dp(1),dp(10));
+                editBtn.setTextSize(12f); editBtn.setTextColor(BLUE); editBtn.setBackground(outline(Color.rgb(239,246,255),dp(1),dp(10)));
 
                 Button deleteBtn=button("🗑️ حذف");
                 deleteBtn.setTextSize(11.5f); deleteBtn.setTextColor(RED); deleteBtn.setBackground(outline(CARD,8));
@@ -8200,7 +8200,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                 totalTv.setTextColor(GREEN); totalTv.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
                 totalTv.setGravity(Gravity.CENTER);
                 totalTv.setPadding(dp(8),dp(4),dp(8),dp(4));
-                totalTv.setBackground(outline(Color.rgb(235,248,239),dp(1),dp(10));
+                totalTv.setBackground(outline(Color.rgb(235,248,239),dp(1),dp(10)));
                 topRow.addView(totalTv,new LinearLayout.LayoutParams(-2,-2));
 
                 card.addView(topRow,new LinearLayout.LayoutParams(-1,-2));
@@ -8212,7 +8212,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                 actionRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
 
                 Button viewBtn=button("👁️ عرض");
-                viewBtn.setTextSize(12f); viewBtn.setTextColor(GREEN); viewBtn.setBackground(outline(Color.rgb(239,249,242),dp(1),dp(10));
+                viewBtn.setTextSize(12f); viewBtn.setTextColor(GREEN); viewBtn.setBackground(outline(Color.rgb(239,249,242),dp(1),dp(10)));
                 viewBtn.setOnClickListener(v->showInvoiceDialog(id,no,cn,total,date));
 
                 Button editBtn=button("✏️ تعديل");
@@ -8220,7 +8220,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                 editBtn.setOnClickListener(v->invoice(true,id));
 
                 Button delBtn=button("🗑️ حذف");
-                delBtn.setTextSize(12f); delBtn.setTextColor(RED); delBtn.setBackground(outline(Color.rgb(255,241,242),dp(1),dp(10));
+                delBtn.setTextSize(12f); delBtn.setTextColor(RED); delBtn.setBackground(outline(Color.rgb(255,241,242),dp(1),dp(10)));
                 delBtn.setOnClickListener(v->new AlertDialog.Builder(this)
                     .setTitle("حذف الفاتورة رقم "+no)
                     .setMessage("سيتم حذف الفاتورة وقيود الحساب.")
