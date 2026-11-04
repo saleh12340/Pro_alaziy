@@ -67,6 +67,9 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle b){
         super.onCreate(b);
+        // فرض اتجاه RTL على نافذة النشاط نفسها، بما في ذلك الشاشات الآمنة والحاويات الحوارية التابعة.
+        getWindow().getDecorView().setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        getWindow().getDecorView().setTextDirection(View.TEXT_DIRECTION_RTL);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         getWindow().setStatusBarColor(ORANGE_SOFT);
         getWindow().setNavigationBarColor(BLUE_SOFT);
@@ -132,6 +135,8 @@ public class MainActivity extends Activity {
     void showStartupRecovery(Throwable error){
         LinearLayout box=new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
+        box.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        box.setTextDirection(View.TEXT_DIRECTION_RTL);
         box.setGravity(Gravity.CENTER);
         box.setPadding(dp(24),dp(24),dp(24),dp(24));
         box.setBackgroundColor(BG);
