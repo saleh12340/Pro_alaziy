@@ -1367,20 +1367,22 @@ void showMoreMenu(){
             // Rounded Card Background (بطاقة مدورة)
             GradientDrawable cBg = new GradientDrawable();
             cBg.setColor(Color.WHITE);
-            cBg.setCornerRadius(dp(16));
-            cBg.setStroke(dp(1), Color.rgb(220, 230, 240));
+            cBg.setCornerRadius(dp(18));
+            cBg.setStroke(dp(1), Color.rgb(222, 232, 243));
             card.setBackground(cBg);
-            card.setElevation(dp(2));
+            card.setElevation(dp(3));
 
             // Rounded Icon Badge
             TextView iconView = tv(icons[i], 20);
             iconView.setGravity(Gravity.CENTER);
             iconView.setTextColor(Color.WHITE);
-            GradientDrawable iBg = new GradientDrawable();
-            iBg.setColor(iconBgColors[i]);
-            iBg.setCornerRadius(dp(12));
+            iconView.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+            GradientDrawable iBg = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                    new int[]{iconBgColors[i],Color.rgb(Math.max(0,Color.red(iconBgColors[i])-22),Math.max(0,Color.green(iconBgColors[i])-22),Math.max(0,Color.blue(iconBgColors[i])-22))});
+            iBg.setCornerRadius(dp(15));
             iconView.setBackground(iBg);
-            card.addView(iconView, new LinearLayout.LayoutParams(dp(42), dp(42)));
+            iconView.setElevation(dp(3));
+            card.addView(iconView, new LinearLayout.LayoutParams(dp(48), dp(48)));
 
             // Text Info
             LinearLayout textBox = new LinearLayout(this);
@@ -1392,8 +1394,10 @@ void showMoreMenu(){
             titleTv.setTextColor(TEXT);
             titleTv.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
 
-            TextView descTv = tv(descriptions[i], 11f);
+            TextView descTv = tv(descriptions[i], 11.5f);
             descTv.setTextColor(MUTED);
+            descTv.setMaxLines(2);
+            descTv.setEllipsize(null);
 
             textBox.addView(titleTv, new LinearLayout.LayoutParams(-1, -2));
             textBox.addView(descTv, new LinearLayout.LayoutParams(-1, -2));
@@ -5139,13 +5143,42 @@ void operationActions(long customerId,String customerName,long tid,String detail
         Runnable redraw=()->{
             rows.removeAllViews();
             double sum=0;
+            int index=0;
             for(UnifiedInvoiceItem x:items){
-                sum+=x.total;
-                TextView row=tv(fmt(x.total)+" | "+fmt(x.qty)+" | "+x.name+" | "+fmt(x.unitPrice)+(sale?"":" | "+fmt(x.salePrice)),11);
-                row.setSingleLine(false);
-                row.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
-                row.setPadding(dp(5),0,dp(5),0);
-                rows.addView(row,new LinearLayout.LayoutParams(-1,dp(38)));
+                sum+=x.total; index++;
+                LinearLayout row=new LinearLayout(this);
+                row.setOrientation(LinearLayout.VERTICAL);
+                row.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+                row.setPadding(dp(10),dp(7),dp(10),dp(7));
+                row.setBackground(outline(Color.WHITE,dp(1),dp(12)));
+                LinearLayout head=new LinearLayout(this);
+                head.setOrientation(LinearLayout.HORIZONTAL);
+                head.setGravity(Gravity.CENTER_VERTICAL);
+                head.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+                TextView idx=tv(String.valueOf(index),11);
+                idx.setTextColor(Color.WHITE);idx.setGravity(Gravity.CENTER);
+                idx.setBackground(rounded(BLUE_PRIMARY,dp(8)));
+                head.addView(idx,new LinearLayout.LayoutParams(dp(24),dp(24)));
+                TextView itemName=tv(x.name,14);
+                itemName.setTextColor(TEXT);itemName.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+                itemName.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+                itemName.setPadding(dp(8),0,dp(4),0);
+                itemName.setMaxLines(2);itemName.setEllipsize(null);
+                head.addView(itemName,new LinearLayout.LayoutParams(0,-2,1));
+                TextView lineTotal=tv(fmt(x.total)+" ر.ي",13);
+                lineTotal.setTextColor(sale?GREEN:GOLD);lineTotal.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+                lineTotal.setGravity(Gravity.CENTER);
+                lineTotal.setBackground(outline(sale?Color.rgb(235,248,239):Color.rgb(255,247,231),dp(1),dp(9)));
+                lineTotal.setPadding(dp(7),dp(3),dp(7),dp(3));
+                head.addView(lineTotal,new LinearLayout.LayoutParams(-2,dp(30)));
+                row.addView(head,new LinearLayout.LayoutParams(-1,-2));
+                TextView meta=tv("الكمية: "+fmt(x.qty)+"   •   الوحدة: "+fmt(x.unitPrice)+(sale?"":"   •   سعر البيع: "+fmt(x.salePrice)),11.5f);
+                meta.setTextColor(MUTED);meta.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+                meta.setPadding(dp(32),dp(3),dp(4),0);
+                row.addView(meta,new LinearLayout.LayoutParams(-1,-2));
+                LinearLayout.LayoutParams rlp=new LinearLayout.LayoutParams(-1,-2);
+                rlp.setMargins(0,0,0,dp(5));
+                rows.addView(row,rlp);
             }
             finalTotal.setText("الإجمالي النهائي: "+fmt(sum)+" ريال");
             double p=parseDoubleSafe(paidRef.getText().toString(),0);
