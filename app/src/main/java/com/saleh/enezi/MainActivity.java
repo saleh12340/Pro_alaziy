@@ -7884,7 +7884,18 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         Cursor purchaseLines(long id){return getReadableDatabase().rawQuery("SELECT id,name,qty,cost,sale,total FROM purchase_items WHERE purchase_id=? ORDER BY id",new String[]{String.valueOf(id)});}
         String purchaseSupplier(long id){Cursor c=getReadableDatabase().rawQuery("SELECT COALESCE(supplier,'') FROM purchase_invoices WHERE id=?",new String[]{String.valueOf(id)});String x=c.moveToFirst()?c.getString(0):"";c.close();return x==null?"":x;}
         String purchaseNo(long id){Cursor c=getReadableDatabase().rawQuery("SELECT COALESCE(no,'') FROM purchase_invoices WHERE id=?",new String[]{String.valueOf(id)});String x=c.moveToFirst()?c.getString(0):"";c.close();return x==null?"":x;}
-        void updatePurchase(long id,String no,String supplier,double total){ContentValues v=new ContentValues();v.put("no",no);v.put("supplier",supplier);v.put("total",total);getWritableDatabase().update("purchase_invoices",v,"id=?",new String[]{String.valueOf(id)});}
+        void updatePurchase(long id,String no,String supplier,double total){
+            SQLiteDatabase d=getWritableDatabase();
+            String previousNo=purchaseNo(id);
+            ContentValues v=new ContentValues();v.put("no",no);v.put("supplier",canon(supplier));v.put("total",total);
+            d.update("purchase_invoices",v,"id=?",new String[]{String.valueOf(id)});
+            long newSupplierId=supplierIdByName(supplier);
+            if(newSupplierId>0&&!previousNo.isEmpty()){
+                ContentValues paymentOwner=new ContentValues();paymentOwner.put("supplier_id",newSupplierId);
+                d.update("supplier_transactions",paymentOwner,"invoice_no=? AND details=?",
+                    new String[]{previousNo,"دفعة فاتورة شراء رقم "+previousNo});
+            }
+        }
         void revertStockFromPurchase(long purchaseId){
             SQLiteDatabase d=getWritableDatabase();
             Cursor c=null;
@@ -7914,7 +7925,23 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
             }
             d.delete("purchase_items","purchase_id=?",new String[]{String.valueOf(purchaseId)});
         }
-        void deletePurchase(long id){if(id<=0)return;revertStockFromPurchase(id);getWritableDatabase().delete("purchase_invoices","id=?",new String[]{String.valueOf(id)});}
+        void deletePurchase(long id){
+            if(id<=0)return;
+            SQLiteDatabase d=getWritableDatabase();
+            d.beginTransaction();
+            try{
+                String no=purchaseNo(id);
+                revertStockFromPurchase(id);
+                if(!no.isEmpty()){
+                    d.delete("supplier_transactions","invoice_no=? AND details=?",
+                        new String[]{no,"دفعة فاتورة شراء رقم "+no});
+                }
+                d.delete("purchase_invoices","id=?",new String[]{String.valueOf(id)});
+                d.setTransactionSuccessful();
+            }finally{
+                if(d.inTransaction())d.endTransaction();
+            }
+        }
         String supplierPhoneByName(String n){Cursor c=getReadableDatabase().rawQuery("SELECT COALESCE(phone,'') FROM suppliers WHERE name=? ORDER BY id DESC LIMIT 1",new String[]{n==null?"":n});String x=c.moveToFirst()?c.getString(0):"";c.close();return x==null?"":x;}
         Cursor invoices(){return getReadableDatabase().rawQuery("SELECT id,no,customer,total,date FROM invoices ORDER BY datetime(date) DESC, id DESC LIMIT 100",null);}
         Cursor recentActivity(){
