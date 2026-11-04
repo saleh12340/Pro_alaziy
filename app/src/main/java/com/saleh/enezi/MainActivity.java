@@ -5304,7 +5304,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
         content.addView(remaining,new LinearLayout.LayoutParams(-1,dp(44)));
         final EditText paidRef=paid;
         final EditText remainingRef=remaining;
-        Runnable redraw=()->{
+        final Runnable[] redraw=new Runnable[1];
+        redraw[0]=()->{
             rows.removeAllViews();
             double sum=0;
             for(int index=0;index<items.size();index++){
@@ -5340,7 +5341,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 for(int i=0;i<cells.length;i++){
                     row.addView(cells[i],new LinearLayout.LayoutParams(0,dp(30),invoiceWeights[i]));
                 }
-                remove.setOnClickListener(v->{items.remove(x);redraw.run();});
+                remove.setOnClickListener(v->{items.remove(x);redraw[0].run();});
                 if(index%2==1)row.setBackgroundColor(Color.rgb(248,251,254));
                 rows.addView(row,new LinearLayout.LayoutParams(-1,dp(31)));
                 if(index<items.size()-1){
@@ -5365,7 +5366,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 if(!sale)sp=parseDoubleSafe(salePrice.getText().toString(),-1);
                 if(!sale && sp<0)throw new Exception();
                 items.add(new UnifiedInvoiceItem(nm,q,t,u,sp));
-                redraw.run();
+                redraw[0].run();
                 total.setText("");
                 qty.setText("1");
                 name.setText("");
@@ -5380,7 +5381,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         if(paidRef!=null){
             paidRef.addTextChangedListener(new TextWatcher(){
                 public void beforeTextChanged(CharSequence s,int a,int b,int c){}
-                public void onTextChanged(CharSequence s,int a,int b,int c){redraw.run();}
+                public void onTextChanged(CharSequence s,int a,int b,int c){redraw[0].run();}
                 public void afterTextChanged(Editable e){}
             });
         }
@@ -5448,7 +5449,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         sb.setOnClickListener(v->{if(!sale)unifiedInvoiceForm(InvoiceType.SALE);});
         pb.setOnClickListener(v->{if(sale)unifiedInvoiceForm(InvoiceType.PURCHASE);});
         content.setPadding(dp(6),dp(4),dp(6),dp(18));
-        redraw.run();
+        redraw[0].run();
     }
 
     double parseDoubleSafe(String value,double fallback){
