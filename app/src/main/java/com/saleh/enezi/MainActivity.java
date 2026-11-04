@@ -3246,7 +3246,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 clearForm.run();
                 refresh[0].run();
             }catch(Exception e){
-                Toast.makeText(this,"أدخل بيانات الصنف بشكل صحيح",Toast.LENGTH_SHORT).show();
+                String message=e instanceof IllegalArgumentException&&e.getMessage()!=null?e.getMessage():"أدخل بيانات الصنف بشكل صحيح";
+                Toast.makeText(this,message,Toast.LENGTH_LONG).show();
             }
         });
         refresh[0].run();
@@ -10673,7 +10674,11 @@ void customers(){
             .setPositiveButton("حفظ",(d,w)->{
                 String n=name.getText().toString().trim(), p=phone.getText().toString().trim();
                 if(n.isEmpty()){Toast.makeText(this,"اسم العميل مطلوب",Toast.LENGTH_SHORT).show();return;}
-                db.updateCustomer(id,oldName,n,p); customers();
+                if(!db.updateCustomer(id,oldName,n,p)){
+                    Toast.makeText(this,"تعذر الحفظ: يوجد عميل آخر بالاسم نفسه أو أن البيانات غير صحيحة",Toast.LENGTH_LONG).show();
+                    return;
+                }
+                customers();
                 Toast.makeText(this,"تم تعديل بيانات العميل",Toast.LENGTH_SHORT).show();
             }).show();
     }
