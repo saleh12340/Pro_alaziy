@@ -4333,8 +4333,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
                     if(!bmp.compress(Bitmap.CompressFormat.PNG,100,out)) throw new IllegalStateException("تعذر كتابة الصورة");
                     out.flush();
                 }
-                savedUri=Uri.fromFile(file);
-                sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,savedUri));
+                savedUri=FileProvider.getUriForFile(this,getPackageName()+".fileprovider",file);
+                sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,Uri.fromFile(file)));
             }
             notifySavedDocument("تم حفظ صورة الملاحظة","اضغط لفتح الصورة",savedUri,"image/png","صورة الملاحظات");
             Toast.makeText(this,"تم حفظ صورة الملاحظة في الصور",Toast.LENGTH_LONG).show();
@@ -4438,8 +4438,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
             return;
         }
         String[] options=new String[]{
-            "📄 معالج طباعة أندرويد (Print Spooler / ESC POS)",
-            "📶 طباعة بلوتوث حرارية مباشرة (Direct Bluetooth 58mm)",
+            "📄 معالج الطباعة العام في أندرويد (بحسب خدمة الطابعة المثبتة)",
+            "📶 إيصال حراري مباشر عبر Bluetooth — 58mm (ESC/POS)",
             "👁️ معاينة الإيصال والطباعة"
         };
 
