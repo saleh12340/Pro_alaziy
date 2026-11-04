@@ -76,7 +76,7 @@ public final class DocumentCenter {
     }
 
     public static void sharePdf(Activity a, File file, String caption, String chooser){
-        shareFile(a, file, "application/pdf", caption, chooser == null ? "مشاركة ملف PDF" : chooser);
+        sharePdfToWhatsApp(a,file,caption);
     }
 
     public static void shareImage(Activity a, File file, String caption, String chooser){
