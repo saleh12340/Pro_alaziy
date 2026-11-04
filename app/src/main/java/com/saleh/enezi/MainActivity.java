@@ -283,7 +283,8 @@ public class MainActivity extends Activity {
         int top=e.getPaddingTop();
         int bottomPad=e.getPaddingBottom();
         e.setPadding(lr,Math.max(dp(4),top),rr,Math.max(dp(4),bottomPad));
-        e.setHorizontallyScrolling(false);
+        // احتفظ بالتمرير الأفقي في الحقول المالية والهاتف حتى لا تختفي بداية الرقم.
+        e.setHorizontallyScrolling(numeric);
     }
 
     void normalizeInputViews(View v){
@@ -306,8 +307,12 @@ public class MainActivity extends Activity {
             if(e.isSingleLine() || e.getMaxLines()<=1){
                 e.setSingleLine(true);
                 e.setMaxLines(1);
-                e.setHorizontallyScrolling(false);
-                if(Build.VERSION.SDK_INT>=26){
+                int inputClass=e.getInputType() & InputType.TYPE_MASK_CLASS;
+                boolean numericInput=inputClass==InputType.TYPE_CLASS_NUMBER
+                        || inputClass==InputType.TYPE_CLASS_PHONE
+                        || isNumericOrFinancial(String.valueOf(e.getHint()));
+                e.setHorizontallyScrolling(numericInput);
+                if(!numericInput && Build.VERSION.SDK_INT>=26){
                     try{
                         float current=e.getTextSize()/getResources().getDisplayMetrics().scaledDensity;
                         int max=Math.max(13,Math.round(current));
