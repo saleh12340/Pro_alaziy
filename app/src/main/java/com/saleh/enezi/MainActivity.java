@@ -5352,6 +5352,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         };
         unit.setEnabled(true);
         unit.setAlpha(1f);
+        unit.setBackground(classicInvoiceInputBackground(unit.hasFocus(),false,true,unit.length()>0));
         unit.addTextChangedListener(new TextWatcher(){
             public void beforeTextChanged(CharSequence s,int a,int b,int d){}
             public void onTextChanged(CharSequence s,int start,int before,int count){
