@@ -5173,17 +5173,36 @@ void operationActions(long customerId,String customerName,long tid,String detail
             party.setText(initialParty.trim());
             party.setSelection(party.getText().length());
         }
-        content.addView(party,new LinearLayout.LayoutParams(-1,dp(44)));
-        addSpace(3);
+        LinearLayout partyPanel=new LinearLayout(this);
+        partyPanel.setOrientation(LinearLayout.VERTICAL);
+        partyPanel.setPadding(dp(7),dp(5),dp(7),dp(6));
+        partyPanel.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
+        TextView partyLabel=tv(sale?"بيانات العميل":"بيانات المورد",12.5f);
+        partyLabel.setTextColor(DARK);
+        partyLabel.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        partyPanel.addView(partyLabel,new LinearLayout.LayoutParams(-1,dp(23)));
+        partyPanel.addView(party,new LinearLayout.LayoutParams(-1,dp(42)));
+        content.addView(partyPanel,new LinearLayout.LayoutParams(-1,-2));
+        addSpace(4);
 
         TextView invNo=tv(displayInvoiceNo(String.valueOf(sale?db.nextInvoice():db.nextPurchaseNo())),13.5f);
         invNo.setVisibility(View.GONE);
 
-        // إدخال مدمج ومرن: يمتلئ العمود الأيمن أولاً ثم ينتقل الباقي إلى الأيسر.
+        // نموذج إدخال كلاسيكي محاط بإطار مع عناوين ثابتة للحقول.
         LinearLayout itemBox=card();
-        itemBox.setPadding(dp(5),dp(5),dp(5),dp(5));
+        itemBox.setPadding(dp(7),dp(6),dp(7),dp(7));
         itemBox.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
         itemBox.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        TextView itemEntryTitle=tv("إدخال بيانات الأصناف",13f);
+        itemEntryTitle.setTextColor(DARK);
+        itemEntryTitle.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        itemEntryTitle.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+        itemBox.addView(itemEntryTitle,new LinearLayout.LayoutParams(-1,dp(25)));
+        View itemEntryRule=new View(this);
+        itemEntryRule.setBackgroundColor(BORDER);
+        LinearLayout.LayoutParams itemEntryRuleLp=new LinearLayout.LayoutParams(-1,dp(1));
+        itemEntryRuleLp.setMargins(0,0,0,dp(5));
+        itemBox.addView(itemEntryRule,itemEntryRuleLp);
 
         LinearLayout fieldColumns=new LinearLayout(this);
         fieldColumns.setOrientation(LinearLayout.HORIZONTAL);
@@ -5237,9 +5256,20 @@ void operationActions(long customerId,String customerName,long tid,String detail
         salePrice.setVisibility(sale?View.GONE:View.VISIBLE);
 
         java.util.function.BiConsumer<LinearLayout,View> addInvoiceField=(column,view)->{
-            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(44));
-            lp.setMargins(0,0,0,dp(4));
-            column.addView(view,lp);
+            LinearLayout fieldCell=new LinearLayout(this);
+            fieldCell.setOrientation(LinearLayout.VERTICAL);
+            fieldCell.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+            CharSequence hint=((TextView)view).getHint();
+            String fieldLabel=hint==null?"":hint.toString();
+            TextView label=tv(fieldLabel,11f);
+            label.setTextColor(DARK);
+            label.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+            label.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+            fieldCell.addView(label,new LinearLayout.LayoutParams(-1,dp(19)));
+            fieldCell.addView(view,new LinearLayout.LayoutParams(-1,dp(40)));
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
+            lp.setMargins(dp(2),0,dp(2),dp(5));
+            column.addView(fieldCell,lp);
         };
 
         addInvoiceField.accept(rightFields,total);
@@ -5329,9 +5359,33 @@ void operationActions(long customerId,String customerName,long tid,String detail
         EditText paid=numberField(sale?"المبلغ المدفوع":"المبلغ المدفوع للمورد");
         EditText remaining=numberField("المتبقي");
         remaining.setEnabled(false);
-        content.addView(paid,new LinearLayout.LayoutParams(-1,dp(44)));
+        LinearLayout settlementPanel=new LinearLayout(this);
+        settlementPanel.setOrientation(LinearLayout.VERTICAL);
+        settlementPanel.setPadding(dp(7),dp(5),dp(7),dp(6));
+        settlementPanel.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
+        TextView settlementTitle=tv("ملخص المبالغ",12.5f);
+        settlementTitle.setTextColor(DARK);
+        settlementTitle.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        settlementPanel.addView(settlementTitle,new LinearLayout.LayoutParams(-1,dp(23)));
+        LinearLayout settlementFields=new LinearLayout(this);
+        settlementFields.setOrientation(LinearLayout.HORIZONTAL);
+        settlementFields.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        for(EditText amountField:new EditText[]{paid,remaining}){
+            LinearLayout amountCell=new LinearLayout(this);
+            amountCell.setOrientation(LinearLayout.VERTICAL);
+            CharSequence amountHint=amountField.getHint();
+            TextView amountLabel=tv(amountHint==null?"":amountHint.toString(),11f);
+            amountLabel.setTextColor(DARK);
+            amountLabel.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+            amountCell.addView(amountLabel,new LinearLayout.LayoutParams(-1,dp(20)));
+            amountCell.addView(amountField,new LinearLayout.LayoutParams(-1,dp(42)));
+            LinearLayout.LayoutParams amountLp=new LinearLayout.LayoutParams(0,-2,1f);
+            amountLp.setMargins(dp(2),0,dp(2),0);
+            settlementFields.addView(amountCell,amountLp);
+        }
+        settlementPanel.addView(settlementFields,new LinearLayout.LayoutParams(-1,-2));
+        content.addView(settlementPanel,new LinearLayout.LayoutParams(-1,-2));
         addSpace(4);
-        content.addView(remaining,new LinearLayout.LayoutParams(-1,dp(44)));
         final EditText paidRef=paid;
         final EditText remainingRef=remaining;
         final Runnable[] redraw=new Runnable[1];
