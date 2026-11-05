@@ -568,6 +568,36 @@ public class MainActivity extends Activity {
         learningPopup.setElevation(dp(8));
         learningPopup.showAsDropDown(anchor,(anchor.getWidth()-popupWidth)/2,dp(3));
     }
+    // حقول إدخال كلاسيكية حقيقية لنموذج الفاتورة، مستقلة عن تنسيق الحقول العام في بقية التطبيق.
+    void styleClassicInvoiceInput(EditText e){
+        if(e==null)return;
+        e.setMinHeight(dp(44));
+        e.setMinimumHeight(dp(44));
+        e.setPadding(dp(9),dp(2),dp(9),dp(2));
+        e.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+        e.setTextColor(TEXT);
+        e.setHintTextColor(Color.rgb(105,105,105));
+        e.setTextDirection(View.TEXT_DIRECTION_RTL);
+        e.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        e.setSingleLine(true);
+        e.setMaxLines(1);
+        e.setIncludeFontPadding(true);
+        e.setElevation(0f);
+        e.setBackground(classicInvoiceInputBackground(e.hasFocus(),!e.isEnabled()));
+        e.setOnFocusChangeListener((v,focused)->{
+            e.setBackground(classicInvoiceInputBackground(focused,!e.isEnabled()));
+            if(focused)e.postDelayed(e::selectAll,60);
+        });
+    }
+    android.graphics.drawable.Drawable classicInvoiceInputBackground(boolean focused,boolean disabled){
+        GradientDrawable bg=new GradientDrawable();
+        bg.setShape(GradientDrawable.RECTANGLE);
+        bg.setColor(disabled?Color.rgb(242,242,242):Color.WHITE);
+        bg.setCornerRadius(dp(2));
+        bg.setStroke(dp(focused?2:1),focused?GREEN:Color.rgb(75,75,75));
+        return bg;
+    }
+
     EditText numberField(String h){
         EditText e=field(h);
         e.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL|InputType.TYPE_NUMBER_VARIATION_NORMAL);
@@ -5165,6 +5195,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         party.setHorizontallyScrolling(false);
         if(Build.VERSION.SDK_INT>=26){try{party.setAutoSizeTextTypeUniformWithConfiguration(11,16,1,android.util.TypedValue.COMPLEX_UNIT_SP);}catch(Throwable ignored){}}
         party.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
+        styleClassicInvoiceInput(party);
         party.setSelectAllOnFocus(true);
         party.setThreshold(1);
         party.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,
@@ -5254,6 +5285,11 @@ void operationActions(long customerId,String customerName,long tid,String detail
         unit.setAlpha(.88f);
         EditText salePrice=numberField("سعر البيع");
         salePrice.setVisibility(sale?View.GONE:View.VISIBLE);
+        styleClassicInvoiceInput(total);
+        styleClassicInvoiceInput(qty);
+        styleClassicInvoiceInput(name);
+        styleClassicInvoiceInput(unit);
+        styleClassicInvoiceInput(salePrice);
 
         java.util.function.BiConsumer<LinearLayout,View> addInvoiceField=(column,view)->{
             LinearLayout fieldCell=new LinearLayout(this);
@@ -5359,6 +5395,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
         EditText paid=numberField(sale?"المبلغ المدفوع":"المبلغ المدفوع للمورد");
         EditText remaining=numberField("المتبقي");
         remaining.setEnabled(false);
+        styleClassicInvoiceInput(paid);
+        styleClassicInvoiceInput(remaining);
         LinearLayout settlementPanel=new LinearLayout(this);
         settlementPanel.setOrientation(LinearLayout.VERTICAL);
         settlementPanel.setPadding(dp(7),dp(5),dp(7),dp(6));
