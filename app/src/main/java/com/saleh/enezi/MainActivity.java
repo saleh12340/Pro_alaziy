@@ -5158,7 +5158,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
 
         // إدخال مدمج ومرن: يمتلئ العمود الأيمن أولاً ثم ينتقل الباقي إلى الأيسر.
         LinearLayout itemBox=card();
-        itemBox.setPadding(dp(5),dp(5),dp(5),dp(5));\n        itemBox.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
+        itemBox.setPadding(dp(5),dp(5),dp(5),dp(5));
+        itemBox.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
         itemBox.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
 
         LinearLayout fieldColumns=new LinearLayout(this);
@@ -5296,7 +5297,9 @@ void operationActions(long customerId,String customerName,long tid,String detail
         ArrayList<UnifiedInvoiceItem> items=new ArrayList<>();
         TextView finalTotal=tv("الإجمالي النهائي: 0 ريال",15.5f);
         finalTotal.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-        finalTotal.setTextColor(DARK);\n        finalTotal.setBackground(outlined(Color.WHITE,dp(1),dp(2)));\n        finalTotal.setPadding(dp(8),0,dp(8),0);
+        finalTotal.setTextColor(DARK);
+        finalTotal.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
+        finalTotal.setPadding(dp(8),0,dp(8),0);
         finalTotal.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
         content.addView(finalTotal,new LinearLayout.LayoutParams(-1,dp(38)));
 
