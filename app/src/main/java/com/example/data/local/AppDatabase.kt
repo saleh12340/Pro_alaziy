@@ -6,9 +6,6 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 @Database(
     entities = [
@@ -71,11 +68,12 @@ abstract class AppDatabase : RoomDatabase() {
         private class DatabaseCallback(private val context: Context) : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
-                CoroutineScope(Dispatchers.IO).launch {
-                    val appDb = getDatabase(context)
-                    appDb.storeConfigDao().insertOrUpdate(StoreConfigEntity())
-                }
+                // Insert defaults synchronously before the invoice center's one-time legacy import runs.
+                db.execSQL(
+                    "INSERT OR IGNORE INTO store_config " +
+                    "(id,storeNameArabic,storeNameEnglish,storeSubtitle,logoText,address,phone1,phone2,currencySymbol,nextInvoiceNumber,defaultDisclaimerNote,printerPaperWidth) " +
+                    "VALUES (1,'بقالة العزي','Al-Ezzi Grocery','مواد غذائية واستهلاكية','العزي','العنوان: صنعاء','772437314','770000000','ر.ي',1118,'البضاعة المباعة لا ترد ولا تستبدل بعد خروجها من المحل',58)"
+                )
             }
         }
-    }
 }
