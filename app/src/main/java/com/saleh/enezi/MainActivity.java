@@ -10737,8 +10737,21 @@ void account(long id,String name){
         head.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         head.setPadding(dp(6),dp(5),dp(6),dp(5)); head.setBackground(glassFill(Color.argb(215,255,255,255)));
         // زر الرجوع موجود بالفعل في شريط الصفحة العام؛ لا نكرر زر رجوع ثانياً هنا.
+        LinearLayout customerIdentity=new LinearLayout(this);
+        customerIdentity.setOrientation(LinearLayout.VERTICAL);
+        customerIdentity.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT);
         TextView hname=denseText(name,15.5f,13f,DARK); hname.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-        hname.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT); head.addView(hname,new LinearLayout.LayoutParams(0,dp(38),1));
+        hname.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT); hname.setSingleLine(true);
+        hname.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        customerIdentity.addView(hname,new LinearLayout.LayoutParams(-1,dp(22)));
+        if(!customerPhone.isEmpty()){
+            TextView phoneLabel=denseText(customerPhone,10.5f,9f,MUTED);
+            phoneLabel.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT);
+            phoneLabel.setSingleLine(true);
+            phoneLabel.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            customerIdentity.addView(phoneLabel,new LinearLayout.LayoutParams(-1,dp(16)));
+        }
+        head.addView(customerIdentity,new LinearLayout.LayoutParams(0,dp(40),1));
         TextView balHead=denseText(balanceText(currentBal),12.5f,11f,currentBal>0.005?RED:(currentBal<-0.005?BLUE:GREEN));
         balHead.setGravity(Gravity.CENTER); balHead.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         balHead.setBackground(glassFill(currentBal>0.005?Color.argb(210,255,230,233):Color.argb(205,230,248,236)));
