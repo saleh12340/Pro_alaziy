@@ -10759,7 +10759,7 @@ void account(long id,String name){
         addSpace(4);
         LinearLayout accountSummary=new LinearLayout(this); accountSummary.setOrientation(LinearLayout.HORIZONTAL); accountSummary.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         accountSummary.addView(glassStat("إجمالي عليه",fmt(totalDebit)+" ر.ي",RED),new LinearLayout.LayoutParams(0,dp(49),1));
-        LinearLayout summaryGap=new LinearLayout.LayoutParams(0,dp(49),1); summaryGap.setMargins(dp(4),0,dp(4),0);
+        LinearLayout.LayoutParams summaryGap=new LinearLayout.LayoutParams(0,dp(49),1); summaryGap.setMargins(dp(4),0,dp(4),0);
         accountSummary.addView(glassStat("إجمالي له",fmt(totalCredit)+" ر.ي",BLUE),summaryGap);
         accountSummary.addView(glassStat("الرصيد الحالي",balanceText(currentBal),balanceColor(currentBal)),new LinearLayout.LayoutParams(0,dp(49),1));
         content.addView(accountSummary,new LinearLayout.LayoutParams(-1,-2)); addSpace(6);
