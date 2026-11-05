@@ -5320,9 +5320,20 @@ void operationActions(long customerId,String customerName,long tid,String detail
         addInvoiceField.accept(itemInputRow,qty);
         addInvoiceField.accept(itemInputRow,name);
         addInvoiceField.accept(itemInputRow,unit);
-        if(!sale)addInvoiceField.accept(itemInputRow,salePrice);
-
         fieldColumns.addView(itemInputRow,new LinearLayout.LayoutParams(-1,-2));
+
+        // Purchase-only retail price remains on its own half-width row so that
+        // all four classic receipt inputs stay readable on compact phones.
+        if(!sale){
+            LinearLayout purchasePriceRow=new LinearLayout(this);
+            purchasePriceRow.setOrientation(LinearLayout.HORIZONTAL);
+            purchasePriceRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+            purchasePriceRow.setGravity(Gravity.TOP);
+            addInvoiceField.accept(purchasePriceRow,salePrice);
+            View priceSpacer=new View(this);
+            purchasePriceRow.addView(priceSpacer,new LinearLayout.LayoutParams(0,dp(1),1f));
+            fieldColumns.addView(purchasePriceRow,new LinearLayout.LayoutParams(-1,-2));
+        }
         itemBox.addView(fieldColumns,new LinearLayout.LayoutParams(-1,-2));
 
         final boolean[] syncingUnit={false};
