@@ -568,33 +568,45 @@ public class MainActivity extends Activity {
         learningPopup.setElevation(dp(8));
         learningPopup.showAsDropDown(anchor,(anchor.getWidth()-popupWidth)/2,dp(3));
     }
-    // حقول إدخال كلاسيكية حقيقية لنموذج الفاتورة، مستقلة عن تنسيق الحقول العام في بقية التطبيق.
+    // Native Android adaptation of the reference repository's classic receipt cells.
+    // Apply the style to the EditText itself (not only its containing panel), and keep it
+    // stable while focus and text values change.
     void styleClassicInvoiceInput(EditText e){
         if(e==null)return;
-        e.setMinHeight(dp(44));
-        e.setMinimumHeight(dp(44));
-        e.setPadding(dp(9),dp(2),dp(9),dp(2));
+        e.setMinHeight(dp(38));
+        e.setMinimumHeight(dp(38));
+        e.setPadding(dp(8),0,dp(8),0);
         e.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
-        e.setTextColor(TEXT);
-        e.setHintTextColor(Color.rgb(105,105,105));
+        e.setTextSize(13f);
+        e.setTextColor(Color.rgb(15,23,42));
+        e.setHintTextColor(Color.rgb(100,116,139));
         e.setTextDirection(View.TEXT_DIRECTION_RTL);
         e.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         e.setSingleLine(true);
         e.setMaxLines(1);
-        e.setIncludeFontPadding(true);
+        e.setIncludeFontPadding(false);
         e.setElevation(0f);
-        e.setBackground(classicInvoiceInputBackground(e.hasFocus(),!e.isEnabled()));
+        final boolean numeric=(e.getInputType() & InputType.TYPE_CLASS_NUMBER)==InputType.TYPE_CLASS_NUMBER;
+        e.setBackground(classicInvoiceInputBackground(e.hasFocus(),!e.isEnabled(),numeric,e.length()>0));
         e.setOnFocusChangeListener((v,focused)->{
-            e.setBackground(classicInvoiceInputBackground(focused,!e.isEnabled()));
+            e.setBackground(classicInvoiceInputBackground(focused,!e.isEnabled(),numeric,e.length()>0));
             if(focused)e.postDelayed(e::selectAll,60);
         });
+        e.addTextChangedListener(new TextWatcher(){
+            public void beforeTextChanged(CharSequence s,int start,int count,int after){}
+            public void onTextChanged(CharSequence s,int start,int before,int count){
+                e.setBackground(classicInvoiceInputBackground(e.hasFocus(),!e.isEnabled(),numeric,s!=null&&s.length()>0));
+            }
+            public void afterTextChanged(Editable editable){}
+        });
     }
-    android.graphics.drawable.Drawable classicInvoiceInputBackground(boolean focused,boolean disabled){
+    android.graphics.drawable.Drawable classicInvoiceInputBackground(boolean focused,boolean disabled,boolean numeric,boolean populated){
         GradientDrawable bg=new GradientDrawable();
         bg.setShape(GradientDrawable.RECTANGLE);
-        bg.setColor(disabled?Color.rgb(242,242,242):Color.WHITE);
-        bg.setCornerRadius(dp(2));
-        bg.setStroke(dp(focused?2:1),focused?GREEN:Color.rgb(75,75,75));
+        int fill=disabled?Color.rgb(241,245,249):(focused?Color.rgb(239,246,255):(numeric&&populated?Color.rgb(248,250,252):Color.WHITE));
+        bg.setColor(fill);
+        bg.setCornerRadius(dp(5));
+        bg.setStroke(dp(focused?2:1),focused?Color.rgb(29,78,216):Color.rgb(203,213,225));
         return bg;
     }
 
@@ -1804,7 +1816,7 @@ void showGeneralActions(){
         no.setTextColor(GREEN); no.setTypeface(Typeface.DEFAULT,Typeface.BOLD); no.setGravity(Gravity.CENTER);
         GradientDrawable noBg=new GradientDrawable();
         noBg.setColor(Color.WHITE);
-        noBg.setCornerRadius(dp(10));
+        noBg.setCornerRadius(dp(5));
         noBg.setStroke(dp(1),Color.rgb(220,220,220));
         no.setBackground(noBg);
         no.setContentDescription("رقم الفاتورة");
@@ -1816,7 +1828,7 @@ void showGeneralActions(){
         customer.setPadding(dp(10),dp(4),dp(10),dp(4));
         GradientDrawable custBg=new GradientDrawable();
         custBg.setColor(Color.WHITE);
-        custBg.setCornerRadius(dp(10));
+        custBg.setCornerRadius(dp(5));
         custBg.setStroke(dp(1),Color.rgb(220,220,220));
         customer.setBackground(custBg);
         customer.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
@@ -1829,7 +1841,7 @@ void showGeneralActions(){
         TextView dt=tv(db.now(),11); dt.setTextColor(MUTED); dt.setGravity(Gravity.CENTER);
         GradientDrawable dtBg=new GradientDrawable();
         dtBg.setColor(Color.WHITE);
-        dtBg.setCornerRadius(dp(10));
+        dtBg.setCornerRadius(dp(5));
         dtBg.setStroke(dp(1),Color.rgb(220,220,220));
         dt.setBackground(dtBg);
         metaRow.addView(dt,new LinearLayout.LayoutParams(0,dp(36),1.1f));
@@ -1926,8 +1938,8 @@ void showGeneralActions(){
         boxTotal.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
         boxTotal.setPadding(dp(6),dp(2),dp(6),dp(2));
         GradientDrawable btBg=new GradientDrawable();
-        btBg.setColor(Color.WHITE);
-        btBg.setCornerRadius(dp(12));
+        btBg.setColor(Color.rgb(248,250,252));
+        btBg.setCornerRadius(dp(5));
         btBg.setStroke(dp(1),Color.rgb(220,220,220));
         boxTotal.setBackground(btBg);
         invoiceBox.addView(boxTotal,new LinearLayout.LayoutParams(-1,-2));
@@ -5156,8 +5168,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
         LinearLayout classicInvoiceHead=new LinearLayout(this);
         classicInvoiceHead.setOrientation(LinearLayout.VERTICAL);
         classicInvoiceHead.setGravity(Gravity.CENTER);
-        classicInvoiceHead.setPadding(dp(8),dp(7),dp(8),dp(7));
-        classicInvoiceHead.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
+        classicInvoiceHead.setPadding(dp(8),dp(5),dp(8),dp(5));
+        classicInvoiceHead.setBackground(outlined(Color.WHITE,dp(1),dp(5)));
         TextView classicTitle=tv("بقالة العزي للمواد الغذائية",17f);
         classicTitle.setTextColor(DARK);
         classicTitle.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
@@ -5207,12 +5219,12 @@ void operationActions(long customerId,String customerName,long tid,String detail
         LinearLayout partyPanel=new LinearLayout(this);
         partyPanel.setOrientation(LinearLayout.VERTICAL);
         partyPanel.setPadding(dp(7),dp(5),dp(7),dp(6));
-        partyPanel.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
+        partyPanel.setBackground(outlined(Color.WHITE,dp(1),dp(5)));
         TextView partyLabel=tv(sale?"بيانات العميل":"بيانات المورد",12.5f);
         partyLabel.setTextColor(DARK);
         partyLabel.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         partyPanel.addView(partyLabel,new LinearLayout.LayoutParams(-1,dp(23)));
-        partyPanel.addView(party,new LinearLayout.LayoutParams(-1,dp(42)));
+        partyPanel.addView(party,new LinearLayout.LayoutParams(-1,dp(38)));
         content.addView(partyPanel,new LinearLayout.LayoutParams(-1,-2));
         addSpace(4);
 
@@ -5222,7 +5234,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         // نموذج إدخال كلاسيكي محاط بإطار مع عناوين ثابتة للحقول.
         LinearLayout itemBox=card();
         itemBox.setPadding(dp(7),dp(6),dp(7),dp(7));
-        itemBox.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
+        itemBox.setBackground(outlined(Color.WHITE,dp(1),dp(5)));
         itemBox.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         TextView itemEntryTitle=tv("إدخال بيانات الأصناف",13f);
         itemEntryTitle.setTextColor(DARK);
@@ -5302,7 +5314,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
             label.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
             label.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
             fieldCell.addView(label,new LinearLayout.LayoutParams(-1,dp(19)));
-            fieldCell.addView(view,new LinearLayout.LayoutParams(-1,dp(40)));
+            fieldCell.addView(view,new LinearLayout.LayoutParams(-1,dp(38)));
             LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
             lp.setMargins(dp(2),0,dp(2),dp(5));
             column.addView(fieldCell,lp);
@@ -5358,13 +5370,13 @@ void operationActions(long customerId,String customerName,long tid,String detail
         LinearLayout itemTable=new LinearLayout(this);
         itemTable.setOrientation(LinearLayout.VERTICAL);
         itemTable.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        itemTable.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
+        itemTable.setBackground(outlined(Color.WHITE,dp(1),dp(5)));
         LinearLayout tableHeader=new LinearLayout(this);
         tableHeader.setOrientation(LinearLayout.HORIZONTAL);
         tableHeader.setGravity(Gravity.CENTER_VERTICAL);
         tableHeader.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         tableHeader.setPadding(dp(4),dp(2),dp(4),dp(2));
-        tableHeader.setBackgroundColor(Color.rgb(48,55,64));
+        tableHeader.setBackgroundColor(Color.rgb(30,58,138));
         String[] invoiceCols={"اسم الصنف","الكمية","سعر الوحدة","الإجمالي",""};
         float[] invoiceWeights={1.45f,.68f,.88f,.95f,.28f};
         for(int i=0;i<invoiceCols.length;i++){
@@ -5386,8 +5398,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
         ArrayList<UnifiedInvoiceItem> items=new ArrayList<>();
         TextView finalTotal=tv("الإجمالي النهائي: 0 ريال",15.5f);
         finalTotal.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-        finalTotal.setTextColor(DARK);
-        finalTotal.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
+        finalTotal.setTextColor(Color.rgb(30,58,138));
+        finalTotal.setBackground(outlined(Color.rgb(248,250,252),dp(1),dp(5)));
         finalTotal.setPadding(dp(8),0,dp(8),0);
         finalTotal.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
         content.addView(finalTotal,new LinearLayout.LayoutParams(-1,dp(38)));
@@ -5400,7 +5412,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         LinearLayout settlementPanel=new LinearLayout(this);
         settlementPanel.setOrientation(LinearLayout.VERTICAL);
         settlementPanel.setPadding(dp(7),dp(5),dp(7),dp(6));
-        settlementPanel.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
+        settlementPanel.setBackground(outlined(Color.WHITE,dp(1),dp(5)));
         TextView settlementTitle=tv("ملخص المبالغ",12.5f);
         settlementTitle.setTextColor(DARK);
         settlementTitle.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
@@ -5416,7 +5428,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
             amountLabel.setTextColor(DARK);
             amountLabel.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
             amountCell.addView(amountLabel,new LinearLayout.LayoutParams(-1,dp(20)));
-            amountCell.addView(amountField,new LinearLayout.LayoutParams(-1,dp(42)));
+            amountCell.addView(amountField,new LinearLayout.LayoutParams(-1,dp(38)));
             LinearLayout.LayoutParams amountLp=new LinearLayout.LayoutParams(0,-2,1f);
             amountLp.setMargins(dp(2),0,dp(2),0);
             settlementFields.addView(amountCell,amountLp);
