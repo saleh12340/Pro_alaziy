@@ -5124,7 +5124,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         addSpace(3);
         TextView invoiceHeaderNo=tv((sale?"فاتورة مبيعات رقم ":"فاتورة شراء رقم ")+displayInvoiceNo(String.valueOf(sale?db.nextInvoice():db.nextPurchaseNo())),15.5f);
         invoiceHeaderNo.setTextColor(sale?GREEN:GOLD); invoiceHeaderNo.setTypeface(Typeface.DEFAULT,Typeface.BOLD); invoiceHeaderNo.setGravity(Gravity.CENTER);
-        invoiceHeaderNo.setBackground(outlined(Color.WHITE,1,dp(10)));
+        invoiceHeaderNo.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
         content.addView(invoiceHeaderNo,new LinearLayout.LayoutParams(-1,dp(36)));
         addSpace(3);
 
@@ -5141,7 +5141,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         party.setEllipsize(null);
         party.setHorizontallyScrolling(false);
         if(Build.VERSION.SDK_INT>=26){try{party.setAutoSizeTextTypeUniformWithConfiguration(11,16,1,android.util.TypedValue.COMPLEX_UNIT_SP);}catch(Throwable ignored){}}
-        party.setBackground(outlined(CARD,dp(1),dp(14)));
+        party.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
         party.setSelectAllOnFocus(true);
         party.setThreshold(1);
         party.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,
@@ -5158,7 +5158,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
 
         // إدخال مدمج ومرن: يمتلئ العمود الأيمن أولاً ثم ينتقل الباقي إلى الأيسر.
         LinearLayout itemBox=card();
-        itemBox.setPadding(dp(5),dp(5),dp(5),dp(5));
+        itemBox.setPadding(dp(5),dp(5),dp(5),dp(5));\n        itemBox.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
         itemBox.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
 
         LinearLayout fieldColumns=new LinearLayout(this);
@@ -5199,10 +5199,10 @@ void operationActions(long customerId,String customerName,long tid,String detail
         name.setSelectAllOnFocus(true);
         name.setThreshold(1);
         name.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,db.itemNames()));
-        name.setBackground(outlined(CARD,dp(1),14));
+        name.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
         name.setOnClickListener(v->name.selectAll());
         name.setOnFocusChangeListener((v,has)->{
-            name.setBackground(outlined(CARD,has?dp(2):dp(1),14));
+            name.setBackground(outlined(Color.WHITE,has?dp(2):dp(1),dp(2)));
             if(has)name.postDelayed(name::selectAll,60);
         });
 
@@ -5268,18 +5268,18 @@ void operationActions(long customerId,String customerName,long tid,String detail
         LinearLayout itemTable=new LinearLayout(this);
         itemTable.setOrientation(LinearLayout.VERTICAL);
         itemTable.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        itemTable.setBackground(outlined(Color.WHITE,dp(1),dp(8)));
+        itemTable.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
         LinearLayout tableHeader=new LinearLayout(this);
         tableHeader.setOrientation(LinearLayout.HORIZONTAL);
         tableHeader.setGravity(Gravity.CENTER_VERTICAL);
         tableHeader.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         tableHeader.setPadding(dp(4),dp(2),dp(4),dp(2));
-        tableHeader.setBackgroundColor(Color.rgb(239,245,251));
+        tableHeader.setBackgroundColor(Color.rgb(48,55,64));
         String[] invoiceCols={"اسم الصنف","الكمية","سعر الوحدة","الإجمالي",""};
         float[] invoiceWeights={1.45f,.68f,.88f,.95f,.28f};
         for(int i=0;i<invoiceCols.length;i++){
             TextView h=tv(invoiceCols[i],9.5f);
-            h.setTextColor(DARK);h.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+            h.setTextColor(Color.WHITE);h.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
             h.setGravity(Gravity.CENTER);h.setSingleLine(true);
             tableHeader.addView(h,new LinearLayout.LayoutParams(0,dp(26),invoiceWeights[i]));
         }
@@ -5296,7 +5296,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         ArrayList<UnifiedInvoiceItem> items=new ArrayList<>();
         TextView finalTotal=tv("الإجمالي النهائي: 0 ريال",15.5f);
         finalTotal.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-        finalTotal.setTextColor(sale?GREEN:GOLD);
+        finalTotal.setTextColor(DARK);\n        finalTotal.setBackground(outlined(Color.WHITE,dp(1),dp(2)));\n        finalTotal.setPadding(dp(8),0,dp(8),0);
         finalTotal.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
         content.addView(finalTotal,new LinearLayout.LayoutParams(-1,dp(38)));
 
@@ -5346,8 +5346,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
                     row.addView(cells[i],new LinearLayout.LayoutParams(0,dp(30),invoiceWeights[i]));
                 }
                 remove.setOnClickListener(v->{items.remove(x);redraw[0].run();});
-                if(index%2==1)row.setBackgroundColor(Color.rgb(248,251,254));
-                rows.addView(row,new LinearLayout.LayoutParams(-1,dp(31)));
+                if(index%2==1)row.setBackgroundColor(Color.rgb(246,246,246));
+                rows.addView(row,new LinearLayout.LayoutParams(-1,dp(34)));
                 if(index<items.size()-1){
                     View separator=new View(this);
                     separator.setBackgroundColor(Color.rgb(229,236,244));
@@ -9059,23 +9059,26 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
 
     String purchaseReceiptText(String no,String supplier,ArrayList<PurchaseLine> lines,double total,String date){
         StringBuilder s=new StringBuilder();
-        s.append("🛒 *بقالة العزي للمواد الغذائية*\n");
-        s.append("━━━━━━━━━━━━━━━━━━\n");
-        s.append("📦 *فاتورة شراء رقم:* #").append(no).append("\n");
-        s.append("👤 *المورد:* ").append(supplier==null||supplier.trim().isEmpty()?"بدون مورد":supplier.trim()).append("\n");
-        s.append("📅 *التاريخ:* ").append(date==null||date.isEmpty()?db.now():date).append("\n");
-        s.append("━━━━━━━━━━━━━━━━━━\n");
-        s.append("📋 *الأصناف والكميات:*\n");
-        for(PurchaseLine l:lines){
-            String n=l.name==null?"":l.name.trim();
-            s.append("▪️ ").append(n).append(" × ").append(fmt(l.qty)).append(" = ").append(fmt(l.total)).append(" ر.ي\n");
-            s.append("   سعر الشراء للوحدة: ").append(fmt(l.cost)).append(" ر.ي\n");
-            s.append("   سعر البيع: ").append(fmt(l.sale)).append(" ر.ي\n");
+        String safeSupplier=supplier==null||supplier.trim().isEmpty()?"مورد عام":supplier.trim();
+        s.append("بقالة العزي للمواد الغذائية\\n");
+        s.append("فاتورة مشتريات\\n");
+        s.append("رقم الفاتورة: ").append(no==null?"":no.trim()).append("\\n");
+        s.append("التاريخ: ").append(date==null||date.isEmpty()?db.now():date).append("\\n");
+        s.append("المورد: ").append(safeSupplier).append("\\n");
+        s.append("--------------------------------\\n");
+        s.append("الصنف | الكمية | شراء/وحدة | بيع/وحدة | الإجمالي\\n");
+        s.append("--------------------------------\\n");
+        if(lines!=null){
+            for(PurchaseLine l:lines){
+                String n=l.name==null?"":l.name.trim();
+                s.append(n).append("\\n");
+                s.append(fmt(l.qty)).append(" | ").append(fmt(l.cost)).append(" | ")
+                    .append(fmt(l.sale)).append(" | ").append(fmt(l.total)).append(" ريال\\n");
+                s.append("--------------------------------\\n");
+            }
         }
-        s.append("━━━━━━━━━━━━━━━━━━\n");
-        s.append("💰 *إجمالي فاتورة الشراء:* ").append(fmt(total)).append(" ريال\n");
-        s.append("━━━━━━━━━━━━━━━━━━\n");
-        s.append("بقالة العزي للمواد الغذائية");
+        s.append("إجمالي المشتريات: ").append(fmt(total)).append(" ريال\\n");
+        s.append("شكراً لتعاملكم مع بقالة العزي");
         return s.toString();
     }
 
