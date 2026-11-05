@@ -3,7 +3,6 @@ package com.example.data.local
 import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -25,7 +24,7 @@ object LegacyDataImporter {
             val room = AppDatabase.getDatabase(context)
             room.runInTransaction {
                 val target = room.openHelper.writableDatabase
-                val count = target.rawQuery("SELECT COUNT(*) FROM invoices", null)
+                val count = target.query("SELECT COUNT(*) FROM invoices", emptyArray())
                 val alreadyHasInvoices = try { count.moveToFirst() && count.getLong(0) > 0 } finally { count.close() }
                 if (alreadyHasInvoices) return@runInTransaction
                 val invoiceIds = HashMap<Long, Long>()
@@ -49,7 +48,7 @@ object LegacyDataImporter {
                             put("notes", ""); put("currency", "YER"); put("qrCodeData", "")
                             put("createdAtTimestamp", parseDate(date))
                         }
-                        invoiceIds[oldId] = target.insertOrThrow("invoices", null, values)
+                        invoiceIds[oldId] = target.insert("invoices", SQLiteDatabase.CONFLICT_ABORT, values)
                     }
                 } finally { invoices.close() }
                 val items = legacy.rawQuery("SELECT invoice_id,name,qty,total,unit_cost FROM invoice_items ORDER BY id ASC", null)
@@ -61,21 +60,21 @@ object LegacyDataImporter {
                             put("invoiceId", newId); put("description", items.getString(1).orEmpty())
                             put("quantity", qty); put("unitPrice", if (qty>0) total/qty else total); put("totalAmount", total)
                         }
-                        target.insertOrThrow("invoice_items", null, values)
+                        target.insert("invoice_items", SQLiteDatabase.CONFLICT_ABORT, values)
                     }
                 } finally { items.close() }
                 val products = legacy.rawQuery("SELECT name,qty,min_qty,cost,sale FROM items ORDER BY id ASC", null)
                 try {
                     while (products.moveToNext()) {
                         val name = products.getString(0)?.trim().orEmpty(); if (name.isBlank()) continue
-                        val check = target.rawQuery("SELECT productId FROM products_catalog WHERE name=?", arrayOf(name))
+                        val check = target.query("SELECT productId FROM products_catalog WHERE name=?", arrayOf(name))
                         val exists = try { check.moveToFirst() } finally { check.close() }
                         if (exists) continue
                         val values = ContentValues().apply {
                             put("name", name); put("defaultUnitPrice", products.getDouble(4)); put("category", "عام")
                             put("stockQuantity", products.getDouble(1)); put("minStockAlert", products.getDouble(2))
                         }
-                        target.insertOrThrow("products_catalog", null, values)
+                        target.insert("products_catalog", SQLiteDatabase.CONFLICT_ABORT, values)
                     }
                 } finally { products.close() }
                 val receipts = legacy.rawQuery("SELECT t.amount,t.details,t.type,t.date,c.name FROM transactions t LEFT JOIN customers c ON c.id=t.customer_id ORDER BY t.id ASC", null)
@@ -91,10 +90,10 @@ object LegacyDataImporter {
                             put("paymentType", details.ifBlank { if(type==1) "قيد دين" else "سند قبض" })
                             put("notes", details); put("createdAtTimestamp", parseDate(date)); put("isDebit", if(type==1) 1 else 0)
                         }
-                        target.insertOrThrow("customer_receipts", null, values)
+                        target.insert("customer_receipts", SQLiteDatabase.CONFLICT_ABORT, values)
                     }
                 } finally { receipts.close() }
-                val cfg = target.rawQuery("SELECT id FROM store_config WHERE id=1", null)
+                val cfg = target.query("SELECT id FROM store_config WHERE id=1", emptyArray())
                 val hasConfig = try { cfg.moveToFirst() } finally { cfg.close() }
                 if (!hasConfig) {
                     val values = ContentValues().apply {
@@ -102,7 +101,7 @@ object LegacyDataImporter {
                         put("storeSubtitle","مواد غذائية واستهلاكية"); put("logoText","العزي"); put("currencySymbol","ر.ي")
                         put("nextInvoiceNumber",nextNumber); put("printerPaperWidth",58)
                     }
-                    target.insertOrThrow("store_config",null,values)
+                    target.insert("store_config", SQLiteDatabase.CONFLICT_ABORT, values)
                 } else target.execSQL("UPDATE store_config SET nextInvoiceNumber=MAX(nextInvoiceNumber, ?) WHERE id=1", arrayOf<Any>(nextNumber))
             }
             prefs.edit().putBoolean(KEY_DONE,true).apply()

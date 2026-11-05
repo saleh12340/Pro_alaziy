@@ -5,7 +5,6 @@ import com.saleh.enezi.R
 import android.content.Context
 import android.graphics.*
 import androidx.core.content.res.ResourcesCompat
-import com.example.R
 import com.example.data.local.CustomerReceiptEntity
 import com.example.data.local.InvoiceItemEntity
 import com.example.data.local.StoreConfigEntity
