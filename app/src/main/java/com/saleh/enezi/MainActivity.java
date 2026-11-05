@@ -1539,16 +1539,43 @@ void showMoreMenu(){
         actions.addView(cancelBtn,clp);
         box.addView(actions,new LinearLayout.LayoutParams(-1,-2));
 
+        final boolean[] saving={false};
+        Runnable persistTransaction=()->{
+            if(saving[0])return;
+            saving[0]=true; saveBtn.setEnabled(false);
+            try{
+                long id=db.customer(name.getText().toString().trim());
+                if(id<=0)throw new IllegalStateException("تعذر إنشاء حساب العميل");
+                db.addTransaction(id,parseDoubleSafe(amount.getText().toString().replace(",","").trim(),0),
+                    detail.getText().toString().trim(),payment?0:1,db.now());
+                String customerName=name.getText().toString().trim();
+                double savedAmount=parseDoubleSafe(amount.getText().toString().replace(",","").trim(),0);
+                String savedDetail=detail.getText().toString().trim();
+                dlg.dismiss(); account(id,customerName);
+                showCompactSaveSnackbar(payment?"✓ تم تسجيل السداد":"✓ تم تسجيل الحركة","مشاركة",
+                    ()->shareOperationImage(customerName,savedDetail,savedAmount,payment?0:1,""));
+            }catch(Exception ex){
+                saving[0]=false; saveBtn.setEnabled(true);
+                Toast.makeText(this,"تعذر حفظ العملية. تحقق من البيانات وحاول مجدداً.",Toast.LENGTH_LONG).show();
+            }
+        };
         saveBtn.setOnClickListener(v->{
+            if(saving[0])return;
             String n=name.getText().toString().trim();
             double a=parseDoubleSafe(amount.getText().toString().replace(",","").trim(),0);
             if(n.isEmpty()||a<=0){Toast.makeText(this,"اختر العميل وأدخل مبلغاً صحيحاً",Toast.LENGTH_SHORT).show();return;}
-            long id=db.customer(n);
-            if(id<=0){Toast.makeText(this,"تعذر فتح حساب العميل",Toast.LENGTH_SHORT).show();return;}
-            db.addTransaction(id,a,detail.getText().toString().trim(),payment?0:1,db.now());
-            dlg.dismiss();
-            account(id,n);
-            showCompactSaveSnackbar(payment?"✓ تم تسجيل السداد":"✓ تم تسجيل الحركة","مشاركة",()->shareOperationImage(n,detail.getText().toString().trim(),a,payment?0:1,""));
+            boolean exists=false;
+            for(String savedName:db.customerNames()){
+                if(savedName!=null&&savedName.trim().equalsIgnoreCase(n)){exists=true;break;}
+            }
+            if(!exists){
+                new AlertDialog.Builder(this)
+                    .setTitle("إضافة عميل جديد")
+                    .setMessage("العميل «"+n+"» غير مسجل. هل تريد إضافته وحفظ العملية؟")
+                    .setPositiveButton("إضافة وحفظ",(dialog,which)->persistTransaction.run())
+                    .setNegativeButton("مراجعة الاسم",null)
+                    .show();
+            }else persistTransaction.run();
         });
 
         showCompactDialog(dlg,box,360);
