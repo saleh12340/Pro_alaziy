@@ -5247,23 +5247,27 @@ void operationActions(long customerId,String customerName,long tid,String detail
         itemEntryRuleLp.setMargins(0,0,0,dp(5));
         itemBox.addView(itemEntryRule,itemEntryRuleLp);
 
+        // Reference layout: two fields on the first ruler row, then quantity,
+        // then item details aligned to the right, matching the classic form.
         LinearLayout fieldColumns=new LinearLayout(this);
-        fieldColumns.setOrientation(LinearLayout.HORIZONTAL);
+        fieldColumns.setOrientation(LinearLayout.VERTICAL);
         fieldColumns.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         fieldColumns.setGravity(Gravity.TOP);
 
-        LinearLayout rightFields=new LinearLayout(this);
-        rightFields.setOrientation(LinearLayout.VERTICAL);
-        rightFields.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        rightFields.setPadding(0,0,dp(2),0);
+        LinearLayout firstFieldRow=new LinearLayout(this);
+        firstFieldRow.setOrientation(LinearLayout.HORIZONTAL);
+        firstFieldRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        firstFieldRow.setGravity(Gravity.TOP);
 
-        LinearLayout leftFields=new LinearLayout(this);
-        leftFields.setOrientation(LinearLayout.VERTICAL);
-        leftFields.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        leftFields.setPadding(dp(2),0,0,0);
+        LinearLayout secondFieldRow=new LinearLayout(this);
+        secondFieldRow.setOrientation(LinearLayout.HORIZONTAL);
+        secondFieldRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        secondFieldRow.setGravity(Gravity.TOP);
 
-        fieldColumns.addView(rightFields,new LinearLayout.LayoutParams(0,-2,1f));
-        fieldColumns.addView(leftFields,new LinearLayout.LayoutParams(0,-2,1f));
+        LinearLayout thirdFieldRow=new LinearLayout(this);
+        thirdFieldRow.setOrientation(LinearLayout.HORIZONTAL);
+        thirdFieldRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        thirdFieldRow.setGravity(Gravity.TOP);
 
         EditText total=numberField("الإجمالي");
         EditText qty=numberField("الكمية");
@@ -5315,26 +5319,51 @@ void operationActions(long customerId,String customerName,long tid,String detail
             label.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
             fieldCell.addView(label,new LinearLayout.LayoutParams(-1,dp(19)));
             fieldCell.addView(view,new LinearLayout.LayoutParams(-1,dp(38)));
-            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1f);
             lp.setMargins(dp(2),0,dp(2),dp(5));
             column.addView(fieldCell,lp);
         };
 
-        addInvoiceField.accept(rightFields,total);
-        addInvoiceField.accept(rightFields,qty);
-        addInvoiceField.accept(rightFields,name);
-        addInvoiceField.accept(leftFields,unit);
-        if(!sale)addInvoiceField.accept(leftFields,salePrice);
+        addInvoiceField.accept(firstFieldRow,total);
+        addInvoiceField.accept(firstFieldRow,unit);
+        addInvoiceField.accept(secondFieldRow,qty);
+        if(!sale)addInvoiceField.accept(secondFieldRow,salePrice);
+        addInvoiceField.accept(thirdFieldRow,name);
+        // Keep the item-name field on the right half, as in the reference form.
+        View thirdRowSpacer=new View(this);
+        thirdFieldRow.addView(thirdRowSpacer,new LinearLayout.LayoutParams(0,dp(1),1f));
 
+        fieldColumns.addView(firstFieldRow,new LinearLayout.LayoutParams(-1,-2));
+        fieldColumns.addView(secondFieldRow,new LinearLayout.LayoutParams(-1,-2));
+        fieldColumns.addView(thirdFieldRow,new LinearLayout.LayoutParams(-1,-2));
         itemBox.addView(fieldColumns,new LinearLayout.LayoutParams(-1,-2));
 
+        final boolean[] syncingUnit={false};
         Runnable recalcUnit=()->{
             try{
                 double t=Double.parseDouble(total.getText().toString().replace(",","").trim());
                 double q=Double.parseDouble(qty.getText().toString().replace(",","").trim());
+                syncingUnit[0]=true;
                 unit.setText(q>0?fmt(t/q):"");
-            }catch(Exception e){unit.setText("");}
+                syncingUnit[0]=false;
+            }catch(Exception e){
+                syncingUnit[0]=true;unit.setText("");syncingUnit[0]=false;
+            }
         };
+        unit.setEnabled(true);
+        unit.setAlpha(1f);
+        unit.addTextChangedListener(new TextWatcher(){
+            public void beforeTextChanged(CharSequence s,int a,int b,int d){}
+            public void onTextChanged(CharSequence s,int start,int before,int count){
+                if(syncingUnit[0])return;
+                try{
+                    double up=Double.parseDouble(s.toString().replace(",","").trim());
+                    double q=Double.parseDouble(qty.getText().toString().replace(",","").trim());
+                    total.setText(fmt(up*q));
+                }catch(Exception ignored){if(s.length()==0)total.setText("");}
+            }
+            public void afterTextChanged(Editable e){}
+        });
         total.addTextChangedListener(new TextWatcher(){
             public void beforeTextChanged(CharSequence s,int a,int b,int c){}
             public void onTextChanged(CharSequence s,int a,int b,int c){recalcUnit.run();}
