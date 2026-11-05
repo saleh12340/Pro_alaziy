@@ -9060,24 +9060,24 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
     String purchaseReceiptText(String no,String supplier,ArrayList<PurchaseLine> lines,double total,String date){
         StringBuilder s=new StringBuilder();
         String safeSupplier=supplier==null||supplier.trim().isEmpty()?"مورد عام":supplier.trim();
-        s.append("بقالة العزي للمواد الغذائية\\n");
-        s.append("فاتورة مشتريات\\n");
-        s.append("رقم الفاتورة: ").append(no==null?"":no.trim()).append("\\n");
-        s.append("التاريخ: ").append(date==null||date.isEmpty()?db.now():date).append("\\n");
-        s.append("المورد: ").append(safeSupplier).append("\\n");
-        s.append("--------------------------------\\n");
-        s.append("الصنف | الكمية | شراء/وحدة | بيع/وحدة | الإجمالي\\n");
-        s.append("--------------------------------\\n");
+        s.append("بقالة العزي للمواد الغذائية\n");
+        s.append("فاتورة مشتريات\n");
+        s.append("رقم الفاتورة: ").append(no==null?"":no.trim()).append("\n");
+        s.append("التاريخ: ").append(date==null||date.isEmpty()?db.now():date).append("\n");
+        s.append("المورد: ").append(safeSupplier).append("\n");
+        s.append("--------------------------------\n");
+        s.append("الصنف | الكمية | شراء/وحدة | بيع/وحدة | الإجمالي\n");
+        s.append("--------------------------------\n");
         if(lines!=null){
             for(PurchaseLine l:lines){
                 String n=l.name==null?"":l.name.trim();
-                s.append(n).append("\\n");
+                s.append(n).append("\n");
                 s.append(fmt(l.qty)).append(" | ").append(fmt(l.cost)).append(" | ")
-                    .append(fmt(l.sale)).append(" | ").append(fmt(l.total)).append(" ريال\\n");
-                s.append("--------------------------------\\n");
+                    .append(fmt(l.sale)).append(" | ").append(fmt(l.total)).append(" ريال\n");
+                s.append("--------------------------------\n");
             }
         }
-        s.append("إجمالي المشتريات: ").append(fmt(total)).append(" ريال\\n");
+        s.append("إجمالي المشتريات: ").append(fmt(total)).append(" ريال\n");
         s.append("شكراً لتعاملكم مع بقالة العزي");
         return s.toString();
     }
