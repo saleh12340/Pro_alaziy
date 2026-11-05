@@ -5106,8 +5106,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
          * The UI, item model, validation, navigation order and calculations are shared.
          * Only persistence delegates to the existing real sales/purchase database paths.
          */
-        base("الفواتير");
         final boolean sale=type==InvoiceType.SALE;
+        base(sale?"فاتورة مبيعات":"فاتورة مشتريات");
 
         LinearLayout toggle=new LinearLayout(this);
         toggle.setOrientation(LinearLayout.HORIZONTAL);
@@ -5122,11 +5122,34 @@ void operationActions(long customerId,String customerName,long tid,String detail
         toggle.addView(pb,pp);
         content.addView(toggle);
         addSpace(3);
-        TextView invoiceHeaderNo=tv((sale?"فاتورة مبيعات رقم ":"فاتورة شراء رقم ")+displayInvoiceNo(String.valueOf(sale?db.nextInvoice():db.nextPurchaseNo())),15.5f);
-        invoiceHeaderNo.setTextColor(sale?GREEN:GOLD); invoiceHeaderNo.setTypeface(Typeface.DEFAULT,Typeface.BOLD); invoiceHeaderNo.setGravity(Gravity.CENTER);
-        invoiceHeaderNo.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
-        content.addView(invoiceHeaderNo,new LinearLayout.LayoutParams(-1,dp(36)));
-        addSpace(3);
+        // رأس فاتورة كلاسيكي يظهر مباشرة عند بدء إنشاء فاتورة البيع أو الشراء.
+        LinearLayout classicInvoiceHead=new LinearLayout(this);
+        classicInvoiceHead.setOrientation(LinearLayout.VERTICAL);
+        classicInvoiceHead.setGravity(Gravity.CENTER);
+        classicInvoiceHead.setPadding(dp(8),dp(7),dp(8),dp(7));
+        classicInvoiceHead.setBackground(outlined(Color.WHITE,dp(1),dp(2)));
+        TextView classicTitle=tv("بقالة العزي للمواد الغذائية",17f);
+        classicTitle.setTextColor(DARK);
+        classicTitle.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        classicTitle.setGravity(Gravity.CENTER);
+        classicInvoiceHead.addView(classicTitle,new LinearLayout.LayoutParams(-1,dp(27)));
+        TextView classicType=tv(sale?"فاتورة مبيعات":"فاتورة مشتريات",14f);
+        classicType.setTextColor(sale?GREEN:GOLD);
+        classicType.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        classicType.setGravity(Gravity.CENTER);
+        classicInvoiceHead.addView(classicType,new LinearLayout.LayoutParams(-1,dp(23)));
+        View classicRule=new View(this);
+        classicRule.setBackgroundColor(BORDER);
+        LinearLayout.LayoutParams classicRuleLp=new LinearLayout.LayoutParams(-1,dp(1));
+        classicRuleLp.setMargins(dp(3),dp(3),dp(3),dp(3));
+        classicInvoiceHead.addView(classicRule,classicRuleLp);
+        TextView invoiceHeaderNo=tv("رقم الفاتورة: "+displayInvoiceNo(String.valueOf(sale?db.nextInvoice():db.nextPurchaseNo()))+"     التاريخ: "+new SimpleDateFormat("yyyy/MM/dd",Locale.getDefault()).format(new Date()),12.5f);
+        invoiceHeaderNo.setTextColor(DARK);
+        invoiceHeaderNo.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        invoiceHeaderNo.setGravity(Gravity.CENTER);
+        classicInvoiceHead.addView(invoiceHeaderNo,new LinearLayout.LayoutParams(-1,dp(25)));
+        content.addView(classicInvoiceHead,new LinearLayout.LayoutParams(-1,-2));
+        addSpace(4);
 
         AutoCompleteTextView party=new AutoCompleteTextView(this);
         party.setHint(sale?"اسم العميل":"اسم المورد");
