@@ -1384,154 +1384,49 @@ void showMoreMenu(){
     }
 
     void home(){
-        currentPage="الرئيسية";
-        pageStack.clear();
-        base("الرئيسية",true);
-
-        // Quick Actions Row at the top (Rounded Pill Cards)
-        LinearLayout quick=new LinearLayout(this);
-        quick.setOrientation(LinearLayout.HORIZONTAL);
-        quick.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        String[] qLabels={"＋ بيع جديد","📥 شراء جديد","👤 سداد عميل","🏪 سداد مورد"};
-        View.OnClickListener[] qActions={
-            v->unifiedInvoiceForm(InvoiceType.SALE),
-            v->unifiedInvoiceForm(InvoiceType.PURCHASE),
-            v->showCustomerTransactionDialog(false),
-            v->suppliers()
-        };
+        currentPage="الرئيسية"; pageStack.clear(); base("الرئيسية",true);
+        darkCardMode=false; applyDenseGlassPage();
+        AnalyticsManager.DashboardKPIs kpis=AnalyticsManager.calculateKPIs(db==null?null:db.getWritableDatabase());
+        LinearLayout metrics=new LinearLayout(this); metrics.setOrientation(LinearLayout.VERTICAL); metrics.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        LinearLayout r1=new LinearLayout(this); r1.setOrientation(LinearLayout.HORIZONTAL); r1.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        addHomeSummaryCell(r1,"مبيعات اليوم",fmt(safeTodaySales())+" ر.ي",GREEN);
+        addHomeSummaryCell(r1,"مشتريات اليوم",fmt(safeTodayPurchases())+" ر.ي",ORANGE);
+        metrics.addView(r1,new LinearLayout.LayoutParams(-1,-2));
+        LinearLayout r2=new LinearLayout(this); r2.setOrientation(LinearLayout.HORIZONTAL); r2.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        addHomeSummaryCell(r2,"لك عند العملاء",fmt(kpis.totalCredits)+" ر.ي",BLUE_PRIMARY);
+        addHomeSummaryCell(r2,"عليك للموردين",fmt(kpis.totalDebts)+" ر.ي",RED);
+        metrics.addView(r2,new LinearLayout.LayoutParams(-1,-2));
+        content.addView(metrics,new LinearLayout.LayoutParams(-1,-2)); addSpace(5);
+        LinearLayout quick=new LinearLayout(this); quick.setOrientation(LinearLayout.HORIZONTAL); quick.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        String[] qLabels={"＋ بيع","🛒 شراء","👤 عملية عميل","🏪 عملية مورد"};
+        View.OnClickListener[] qActions={v->unifiedInvoiceForm(InvoiceType.SALE),v->unifiedInvoiceForm(InvoiceType.PURCHASE),v->showCustomerTransactionDialog(false),v->suppliers()};
         for(int i=0;i<qLabels.length;i++){
-            Button b=new Button(this);
-            b.setText(qLabels[i]);
-            b.setTextSize(12f);
-            b.setAllCaps(false);
-            b.setIncludeFontPadding(false);
-            b.setTextColor(Color.WHITE);
-            b.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-            GradientDrawable bBg=new GradientDrawable();
-            bBg.setCornerRadius(dp(14));
-            bBg.setColor(i==0?ORANGE:(i==1?BLUE_PRIMARY:(i==2?GREEN:DARK)));
-            b.setBackground(bBg);
-            b.setElevation(dp(2));
-            LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(0,dp(42),1);
-            if(i>0) bp.setMargins(dp(4),0,0,0);
-            b.setOnClickListener(qActions[i]);
-            quick.addView(b,bp);
+            Button b=new Button(this); b.setText(qLabels[i]); b.setTextSize(11.5f); b.setAllCaps(false); b.setIncludeFontPadding(false);
+            b.setTextColor(Color.WHITE); b.setTypeface(Typeface.DEFAULT,Typeface.BOLD); b.setMinHeight(dp(42)); b.setPadding(dp(2),0,dp(2),0);
+            b.setBackground(rounded(i==0?ORANGE:(i==1?BLUE_PRIMARY:(i==2?GREEN:DARK)),dp(12))); b.setElevation(dp(2));
+            LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(0,dp(44),1); if(i>0)bp.setMargins(dp(4),0,0,0);
+            b.setOnClickListener(qActions[i]); quick.addView(b,bp);
         }
-        content.addView(quick,new LinearLayout.LayoutParams(-1,-2));
-        addSpace(8);
-
-        // Main Modules as Distinct Rounded Cards (بطاقات مدورة)
-        String[] labels={
-            "لوحة التحكم والتحليلات",
-            "الفواتير والسجل",
-            "الحسابات والعملاء",
-            "الموردون والمشتريات",
-            "المخزون والأصناف",
-            "التقارير المالية",
-            "الحوالات المالية",
-            "الملاحظات والمهام",
-            "الإعدادات والبيانات",
-            "نظام الفواتير المتقدم"
-        };
-        String[] icons={"📊","🧾","👥","🏪","📦","📑","💸","📝","⚙️","🧾"};
-        int[] iconBgColors={
-            BLUE_PRIMARY,
-            ORANGE,
-            GREEN,
-            DARK,
-            Color.rgb(120, 40, 140),
-            Color.rgb(0, 130, 120),
-            Color.rgb(200, 100, 0),
-            Color.rgb(50, 90, 120),
-            Color.rgb(90, 100, 110),
-            Color.rgb(30, 58, 138)
-        };
-        View.OnClickListener[] actions={
-            v->dashboard(),
-            v->invoicesHub(),
-            v->customers(),
-            v->suppliers(),
-            v->inventory(),
-            v->reports(),
-            v->transfers(),
-            v->notes(),
-            v->settingsHub(),
-            v->{ try{ startActivity(new Intent(this,com.example.InvoiceCenterActivity.class)); }catch(Exception e){ Toast.makeText(this,"تعذر فتح نظام الفواتير",Toast.LENGTH_SHORT).show(); } }
-        };
-        String[] descriptions={
-            "رسوم بيانية ومؤشرات المبيعات اليومية والمخزون",
-            "إصدار وإدارة وسجل فواتير البيع والشراء",
-            "كشوف الحسابات ومستحقات وأرصدة العملاء",
-            "حسابات الموردين وفواتير التوريد والمستحقات",
-            "إدارة المنتجات، الكميات، الأسعار وتنبيهات النقص",
-            "تقارير المبيعات الشاملة والأرباح والديون",
-            "إنشاء، مراجعة، ومشاركة إيصالات الحوالات",
-            "تدوين ومشاركة وطباعة الملاحظات اليومية",
-            "الطباعة الحرارية، النسخ الاحتياطي وإصلاح البيانات",
-            "إصدار الفواتير والسجل والطباعة الحرارية وPDF بتصميم متقدم"
-        };
-
-        for(int i=0; i<labels.length; i++){
-            LinearLayout card = new LinearLayout(this);
-            card.setOrientation(LinearLayout.HORIZONTAL);
-            card.setGravity(Gravity.CENTER_VERTICAL);
-            card.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-            card.setPadding(dp(12), dp(10), dp(12), dp(10));
-
-            // Rounded Card Background (بطاقة مدورة)
-            GradientDrawable cBg = new GradientDrawable();
-            cBg.setColor(Color.WHITE);
-            cBg.setCornerRadius(dp(18));
-            cBg.setStroke(dp(1), Color.rgb(222, 232, 243));
-            card.setBackground(cBg);
-            card.setElevation(dp(3));
-
-            // Rounded Icon Badge
-            TextView iconView = tv(icons[i], 20);
-            iconView.setGravity(Gravity.CENTER);
-            iconView.setTextColor(Color.WHITE);
-            iconView.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-            GradientDrawable iBg = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                    new int[]{iconBgColors[i],Color.rgb(Math.max(0,Color.red(iconBgColors[i])-22),Math.max(0,Color.green(iconBgColors[i])-22),Math.max(0,Color.blue(iconBgColors[i])-22))});
-            iBg.setCornerRadius(dp(15));
-            iconView.setBackground(iBg);
-            iconView.setElevation(dp(3));
-            card.addView(iconView, new LinearLayout.LayoutParams(dp(48), dp(48)));
-
-            // Text Info
-            LinearLayout textBox = new LinearLayout(this);
-            textBox.setOrientation(LinearLayout.VERTICAL);
-            textBox.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-            textBox.setPadding(dp(10), 0, dp(10), 0);
-
-            TextView titleTv = tv(labels[i], 15.5f);
-            titleTv.setTextColor(TEXT);
-            titleTv.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-
-            TextView descTv = tv(descriptions[i], 11.5f);
-            descTv.setTextColor(MUTED);
-            descTv.setMaxLines(2);
-            descTv.setEllipsize(null);
-
-            textBox.addView(titleTv, new LinearLayout.LayoutParams(-1, -2));
-            textBox.addView(descTv, new LinearLayout.LayoutParams(-1, -2));
-
-            card.addView(textBox, new LinearLayout.LayoutParams(0, -2, 1));
-
-            // Arrow
-            TextView arrow = tv("‹", 22);
-            arrow.setTextColor(DARK);
-            arrow.setGravity(Gravity.CENTER);
-            card.addView(arrow, new LinearLayout.LayoutParams(dp(24), -2));
-
-            card.setOnClickListener(actions[i]);
-
-            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, -2);
-            cp.setMargins(0, 0, 0, dp(8));
-            content.addView(card, cp);
+        content.addView(quick,new LinearLayout.LayoutParams(-1,-2)); addSpace(7);
+        TextView sectionTitle=tv("أقسام المتجر",13.5f); sectionTitle.setTextColor(DARK); sectionTitle.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        content.addView(sectionTitle,new LinearLayout.LayoutParams(-1,-2)); addSpace(4);
+        String[] labels={"الفواتير والسجل","العملاء والحسابات","الموردون","المخزون","التقارير","الحوالات","الملاحظات","الإعدادات"};
+        String[] icons={"🧾","👥","🏪","📦","📊","💸","📝","⚙️"};
+        int[] colors={ORANGE,GREEN,DARK,Color.rgb(120,40,140),Color.rgb(0,130,120),Color.rgb(200,100,0),Color.rgb(50,90,120),Color.rgb(90,100,110)};
+        View.OnClickListener[] actions={v->invoicesHub(),v->customers(),v->suppliers(),v->inventory(),v->reports(),v->transfers(),v->notes(),v->settingsHub()};
+        GridLayout grid=new GridLayout(this); grid.setColumnCount(2); grid.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        for(int i=0;i<labels.length;i++){
+            LinearLayout tile=new LinearLayout(this); tile.setOrientation(LinearLayout.HORIZONTAL); tile.setGravity(Gravity.CENTER_VERTICAL);
+            tile.setLayoutDirection(View.LAYOUT_DIRECTION_RTL); tile.setPadding(dp(9),dp(8),dp(9),dp(8)); tile.setBackground(outlined(Color.WHITE,dp(1),dp(13)));
+            TextView icon=tv(icons[i],19); icon.setGravity(Gravity.CENTER); icon.setBackground(rounded(colors[i],dp(10))); icon.setTextColor(Color.WHITE);
+            tile.addView(icon,new LinearLayout.LayoutParams(dp(38),dp(38)));
+            TextView title=tv(labels[i],13); title.setTextColor(DARK); title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+            title.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT); title.setMaxLines(2); title.setPadding(dp(8),0,dp(2),0);
+            tile.addView(title,new LinearLayout.LayoutParams(0,-2,1)); tile.setOnClickListener(actions[i]);
+            GridLayout.LayoutParams gp=new GridLayout.LayoutParams(GridLayout.spec(i/2,1),GridLayout.spec(i%2,1,1f));
+            gp.width=0; gp.height=dp(62); gp.setMargins(dp(3),dp(3),dp(3),dp(3)); grid.addView(tile,gp);
         }
-
-        addSpace(4);
+        content.addView(grid,new LinearLayout.LayoutParams(-1,-2)); addSpace(4);
     }
 
     void addHomeSummaryCell(LinearLayout parent,String label,String value,int accent){
@@ -1572,14 +1467,10 @@ void showMoreMenu(){
 
         // زر الإجراء السريع ثابت في أسفل يمين الشاشة، فوق المحتوى مباشرة.
         // الضغط عليه يفتح جميع العمليات السريعة الموجودة فعلياً في التطبيق.
-        Button fab=new Button(this);
-        fab.setText("＋\nسريع");
-        fab.setTextSize(12.5f);
-        fab.setTextColor(Color.WHITE);
-        fab.setAllCaps(false);
-        fab.setGravity(Gravity.CENTER);
-        fab.setIncludeFontPadding(false);
-        fab.setPadding(0,0,0,0);
+        TextView fab=new TextView(this);
+        fab.setText("+"); fab.setTextSize(30f); fab.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        fab.setTextColor(Color.WHITE); fab.setGravity(Gravity.CENTER); fab.setIncludeFontPadding(false);
+        fab.setPadding(0,0,0,dp(2)); fab.setClickable(true); fab.setFocusable(true);
         GradientDrawable fb=new GradientDrawable();
         fb.setShape(GradientDrawable.OVAL);
         fb.setColor(ORANGE);
@@ -10821,7 +10712,7 @@ void account(long id,String name){
         // زر الرجوع موجود بالفعل في شريط الصفحة العام؛ لا نكرر زر رجوع ثانياً هنا.
         TextView hname=denseText(name,15.5f,13f,DARK); hname.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         hname.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT); head.addView(hname,new LinearLayout.LayoutParams(0,dp(38),1));
-        TextView balHead=denseText("الإجمالي: "+fmt(Math.abs(currentBal))+" ريال",12.5f,11f,currentBal>0.005?RED:(currentBal<-0.005?BLUE:GREEN));
+        TextView balHead=denseText(balanceText(currentBal),12.5f,11f,currentBal>0.005?RED:(currentBal<-0.005?BLUE:GREEN));
         balHead.setGravity(Gravity.CENTER); balHead.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         balHead.setBackground(glassFill(currentBal>0.005?Color.argb(210,255,230,233):Color.argb(205,230,248,236)));
         balHead.setPadding(dp(8),dp(5),dp(8),dp(5)); head.addView(balHead,new LinearLayout.LayoutParams(-2,dp(34)));
@@ -10837,7 +10728,14 @@ void account(long id,String name){
         }
         Button edit=button("⋮"); edit.setTextSize(16); edit.setPadding(0,0,0,0); edit.setBackgroundColor(Color.TRANSPARENT);
         edit.setOnClickListener(v->customerActions(id,name)); head.addView(edit,new LinearLayout.LayoutParams(dp(30),dp(34)));
-        content.addView(head,new LinearLayout.LayoutParams(-1,-2)); addSpace(6);
+        content.addView(head,new LinearLayout.LayoutParams(-1,-2));
+        addSpace(4);
+        LinearLayout accountSummary=new LinearLayout(this); accountSummary.setOrientation(LinearLayout.HORIZONTAL); accountSummary.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        accountSummary.addView(glassStat("إجمالي عليه",fmt(totalDebit)+" ر.ي",RED),new LinearLayout.LayoutParams(0,dp(49),1));
+        LinearLayout summaryGap=new LinearLayout.LayoutParams(0,dp(49),1); summaryGap.setMargins(dp(4),0,dp(4),0);
+        accountSummary.addView(glassStat("إجمالي له",fmt(totalCredit)+" ر.ي",BLUE),summaryGap);
+        accountSummary.addView(glassStat("الرصيد الحالي",balanceText(currentBal),balanceColor(currentBal)),new LinearLayout.LayoutParams(0,dp(49),1));
+        content.addView(accountSummary,new LinearLayout.LayoutParams(-1,-2)); addSpace(6);
 
         // بطاقة إدخال العمليات والأدوات بوزن متناسق.
         LinearLayout addCard=new LinearLayout(this);
@@ -10870,9 +10768,9 @@ void account(long id,String name){
         LinearLayout addBtns=new LinearLayout(this);
         addBtns.setOrientation(LinearLayout.HORIZONTAL);
         addBtns.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        Button debit=button("🔴 قيد سحب (عليه +)");
+        Button debit=button("عليه +");
         debit.setTextSize(13f); debit.setTextColor(Color.WHITE); debit.setBackground(rounded(RED,dp(10)));
-        Button credit=button("🔵 دفعة سداد (سداد ✓)");
+        Button credit=button("له −");
         credit.setTextSize(12f); credit.setTextColor(Color.WHITE); credit.setBackground(rounded(BLUE,dp(10)));
         Button newInvoice=action("🧾 فاتورة جديدة",GREEN);
         newInvoice.setTextSize(12f);
