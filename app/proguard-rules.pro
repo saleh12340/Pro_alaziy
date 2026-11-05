@@ -1,0 +1,12 @@
+# Keep Android components and metadata used by framework/reflection.
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
+-keep class com.saleh.enezi.MainActivity { *; }
+-keep class com.example.InvoiceCenterActivity { *; }
+-keep class com.example.data.local.** { *; }
+-keep class com.example.data.repository.** { *; }
+-keep class com.example.ui.viewmodels.** { *; }
+-keep class com.saleh.enezi.** extends android.app.Activity { *; }
+-keep class com.saleh.enezi.** extends android.content.BroadcastReceiver { *; }
+-keep class com.saleh.enezi.** extends android.content.ContentProvider { *; }
+-dontwarn kotlinx.coroutines.internal.MainDispatcherFactory
+-dontwarn kotlinx.coroutines.CoroutineExceptionHandler
