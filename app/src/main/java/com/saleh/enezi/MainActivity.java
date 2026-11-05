@@ -5247,27 +5247,17 @@ void operationActions(long customerId,String customerName,long tid,String detail
         itemEntryRuleLp.setMargins(0,0,0,dp(5));
         itemBox.addView(itemEntryRule,itemEntryRuleLp);
 
-        // Reference layout: two fields on the first ruler row, then quantity,
-        // then item details aligned to the right, matching the classic form.
+        // Classic receipt ruler: total, quantity, description and unit price share
+        // one aligned RTL row, matching the reference's four-column item structure.
         LinearLayout fieldColumns=new LinearLayout(this);
         fieldColumns.setOrientation(LinearLayout.VERTICAL);
         fieldColumns.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         fieldColumns.setGravity(Gravity.TOP);
 
-        LinearLayout firstFieldRow=new LinearLayout(this);
-        firstFieldRow.setOrientation(LinearLayout.HORIZONTAL);
-        firstFieldRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        firstFieldRow.setGravity(Gravity.TOP);
-
-        LinearLayout secondFieldRow=new LinearLayout(this);
-        secondFieldRow.setOrientation(LinearLayout.HORIZONTAL);
-        secondFieldRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        secondFieldRow.setGravity(Gravity.TOP);
-
-        LinearLayout thirdFieldRow=new LinearLayout(this);
-        thirdFieldRow.setOrientation(LinearLayout.HORIZONTAL);
-        thirdFieldRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        thirdFieldRow.setGravity(Gravity.TOP);
+        LinearLayout itemInputRow=new LinearLayout(this);
+        itemInputRow.setOrientation(LinearLayout.HORIZONTAL);
+        itemInputRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        itemInputRow.setGravity(Gravity.TOP);
 
         EditText total=numberField("الإجمالي");
         EditText qty=numberField("الكمية");
@@ -5319,23 +5309,20 @@ void operationActions(long customerId,String customerName,long tid,String detail
             label.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
             fieldCell.addView(label,new LinearLayout.LayoutParams(-1,dp(19)));
             fieldCell.addView(view,new LinearLayout.LayoutParams(-1,dp(38)));
-            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1f);
+            float weight=view==name?1.45f:(view==qty?0.58f:(view==total?0.88f:(view==unit?0.82f:0.82f)));
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,weight);
             lp.setMargins(dp(2),0,dp(2),dp(5));
             column.addView(fieldCell,lp);
         };
 
-        addInvoiceField.accept(firstFieldRow,total);
-        addInvoiceField.accept(firstFieldRow,unit);
-        addInvoiceField.accept(secondFieldRow,qty);
-        if(!sale)addInvoiceField.accept(secondFieldRow,salePrice);
-        addInvoiceField.accept(thirdFieldRow,name);
-        // Keep the item-name field on the right half, as in the reference form.
-        View thirdRowSpacer=new View(this);
-        thirdFieldRow.addView(thirdRowSpacer,new LinearLayout.LayoutParams(0,dp(1),1f));
+        // The field order and proportions mirror the reference receipt grid.
+        addInvoiceField.accept(itemInputRow,total);
+        addInvoiceField.accept(itemInputRow,qty);
+        addInvoiceField.accept(itemInputRow,name);
+        addInvoiceField.accept(itemInputRow,unit);
+        if(!sale)addInvoiceField.accept(itemInputRow,salePrice);
 
-        fieldColumns.addView(firstFieldRow,new LinearLayout.LayoutParams(-1,-2));
-        fieldColumns.addView(secondFieldRow,new LinearLayout.LayoutParams(-1,-2));
-        fieldColumns.addView(thirdFieldRow,new LinearLayout.LayoutParams(-1,-2));
+        fieldColumns.addView(itemInputRow,new LinearLayout.LayoutParams(-1,-2));
         itemBox.addView(fieldColumns,new LinearLayout.LayoutParams(-1,-2));
 
         final boolean[] syncingUnit={false};
@@ -5407,8 +5394,12 @@ void operationActions(long customerId,String customerName,long tid,String detail
         tableHeader.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         tableHeader.setPadding(dp(4),dp(2),dp(4),dp(2));
         tableHeader.setBackgroundColor(Color.rgb(30,58,138));
-        String[] invoiceCols={"اسم الصنف","الكمية","سعر الوحدة","الإجمالي",""};
-        float[] invoiceWeights={1.45f,.68f,.88f,.95f,.28f};
+        String[] invoiceCols=sale
+            ?new String[]{"الإجمالي","الكمية","اسم الصنف","سعر الوحدة",""}
+            :new String[]{"الإجمالي","الكمية","اسم الصنف","سعر الوحدة","سعر البيع",""};
+        float[] invoiceWeights=sale
+            ?new float[]{.95f,.65f,1.45f,.90f,.28f}
+            :new float[]{.82f,.55f,1.25f,.78f,.82f,.25f};
         for(int i=0;i<invoiceCols.length;i++){
             TextView h=tv(invoiceCols[i],9.5f);
             h.setTextColor(Color.WHITE);h.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
@@ -5501,9 +5492,15 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 remove.setPadding(0,0,0,0);
                 remove.setBackgroundColor(Color.TRANSPARENT);
                 remove.setContentDescription("حذف الصنف "+x.name);
-                View[] cells={itemName,quantity,unitPrice,lineTotal,remove};
+                TextView purchaseSalePrice=tv(fmt(x.salePrice),10.5f);
+                purchaseSalePrice.setTextColor(GOLD);
+                purchaseSalePrice.setGravity(Gravity.CENTER);
+                purchaseSalePrice.setSingleLine(true);
+                View[] cells=sale
+                    ?new View[]{lineTotal,quantity,itemName,unitPrice,remove}
+                    :new View[]{lineTotal,quantity,itemName,unitPrice,purchaseSalePrice,remove};
                 for(int i=0;i<cells.length;i++){
-                    row.addView(cells[i],new LinearLayout.LayoutParams(0,dp(30),invoiceWeights[i]));
+                    row.addView(cells[i],new LinearLayout.LayoutParams(0,dp(32),invoiceWeights[i]));
                 }
                 remove.setOnClickListener(v->{items.remove(x);redraw[0].run();});
                 if(index%2==1)row.setBackgroundColor(Color.rgb(246,246,246));
@@ -5550,11 +5547,21 @@ void operationActions(long customerId,String customerName,long tid,String detail
             });
         }
 
+        LinearLayout invoiceActions=new LinearLayout(this);
+        invoiceActions.setOrientation(LinearLayout.HORIZONTAL);
+        invoiceActions.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        invoiceActions.setGravity(Gravity.CENTER_VERTICAL);
         Button save=action("💾 حفظ الفاتورة",GREEN);
-        content.addView(save,new LinearLayout.LayoutParams(-1,dp(46)));
-        Button previewBtn=button("🖨️ معاينة / طباعة");
-        previewBtn.setTextColor(GREEN);
-        content.addView(previewBtn,new LinearLayout.LayoutParams(-1,dp(42)));
+        save.setTextSize(12.5f);
+        Button previewBtn=button("🖨️ طباعة / مشاركة");
+        previewBtn.setTextColor(Color.WHITE);
+        previewBtn.setTextSize(12.5f);
+        previewBtn.setBackground(rounded(Color.rgb(30,58,138),dp(8)));
+        invoiceActions.addView(save,new LinearLayout.LayoutParams(0,dp(44),1f));
+        LinearLayout.LayoutParams previewLp=new LinearLayout.LayoutParams(0,dp(44),1f);
+        previewLp.setMargins(dp(6),0,0,0);
+        invoiceActions.addView(previewBtn,previewLp);
+        content.addView(invoiceActions,new LinearLayout.LayoutParams(-1,dp(46)));
 
         save.setOnClickListener(v->{
             if(items.isEmpty()){
