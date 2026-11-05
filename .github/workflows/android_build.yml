@@ -33,16 +33,11 @@ jobs:
           packages: 'platforms;android-35 build-tools;35.0.0'
           accept-android-sdk-licenses: true
 
-      - name: Install Gradle 8.9
+      - name: Prepare Gradle wrapper 8.9
         run: |
-          wget -q https://services.gradle.org/distributions/gradle-8.9-bin.zip
-          sudo unzip -q -o gradle-8.9-bin.zip -d /opt
-          echo "/opt/gradle-8.9/bin" >> "$GITHUB_PATH"
-
-      - name: Verify Java and Gradle
-        run: |
+          chmod +x ./gradlew
           java -version
-          gradle --version
+          ./gradlew --version
 
       - name: Ensure debug keystore
         run: |
@@ -51,10 +46,10 @@ jobs:
           fi
 
       - name: Run unit tests
-        run: gradle :app:testDebugUnitTest --stacktrace --no-daemon
+        run: ./gradlew test --stacktrace --no-daemon
 
       - name: Build debug APK
-        run: gradle :app:assembleDebug --stacktrace --no-daemon
+        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
 
       - name: Verify install identity for side-by-side installation
         run: |
