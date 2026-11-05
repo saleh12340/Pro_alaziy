@@ -5624,7 +5624,10 @@ void operationActions(long customerId,String customerName,long tid,String detail
                     .append("\nرقم الفاتورة: ").append(invNo.getText().toString().trim()).append("\n");
                 for(UnifiedInvoiceItem x:items)p.append(x.name).append(" | ").append(fmt(x.qty)).append(" | ").append(fmt(x.total)).append("\n");
                 p.append("الإجمالي: ").append(fmt(sum)).append(" ريال");
-                previewTextForPrint(p.toString(),party.getText().toString().trim());
+                String purchaseReceiptText=p.toString();
+                showCompactPrintPreview("معاينة فاتورة شراء 58mm",purchaseReceiptText,
+                    ()->printTextBluetooth(purchaseReceiptText),
+                    ()->shareText(purchaseReceiptText));
             }
         });
 
