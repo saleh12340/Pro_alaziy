@@ -39,15 +39,10 @@ jobs:
           sudo unzip -q -o gradle-8.9-bin.zip -d /opt
           echo "/opt/gradle-8.9/bin" >> "$GITHUB_PATH"
 
-      - name: Generate Gradle wrapper
-        run: |
-          gradle wrapper --gradle-version 8.9 --distribution-type bin
-          chmod +x gradlew
-
       - name: Verify Java and Gradle
         run: |
           java -version
-          ./gradlew --version
+          gradle --version
 
       - name: Ensure debug keystore
         run: |
@@ -56,10 +51,10 @@ jobs:
           fi
 
       - name: Run unit tests
-        run: ./gradlew :app:testDebugUnitTest --stacktrace --no-daemon
+        run: gradle :app:testDebugUnitTest --stacktrace --no-daemon
 
       - name: Build debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
+        run: gradle :app:assembleDebug --stacktrace --no-daemon
 
       - name: Verify install identity for side-by-side installation
         run: |
