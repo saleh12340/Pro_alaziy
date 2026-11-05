@@ -1388,9 +1388,10 @@ void showMoreMenu(){
             "التقارير المالية",
             "الحوالات المالية",
             "الملاحظات والمهام",
-            "الإعدادات والبيانات"
+            "الإعدادات والبيانات",
+            "نظام الفواتير المتقدم"
         };
-        String[] icons={"📊","🧾","👥","🏪","📦","📑","💸","📝","⚙️"};
+        String[] icons={"📊","🧾","👥","🏪","📦","📑","💸","📝","⚙️","🧾"};
         int[] iconBgColors={
             BLUE_PRIMARY,
             ORANGE,
@@ -1400,7 +1401,8 @@ void showMoreMenu(){
             Color.rgb(0, 130, 120),
             Color.rgb(200, 100, 0),
             Color.rgb(50, 90, 120),
-            Color.rgb(90, 100, 110)
+            Color.rgb(90, 100, 110),
+            Color.rgb(30, 58, 138)
         };
         View.OnClickListener[] actions={
             v->dashboard(),
@@ -1411,7 +1413,8 @@ void showMoreMenu(){
             v->reports(),
             v->transfers(),
             v->notes(),
-            v->settingsHub()
+            v->settingsHub(),
+            v->{ try{ startActivity(new Intent(this,com.example.InvoiceCenterActivity.class)); }catch(Exception e){ Toast.makeText(this,"تعذر فتح نظام الفواتير",Toast.LENGTH_SHORT).show(); } }
         };
         String[] descriptions={
             "رسوم بيانية ومؤشرات المبيعات اليومية والمخزون",
@@ -1422,7 +1425,8 @@ void showMoreMenu(){
             "تقارير المبيعات الشاملة والأرباح والديون",
             "إنشاء، مراجعة، ومشاركة إيصالات الحوالات",
             "تدوين ومشاركة وطباعة الملاحظات اليومية",
-            "الطباعة الحرارية، النسخ الاحتياطي وإصلاح البيانات"
+            "الطباعة الحرارية، النسخ الاحتياطي وإصلاح البيانات",
+            "إصدار الفواتير والسجل والطباعة الحرارية وPDF بتصميم متقدم"
         };
 
         for(int i=0; i<labels.length; i++){
