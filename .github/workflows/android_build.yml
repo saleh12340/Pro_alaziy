@@ -2,7 +2,7 @@ name: Al-Azzi Grocery Android Build
 
 on:
   push:
-    branches: [ main, 'integration/**' ]
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -33,9 +33,19 @@ jobs:
           packages: 'platforms;android-35 build-tools;35.0.0'
           accept-android-sdk-licenses: true
 
-      - name: Prepare Gradle wrapper 8.9
+      - name: Install Gradle 8.9
         run: |
-          chmod +x ./gradlew
+          wget -q https://services.gradle.org/distributions/gradle-8.9-bin.zip
+          sudo unzip -q -o gradle-8.9-bin.zip -d /opt
+          echo "/opt/gradle-8.9/bin" >> "$GITHUB_PATH"
+
+      - name: Generate Gradle wrapper
+        run: |
+          gradle wrapper --gradle-version 8.9 --distribution-type bin
+          chmod +x gradlew
+
+      - name: Verify Java and Gradle
+        run: |
           java -version
           ./gradlew --version
 
@@ -46,7 +56,7 @@ jobs:
           fi
 
       - name: Run unit tests
-        run: ./gradlew test --stacktrace --no-daemon
+        run: ./gradlew :app:testDebugUnitTest --stacktrace --no-daemon
 
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug --stacktrace --no-daemon

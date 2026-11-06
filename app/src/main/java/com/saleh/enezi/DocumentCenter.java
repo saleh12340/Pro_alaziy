@@ -51,46 +51,12 @@ public final class DocumentCenter {
         }
     }
 
-    public static void sharePdfToWhatsApp(Activity a, File file, String caption){
-        if(a==null)return;
-        if(file==null||!file.isFile()||file.length()<=0){
-            Toast.makeText(a,"ملف PDF غير موجود أو فارغ",Toast.LENGTH_SHORT).show();
-            return;
-        }
-        try{
-            Uri uri=FileProvider.getUriForFile(a,a.getPackageName()+".fileprovider",file);
-            Intent intent=new Intent(Intent.ACTION_SEND);
-            intent.setType("application/pdf");
-            intent.putExtra(Intent.EXTRA_STREAM,uri);
-            if(caption!=null&&!caption.isEmpty())intent.putExtra(Intent.EXTRA_TEXT,caption);
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            intent.setPackage("com.whatsapp");
-            try{a.startActivity(intent);return;}catch(Exception ignored){}
-            intent.setPackage("com.whatsapp.w4b");
-            try{a.startActivity(intent);return;}catch(Exception ignored){}
-            intent.setPackage(null);
-            a.startActivity(Intent.createChooser(intent,"إرسال ملف PDF"));
-        }catch(Exception e){
-            Toast.makeText(a,"تعذر مشاركة ملف PDF عبر واتساب أو التطبيقات المتاحة",Toast.LENGTH_LONG).show();
-        }
-    }
-
     public static void sharePdf(Activity a, File file, String caption, String chooser){
-        sharePdfToWhatsApp(a,file,caption);
+        shareFile(a, file, "application/pdf", caption, chooser == null ? "مشاركة ملف PDF" : chooser);
     }
 
     public static void shareImage(Activity a, File file, String caption, String chooser){
-        if(a==null)return;
-        if(file==null||!file.isFile()||file.length()<=0){
-            Toast.makeText(a,"ملف الصورة غير موجود أو فارغ",Toast.LENGTH_SHORT).show();
-            return;
-        }
-        try{
-            Uri uri=FileProvider.getUriForFile(a,a.getPackageName()+".fileprovider",file);
-            shareImageUri(a,uri,caption,chooser);
-        }catch(Exception e){
-            Toast.makeText(a,"تعذر تجهيز الصورة للمشاركة",Toast.LENGTH_SHORT).show();
-        }
+        shareFile(a, file, "image/png", caption, chooser == null ? "مشاركة الصورة" : chooser);
     }
 
     public static void shareImageUri(Activity a, Uri uri, String caption, String chooser){
@@ -103,11 +69,6 @@ public final class DocumentCenter {
                 i.putExtra(Intent.EXTRA_TEXT, caption);
             }
             i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            i.setPackage("com.whatsapp");
-            try{a.startActivity(i);return;}catch(Exception ignored){}
-            i.setPackage("com.whatsapp.w4b");
-            try{a.startActivity(i);return;}catch(Exception ignored){}
-            i.setPackage(null);
             a.startActivity(Intent.createChooser(i, chooser == null ? "مشاركة الصورة" : chooser));
         } catch (Exception e) {
             Toast.makeText(a, "حدث خطأ أثناء مشاركة الصورة", Toast.LENGTH_SHORT).show();
