@@ -9617,51 +9617,51 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
     }
 
     void shareWhatsAppToCustomer(String phone,String text,Uri image){
-        Intent i=new Intent(Intent.ACTION_SEND);
-        i.setType(image!=null?"image/png":"text/plain");
-        if(text!=null&&!text.isEmpty())i.putExtra(Intent.EXTRA_TEXT,text);
-        if(image!=null){
-            if(!"content".equalsIgnoreCase(image.getScheme())){
-                Toast.makeText(this,"ملف الإيصال غير صالح للمشاركة",Toast.LENGTH_SHORT).show();
-                return;
-            }
-            i.putExtra(Intent.EXTRA_STREAM,image);
-            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            i.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-        }
         String p=normalizeWhatsAppPhone(phone);
-        if(!p.isEmpty())i.putExtra("jid",p+"@s.whatsapp.net");
-
-        // Prefer WhatsApp when installed, otherwise use the Android Sharesheet.
         try{
+            Intent i=new Intent(Intent.ACTION_SEND);
+            i.setType(image!=null?"image/png":"text/plain");
+            if(text!=null&&!text.isEmpty())i.putExtra(Intent.EXTRA_TEXT,text);
             if(image!=null){
-                i.setPackage("com.whatsapp");
-                startActivity(i);
-                return;
+                if("content".equalsIgnoreCase(image.getScheme())){
+                    i.putExtra(Intent.EXTRA_STREAM,image);
+                    i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    i.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                }
             }
-            i.setPackage("com.whatsapp");
-            startActivity(i);
-            return;
-        }catch(Exception ignored){}
+            if(!p.isEmpty())i.putExtra("jid",p+"@s.whatsapp.net");
 
-        try{
-            if(image!=null){
-                Intent wb=new Intent(i);
-                wb.setPackage("com.whatsapp.w4b");
-                startActivity(wb);
+            // Try WhatsApp
+            try{
+                Intent wa=new Intent(i);
+                wa.setPackage("com.whatsapp");
+                startActivity(wa);
                 return;
-            }
-            Intent wb=new Intent(i);
-            wb.setPackage("com.whatsapp.w4b");
-            startActivity(wb);
-            return;
-        }catch(Exception ignored){}
+            }catch(Exception ignored){}
 
-        try{
+            // Try WhatsApp Business
+            try{
+                Intent w4b=new Intent(i);
+                w4b.setPackage("com.whatsapp.w4b");
+                startActivity(w4b);
+                return;
+            }catch(Exception ignored){}
+
+            // If no image and we have a phone number, try wa.me URL intent for instant web/app deep-linking
+            if(image==null && !p.isEmpty()){
+                try{
+                    Uri waUri=Uri.parse("https://wa.me/"+p+"?text="+Uri.encode(text!=null?text:""));
+                    Intent webIntent=new Intent(Intent.ACTION_VIEW,waUri);
+                    startActivity(webIntent);
+                    return;
+                }catch(Exception ignored){}
+            }
+
+            // Fallback to system chooser
             i.setPackage(null);
-            startActivity(Intent.createChooser(i,"مشاركة الإيصال"));
+            startActivity(Intent.createChooser(i,"مشاركة عبر واتساب"));
         }catch(Exception e){
-            Toast.makeText(this,"لا يوجد تطبيق متاح لمشاركة الإيصال",Toast.LENGTH_LONG).show();
+            Toast.makeText(this,"تعذر فتح تطبيق واتساب للمشاركة",Toast.LENGTH_LONG).show();
         }
     }
 
