@@ -1357,7 +1357,7 @@ public class MainActivity extends Activity {
         content.addView(quick,new LinearLayout.LayoutParams(-1,-2));
         addSpace(8);
 
-        // Main Modules as Distinct Rounded Cards (بطاقات مدورة)
+        // Main Modules as Grid Rows of Cards (بطاقات في صفوف - شبكة عمودين)
         String[] labels={
             "لوحة التحكم والتحليلات",
             "الفواتير والسجل",
@@ -1392,75 +1392,120 @@ public class MainActivity extends Activity {
             v->notes(),
             v->settingsHub()
         };
-        String[] descriptions={
-            "رسوم بيانية ومؤشرات المبيعات اليومية والمخزون",
-            "إصدار وإدارة وسجل فواتير البيع والشراء",
-            "كشوف الحسابات ومستحقات وأرصدة العملاء",
-            "حسابات الموردين وفواتير التوريد والمستحقات",
-            "إدارة المنتجات، الكميات، الأسعار وتنبيهات النقص",
-            "تقارير المبيعات الشاملة والأرباح والديون",
-            "إنشاء، مراجعة، ومشاركة إيصالات الحوالات",
-            "تدوين ومشاركة وطباعة الملاحظات اليومية",
-            "الطباعة الحرارية، النسخ الاحتياطي وإصلاح البيانات"
-        };
 
-        for(int i=0; i<labels.length; i++){
-            LinearLayout card = new LinearLayout(this);
-            card.setOrientation(LinearLayout.HORIZONTAL);
-            card.setGravity(Gravity.CENTER_VERTICAL);
-            card.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-            card.setPadding(dp(12), dp(10), dp(12), dp(10));
+        for(int i=0; i<labels.length; i+=2){
+            LinearLayout row=new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
 
-            // Rounded Card Background (بطاقة مدورة)
-            GradientDrawable cBg = new GradientDrawable();
-            cBg.setColor(Color.WHITE);
-            cBg.setCornerRadius(dp(16));
-            cBg.setStroke(dp(1), BORDER);
-            card.setBackground(cBg);
-            card.setElevation(dp(2));
+            for(int j=0; j<2 && (i+j)<labels.length; j++){
+                final int idx=i+j;
+                LinearLayout card = new LinearLayout(this);
+                card.setOrientation(LinearLayout.VERTICAL);
+                card.setGravity(Gravity.CENTER);
+                card.setPadding(dp(10), dp(12), dp(10), dp(12));
 
-            // Rounded Icon Badge
-            TextView iconView = tv(icons[i], 20);
-            iconView.setGravity(Gravity.CENTER);
-            iconView.setTextColor(Color.WHITE);
-            GradientDrawable iBg = new GradientDrawable();
-            iBg.setColor(iconBgColors[i]);
-            iBg.setCornerRadius(dp(12));
-            iconView.setBackground(iBg);
-            card.addView(iconView, new LinearLayout.LayoutParams(dp(42), dp(42)));
+                GradientDrawable cBg = new GradientDrawable();
+                cBg.setColor(Color.WHITE);
+                cBg.setCornerRadius(dp(16));
+                cBg.setStroke(dp(1), BORDER);
+                card.setBackground(cBg);
+                card.setElevation(dp(2));
 
-            // Text Info
-            LinearLayout textBox = new LinearLayout(this);
-            textBox.setOrientation(LinearLayout.VERTICAL);
-            textBox.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-            textBox.setPadding(dp(10), 0, dp(10), 0);
+                TextView iconView = tv(icons[idx], 22);
+                iconView.setGravity(Gravity.CENTER);
+                iconView.setTextColor(Color.WHITE);
+                GradientDrawable iBg = new GradientDrawable();
+                iBg.setColor(iconBgColors[idx]);
+                iBg.setCornerRadius(dp(12));
+                iconView.setBackground(iBg);
+                card.addView(iconView, new LinearLayout.LayoutParams(dp(44), dp(44)));
+                addSpaceTo(card, 6);
 
-            TextView titleTv = tv(labels[i], 15.5f);
-            titleTv.setTextColor(TEXT);
-            titleTv.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+                TextView titleTv = tv(labels[idx], 14f);
+                titleTv.setTextColor(TEXT);
+                titleTv.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+                titleTv.setGravity(Gravity.CENTER);
+                card.addView(titleTv, new LinearLayout.LayoutParams(-1, -2));
 
-            TextView descTv = tv(descriptions[i], 11f);
-            descTv.setTextColor(MUTED);
+                card.setOnClickListener(actions[idx]);
 
-            textBox.addView(titleTv, new LinearLayout.LayoutParams(-1, -2));
-            textBox.addView(descTv, new LinearLayout.LayoutParams(-1, -2));
+                LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(0, dp(100), 1f);
+                if(j>0) cp.setMargins(dp(6), 0, 0, 0);
+                else cp.setMargins(0, 0, dp(6), 0);
+                row.addView(card, cp);
+            }
 
-            card.addView(textBox, new LinearLayout.LayoutParams(0, -2, 1));
-
-            // Arrow
-            TextView arrow = tv("‹", 22);
-            arrow.setTextColor(DARK);
-            arrow.setGravity(Gravity.CENTER);
-            card.addView(arrow, new LinearLayout.LayoutParams(dp(24), -2));
-
-            card.setOnClickListener(actions[i]);
-
-            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, -2);
-            cp.setMargins(0, 0, 0, dp(8));
-            content.addView(card, cp);
+            LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, -2);
+            rp.setMargins(0, 0, 0, dp(8));
+            content.addView(row, rp);
         }
 
+        // Floating Action Button (+) for Quick Add in Full Screen
+        try {
+            FrameLayout rootContainer = (FrameLayout) root.getParent();
+            if(rootContainer == null && root.getRootView() instanceof FrameLayout){
+                rootContainer = (FrameLayout) root.getRootView();
+            }
+            if(rootContainer != null){
+                Button fab = new Button(this);
+                fab.setText("＋");
+                fab.setTextSize(24);
+                fab.setTextColor(Color.WHITE);
+                fab.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+                GradientDrawable fabBg = new GradientDrawable();
+                fabBg.setShape(GradientDrawable.OVAL);
+                fabBg.setColor(DARK);
+                fab.setBackground(fabBg);
+                fab.setElevation(dp(8));
+                fab.setOnClickListener(v -> showQuickAddFullScreenHub());
+
+                FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(dp(56), dp(56));
+                flp.gravity = Gravity.BOTTOM | Gravity.LEFT;
+                flp.setMargins(dp(20), 0, dp(20), dp(70));
+                if(fab.getParent() != null) ((ViewGroup)fab.getParent()).removeView(fab);
+                rootContainer.addView(fab, flp);
+            }
+        }catch(Throwable ignored){
+            // Fallback: Add button at bottom of content
+            Button fabFallback = action("＋ إضافة فاتورة أو عملية جديدة في شاشة مستقلة", DARK);
+            fabFallback.setOnClickListener(v -> showQuickAddFullScreenHub());
+            content.addView(fabFallback, new LinearLayout.LayoutParams(-1, dp(48)));
+        }
         addSpace(4);
+    }
+
+    void showQuickAddFullScreenHub(){
+        base("إضافة سريعة - شاشة مستقلة");
+        section("اختر نوع العملية أو الفاتورة المراد إضافتها في شاشة مستقلة كاملة");
+
+        String[] options={
+            "🧾 فاتورة مبيعات جديدة",
+            "📥 فاتورة شراء جديدة",
+            "🔴 قيد سحب عميل (عليه +)",
+            "🟢 دفعة سداد عميل (سداد ✓)",
+            "🏪 إضافة عملية مورد",
+            "💸 تسجيل حوالة مالية",
+            "📦 إضافة صنف للمخزون"
+        };
+        View.OnClickListener[] optionActions={
+            v->unifiedInvoiceForm(InvoiceType.SALE),
+            v->unifiedInvoiceForm(InvoiceType.PURCHASE),
+            v->showCustomerTransactionDialog(false),
+            v->showCustomerTransactionDialog(true),
+            v->suppliers(),
+            v->transfers(),
+            v->inventory()
+        };
+
+        for(int i=0; i<options.length; i++){
+            Button b=action(options[i], DARK);
+            b.setOnClickListener(optionActions[i]);
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1, dp(48));
+            lp.setMargins(0, 0, 0, dp(8));
+            content.addView(b, lp);
+        }
     }
 
     void addHomeSummaryCell(LinearLayout parent,String label,String value,int accent){
