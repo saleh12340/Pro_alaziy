@@ -5270,14 +5270,20 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 fDesc.setHint("أدخل اسم الصنف..."); fDesc.setTextSize(12); fDesc.setSingleLine(true);
                 fDesc.setTextColor(TEXT); fDesc.setHintTextColor(MUTED); fDesc.setBackgroundColor(Color.TRANSPARENT);
                 fDesc.setPadding(dp(4),0,dp(4),0); fDesc.setThreshold(1);
+                fDesc.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+                fDesc.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+                fDesc.setTextDirection(View.TEXT_DIRECTION_RTL);
+                fDesc.setHorizontallyScrolling(false);
                 fDesc.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,db.itemNames()));
 
                 EditText fQty=new EditText(this);
                 fQty.setText("1"); fQty.setTextSize(12); fQty.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL);
+                fQty.setTextDirection(View.TEXT_DIRECTION_LTR);
                 fQty.setGravity(Gravity.CENTER); fQty.setBackgroundColor(Color.TRANSPARENT); fQty.setTextColor(TEXT); fQty.setPadding(0,0,0,0);
 
                 EditText fPrice=new EditText(this);
                 fPrice.setHint("سعر"); fPrice.setTextSize(12); fPrice.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL);
+                fPrice.setTextDirection(View.TEXT_DIRECTION_LTR);
                 fPrice.setGravity(Gravity.CENTER); fPrice.setBackgroundColor(Color.TRANSPARENT); fPrice.setTextColor(TEXT); fPrice.setPadding(0,0,0,0);
 
                 TextView fTotal=tv("0",12); fTotal.setGravity(Gravity.CENTER); fTotal.setTextColor(MUTED);
