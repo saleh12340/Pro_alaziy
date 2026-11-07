@@ -1585,7 +1585,11 @@ public class MainActivity extends Activity {
         if(content!=null) content.setPadding(dp(6),dp(4),dp(6),dp(88));
     }
 
-    void showCustomerTransactionDialog(boolean payment){\n        showCustomerTransactionDialog(payment,0,null);\n    }\n\n    void showCustomerTransactionDialog(boolean payment,long presetCustomerId,String presetCustomerName){
+    void showCustomerTransactionDialog(boolean payment){
+        showCustomerTransactionDialog(payment,0,null);
+    }
+
+    void showCustomerTransactionDialog(boolean payment,long presetCustomerId,String presetCustomerName){
         beginFullPage(payment?"تسجيل دفعة سداد للعميل":"تسجيل عملية على العميل",
             presetCustomerName==null?"اختر العميل وأدخل المبلغ والبيان.":"الحساب المحدد: "+presetCustomerName);
         AutoCompleteTextView name=new AutoCompleteTextView(this);
