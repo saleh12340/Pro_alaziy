@@ -65,7 +65,7 @@ public class MainActivity extends Activity {
     static final int SURFACE_ALT=Color.rgb(235,243,254); // Light blue pill #EBF3FE
     static final int BORDER=Color.rgb(208,215,226); // Subtle border #D0D7E2
     static final int ACCENT_LINE=BORDER;
-    volatile boolean startupFinished=false; DB db; LinearLayout root,content,bottom; boolean darkCardMode=false; PopupWindow learningPopup; TextView pageTitle; int textSize=16; String currentPage="الرئيسية"; ArrayDeque<String> pageStack=new ArrayDeque<>(); long currentNotePageId=-1; int noteFontSize=14; boolean noteScrollMode=true; String noteSearchQuery="";
+    volatile boolean startupFinished=false; DB db; LinearLayout root,content,bottom; boolean darkCardMode=false; PopupWindow learningPopup; TextView pageTitle; int textSize=16; String currentPage="الرئيسية"; ArrayDeque<String> pageStack=new ArrayDeque<>(); long activeCustomerId=-1; String activeCustomerName=""; long currentNotePageId=-1; int noteFontSize=14; boolean noteScrollMode=true; String noteSearchQuery="";
     Uri cameraScanTempUri; Bitmap scanRawBitmap; String scanFilterMode="magic"; float scanRotation=0; String scanCategoryFilter="الكل"; String scanSearchQuery="";
     EditText transferSenderName,transferSenderPhone,transferReceiverName,transferReceiverPhone,transferContactNameTarget,transferContactPhoneTarget;
     boolean invoiceSaveInProgress=false;
@@ -199,6 +199,7 @@ public class MainActivity extends Activity {
     void goBack(){
         if(pageStack.isEmpty()){ confirmExit(); return; }
         String prev=pageStack.pop();
+        currentPage=prev;
         if(prev.equals("الرئيسية")) home();
         else if(prev.equals("الحسابات")||prev.equals("العملاء")) home();
         else if(prev.equals("الفواتير")) invoiceHistory();
@@ -209,6 +210,7 @@ public class MainActivity extends Activity {
         else if(prev.equals("الحوالات")) transfers();
         else if(prev.equals("الموردون")) suppliers();
         else if(prev.equals("حساب المورد")) suppliers();
+        else if(prev.equals("حساب العميل")){if(activeCustomerId>0)account(activeCustomerId,activeCustomerName);else home();}
         else if(prev.equals("الإعدادات")) settingsHub();
         else if(prev.equals("لوحة التحكم")||prev.equals("التحليلات")||prev.equals("لوحة التحكم والتحليلات")) dashboard();
         else home();
@@ -622,7 +624,8 @@ public class MainActivity extends Activity {
     void base(String title,boolean withDefaultNav){
         darkCardMode=false;
         if(!title.equals(currentPage)){
-            pageStack.push(currentPage);
+            if(!pageStack.isEmpty() && title.equals(pageStack.peek())) pageStack.pop();
+            else pageStack.push(currentPage);
             currentPage=title;
         }
         root=new LinearLayout(this);
