@@ -683,15 +683,15 @@ public class MainActivity extends Activity {
         navBg.setStroke(dp(1),BORDER);
         nav.setBackground(navBg);
         nav.setElevation(dp(8));
-        String[] labels={"الرئيسية","فاتورة","العملاء","التقارير","المزيد"};
-        String[] icons={"🏪","🧾","👥","📊","•••"};
+        String[] labels={"الرئيسية","فاتورة","الموردون","التقارير","المزيد"};
+        String[] icons={"🏪","🧾","🏪","📊","•••"};
         for(int i=0;i<labels.length;i++){
             final int idx=i;
             LinearLayout tab=new LinearLayout(this); tab.setOrientation(LinearLayout.VERTICAL); tab.setGravity(Gravity.CENTER); tab.setPadding(dp(2),dp(3),dp(2),dp(3));
             boolean active=false;
             if(i==0 && activeTitle!=null && activeTitle.equals("الرئيسية")) active=true;
             else if(i==1 && activeTitle!=null && (activeTitle.contains("فاتورة") || activeTitle.contains("الفواتير") || activeTitle.contains("بيع") || activeTitle.contains("شراء"))) active=true;
-            else if(i==2 && activeTitle!=null && (activeTitle.contains("عميل") || activeTitle.contains("العملاء") || activeTitle.contains("حساب"))) active=true;
+            else if(i==2 && activeTitle!=null && (activeTitle.contains("مورد") || activeTitle.contains("مشتريات"))) active=true;
             else if(i==3 && activeTitle!=null && (activeTitle.contains("تقرير") || activeTitle.contains("التقارير") || activeTitle.contains("لوحة") || activeTitle.contains("تحليلات"))) active=true;
             else if(i==4 && activeTitle!=null && (activeTitle.contains("مورد") || activeTitle.contains("مخزون") || activeTitle.contains("حوالة") || activeTitle.contains("ملاحظ") || activeTitle.contains("إعداد"))) active=true;
 
@@ -714,7 +714,7 @@ public class MainActivity extends Activity {
                 hideKeyboard();
                 if(idx==0)home();
                 else if(idx==1)invoicesHub();
-                else if(idx==2)customers();
+                else if(idx==2)suppliers();
                 else if(idx==3)reports();
                 else showMoreMenu();
             });
