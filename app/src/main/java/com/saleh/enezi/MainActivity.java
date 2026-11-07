@@ -10314,7 +10314,7 @@ Uri saveReceiptBitmap(Bitmap bitmap,String no)throws Exception{
             try{
                 db.addCustomer(n,p);
                 dialog.dismiss();
-                customers();
+                home();
                 Toast.makeText(this,"تم حفظ العميل وإغلاق النافذة",Toast.LENGTH_SHORT).show();
             }catch(Throwable e){
                 Toast.makeText(this,"تعذر حفظ العميل: "+e.getMessage(),Toast.LENGTH_LONG).show();
