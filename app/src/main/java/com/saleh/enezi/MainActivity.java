@@ -188,7 +188,7 @@ public class MainActivity extends Activity {
     }
 
     void confirmExit(){
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
             .setTitle("تأكيد الخروج")
             .setMessage("هل تريد الخروج من التطبيق؟")
             .setNegativeButton("إلغاء",null)
@@ -648,7 +648,7 @@ public class MainActivity extends Activity {
         titleBox.setPadding(dp(4),0,dp(8),0);
         TextView pt=tv(title.equals("الرئيسية")?"بقالة العزي للمواد الغذائية":title,17f);
         pt.setTextColor(Color.WHITE); pt.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-        pt.setSingleLine(true); pt.setMaxLines(1); pt.setEllipsize(null); fitInside(pt,18f,14f);
+        pt.setSingleLine(false); pt.setMaxLines(2); pt.setEllipsize(null); pt.setHorizontallyScrolling(false); pt.setIncludeFontPadding(true); fitInside(pt,18f,14f);
         titleBox.addView(pt,new LinearLayout.LayoutParams(-1,-2));
         bar.addView(titleBox,new LinearLayout.LayoutParams(0,-2,1));
         root.addView(bar,new LinearLayout.LayoutParams(-1,-2));
@@ -794,7 +794,7 @@ public class MainActivity extends Activity {
             "⚙️ الإعدادات والطباعة",
             "💾 النسخ الاحتياطي والاستعادة"
         };
-        new AlertDialog.Builder(this).setTitle("المزيد").setItems(choices,(d,w)->{
+        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("المزيد").setItems(choices,(d,w)->{
             if(w==0)inventory();
             else if(w==1)suppliers();
             else if(w==2)dashboard();
@@ -1606,7 +1606,7 @@ public class MainActivity extends Activity {
     }
 
     void showCustomerTransactionDialog(boolean payment,long presetCustomerId,String presetCustomerName){
-        final Dialog dlg=new Dialog(this);
+        final Dialog dlg=new Dialog(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen);
         LinearLayout box=new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
@@ -2069,7 +2069,7 @@ void showGeneralActions(){
         fPrint.setOnClickListener(v->preview(no.getText().toString(),customer.getText().toString(),lines,totalOf(lines),edit,invoiceId));
         fClear.setOnClickListener(v->{
             if(!lines.isEmpty()){
-                new AlertDialog.Builder(this)
+                new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
                     .setTitle("مسح الأصناف")
                     .setMessage("هل تريد مسح جميع أصناف الفاتورة؟")
                     .setPositiveButton("مسح",(d,w)->{lines.clear();redraw[0].run();})
@@ -2092,7 +2092,7 @@ void showGeneralActions(){
         LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(dp(8),dp(4),dp(8),dp(4));
         box.addView(tv("أضف رقم العميل للمشاركة عبر واتساب.",12));
         box.addView(phone,new LinearLayout.LayoutParams(-1,dp(52)));
-        AlertDialog dlg=new AlertDialog.Builder(this).setTitle("إضافة رقم العميل").setView(box)
+        AlertDialog dlg=new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("إضافة رقم العميل").setView(box)
             .setPositiveButton("حفظ الفاتورة",(d,w)->{
                 String p=phone.getText().toString().trim();
                 if(p.isEmpty()){Toast.makeText(this,"أدخل رقم العميل.",Toast.LENGTH_SHORT).show();if(invoiceSaveButton!=null)invoiceSaveButton.setEnabled(true);return;}
@@ -2330,7 +2330,7 @@ void showGeneralActions(){
         }
     }
     void showBackupRestore(){
-        new AlertDialog.Builder(this).setTitle("النسخ الاحتياطي والاسترجاع")
+        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("النسخ الاحتياطي والاسترجاع")
             .setMessage("النسخة التلقائية: كل يوم الساعة 11:59 مساءً.\n\nالمسار: Download/بقالة العزي خاص/النسخ الاحتياطية\n\nيمكنك إنشاء نسخة احتياطية يدوياً الآن في أي وقت.")
             .setPositiveButton("💾 إنشاء نسخة الآن",(d,w)->{
                 boolean saved=BackupReceiver.backup(this);
@@ -2361,26 +2361,29 @@ void showGeneralActions(){
 
     int dp(int v){return (int)(v*getResources().getDisplayMetrics().density+0.5f);}
     int dp(float v){return (int)(v*getResources().getDisplayMetrics().density+0.5f);}
-    // نظام وزن موحد: المحتوى يحدد ارتفاع النافذة، مع حد أقصى للعرض فقط.
+    // كل واجهات الإدخال والتفاصيل القديمة التي كانت تظهر كنافذة صغيرة أصبحت تغطي الشاشة كاملة.
     void compactDialogWindow(Dialog dlg, int maxWidthDp){
         if(dlg==null) return;
         try{
             Window w=dlg.getWindow();
             if(w!=null){
-                w.setBackgroundDrawableResource(android.R.color.transparent);
+                w.setBackgroundDrawableResource(android.R.color.white);
                 w.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
-                int screenW=getResources().getDisplayMetrics().widthPixels;
-                int width=Math.min(dp(maxWidthDp), Math.max(dp(280), screenW-dp(20)));
-                w.setLayout(width,WindowManager.LayoutParams.WRAP_CONTENT);
-                w.setGravity(Gravity.CENTER);
+                w.setLayout(WindowManager.LayoutParams.MATCH_PARENT,WindowManager.LayoutParams.MATCH_PARENT);
+                w.setGravity(Gravity.FILL);
             }
         }catch(Throwable ignored){}
     }
     void showCompactDialog(Dialog dlg, View contentView, int maxWidthDp){
         dlg.setContentView(contentView);
-        dlg.setCanceledOnTouchOutside(true);
+        dlg.setCanceledOnTouchOutside(false);
+        dlg.setCancelable(true);
         dlg.show();
         compactDialogWindow(dlg,maxWidthDp);
+        if(contentView instanceof ViewGroup){
+            contentView.setLayoutParams(new WindowManager.LayoutParams(WindowManager.LayoutParams.MATCH_PARENT,WindowManager.LayoutParams.MATCH_PARENT));
+            normalizeAppText(contentView);
+        }
     }
     GradientDrawable bg(int color,float radius){return rounded(color,dp((int)radius));}
     GradientDrawable outline(int color,float radius){return outlined(color,1,dp((int)radius));}
@@ -2413,19 +2416,19 @@ void showGeneralActions(){
     void editLineTotal(Line line,LinearLayout parent,ArrayList<Line> all,double baseBal){
         EditText e=numberField("الإجمالي");e.setText(fmt(line.total));e.setSelectAllOnFocus(true);
         LinearLayout box=new LinearLayout(this);box.setPadding(dp(8),dp(4),dp(8),dp(2));box.addView(e,new LinearLayout.LayoutParams(-1,dp(42)));
-        new AlertDialog.Builder(this).setTitle("تعديل إجمالي الصنف").setMessage(line.name+" — الإجمالي الحالي: "+fmt(line.total)+" ريال").setView(box)
+        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("تعديل إجمالي الصنف").setMessage(line.name+" — الإجمالي الحالي: "+fmt(line.total)+" ريال").setView(box)
             .setNegativeButton("إلغاء",null).setPositiveButton("حفظ",(d,w)->{try{double value=Double.parseDouble(e.getText().toString().trim());if(value<0)throw new Exception();line.total=value;redrawInvoiceRows(parent,all,baseBal);}catch(Exception ex){Toast.makeText(this,"أدخل إجماليًا صحيحًا",Toast.LENGTH_SHORT).show();}}).show();
     }
     void editLineName(Line line,LinearLayout parent,ArrayList<Line> all,double baseBal){
         EditText e=field("اسم الصنف / التفاصيل");e.setText(line.name);e.setSelectAllOnFocus(true);
         LinearLayout box=new LinearLayout(this);box.setPadding(dp(8),dp(4),dp(8),dp(2));box.addView(e,new LinearLayout.LayoutParams(-1,dp(42)));
-        new AlertDialog.Builder(this).setTitle("تعديل اسم الصنف / التفاصيل").setView(box)
+        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("تعديل اسم الصنف / التفاصيل").setView(box)
             .setNegativeButton("إلغاء",null).setPositiveButton("حفظ",(d,w)->{String value=e.getText().toString().trim();if(value.isEmpty()){Toast.makeText(this,"اسم الصنف لا يمكن أن يكون فارغًا",Toast.LENGTH_SHORT).show();return;}line.name=value;redrawInvoiceRows(parent,all,baseBal);}).show();
     }
     void editLineQuantity(Line line,LinearLayout parent,ArrayList<Line> all,double baseBal){
         EditText q=numberField("الكمية");q.setText(fmt(line.qty));q.setSelectAllOnFocus(true);
         LinearLayout box=new LinearLayout(this);box.setPadding(dp(8),dp(4),dp(8),dp(2));box.addView(q,new LinearLayout.LayoutParams(-1,dp(42)));
-        new AlertDialog.Builder(this).setTitle("تعديل كمية الصنف").setMessage(line.name+" — الكمية الحالية: "+fmt(line.qty)).setView(box)
+        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("تعديل كمية الصنف").setMessage(line.name+" — الكمية الحالية: "+fmt(line.qty)).setView(box)
             .setNegativeButton("إلغاء",null).setPositiveButton("حفظ",(d,w)->{try{double value=Double.parseDouble(q.getText().toString().trim());if(value<=0)throw new Exception();line.qty=value;redrawInvoiceRows(parent,all,baseBal);}catch(Exception e){Toast.makeText(this,"أدخل كمية صحيحة",Toast.LENGTH_SHORT).show();}}).show();
     }
     void redrawInvoiceRows(LinearLayout parent,ArrayList<Line> all,double baseBal){parent.removeAllViews();double run=0;for(Line x:all){run+=x.total;addRow(parent,x,run,baseBal,all);}}
@@ -2459,7 +2462,7 @@ void showGeneralActions(){
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(Color.WHITE);
         scroll.addView(image,new ScrollView.LayoutParams(-1,-2));
-        AlertDialog dlg=new AlertDialog.Builder(this).setTitle("معاينة إيصال 58mm").setView(scroll)
+        AlertDialog dlg=new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("معاينة إيصال 58mm").setView(scroll)
             .setPositiveButton("مشاركة واتساب",(d,w)->shareReceiptImageAndText(no,cleanCustomer,lines,total))
             .setNeutralButton("طباعة",(d,w)->printInvoiceBluetooth(no,cleanCustomer,lines,total))
             .setNegativeButton("إغلاق",null).create();
@@ -2564,7 +2567,7 @@ void showGeneralActions(){
 
 
     void showOperationDetails(String customer,long tid,String details,double amount,int type){
-        final Dialog dlg=new Dialog(this);
+        final Dialog dlg=new Dialog(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen);
         String invNo=db.invoiceNoFromTransaction(details);boolean invoice=!invNo.isEmpty(),debit=type==1;
         int accent=invoice?GREEN:(debit?RED:Color.rgb(105,105,105));
         LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);box.setPadding(dp(12),dp(10),dp(12),dp(10));
@@ -2629,7 +2632,7 @@ void showGeneralActions(){
         print.setOnClickListener(v->{dlg.dismiss();printOperation(customer,details,amount,type,invNo);});
         long cid=db.customerIdByName(customer);
         edit.setOnClickListener(v->{dlg.dismiss();if(invoice){long iid=db.invoiceIdByNo(invNo);if(iid>0)invoice(true,iid);}else editTransaction(cid,customer,tid,amount,details,type);});
-        del.setOnClickListener(v->{dlg.dismiss();new AlertDialog.Builder(this).setTitle("حذف العملية؟").setMessage("سيتم حذف العملية.").setPositiveButton("حذف",(d,w)->{db.deleteTransaction(tid);account(cid,customer);}).setNegativeButton("إلغاء",null).show();});
+        del.setOnClickListener(v->{dlg.dismiss();new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("حذف العملية؟").setMessage("سيتم حذف العملية.").setPositiveButton("حذف",(d,w)->{db.deleteTransaction(tid);account(cid,customer);}).setNegativeButton("إلغاء",null).show();});
         box.addView(actions,new LinearLayout.LayoutParams(-1,-2));
 
         showCompactDialog(dlg,box,380);
@@ -2642,14 +2645,14 @@ void operationActions(long customerId,String customerName,long tid,String detail
         choices.add("📤 مشاركة واتساب (صورة + نص)");choices.add("💬 إرسال رسالة SMS");choices.add("🖨 طباعة 58mm");
         choices.add(invNo.isEmpty()?"🗑 حذف العملية":"🗑 حذف الفاتورة المرتبطة");
         String[] a=choices.toArray(new String[0]);
-        new AlertDialog.Builder(this).setTitle("خيارات العملية").setItems(a,(d,w)->{
+        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("خيارات العملية").setItems(a,(d,w)->{
             int i=0;
             if(!invNo.isEmpty()&&w==i++){long iid=db.invoiceIdByNo(invNo);if(iid>0)invoice(true,iid);return;}
             if(invNo.isEmpty() && w==i++){editTransaction(customerId,customerName,tid,amount,details,type);return;}
             if(w==i++){shareOperationImage(customerName,details,amount,type,invNo);return;}
             if(w==i++){shareOperationSms(customerName,details,amount,type,invNo);return;}
             if(w==i++){printOperation(customerName,details,amount,type,invNo);return;}
-            new AlertDialog.Builder(this).setTitle(invNo.isEmpty()?"حذف العملية؟":"حذف الفاتورة المرتبطة؟").setMessage(invNo.isEmpty()?"سيتم حذف الحركة من حساب العميل.":"مرتبطة بفاتورة وسيتم حذفها وإرجاع المخزون.")
+            new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle(invNo.isEmpty()?"حذف العملية؟":"حذف الفاتورة المرتبطة؟").setMessage(invNo.isEmpty()?"سيتم حذف الحركة من حساب العميل.":"مرتبطة بفاتورة وسيتم حذفها وإرجاع المخزون.")
                 .setPositiveButton("حذف",(x,y)->{if(invNo.isEmpty())db.deleteTransaction(tid);else{long iid=db.invoiceIdByNo(invNo);if(iid>0)db.deleteInvoice(iid);}account(customerId,customerName);}).setNegativeButton("إلغاء",null).show();
         }).setNegativeButton("إغلاق",null).show();
     }
@@ -2788,7 +2791,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         scroll.setBackgroundColor(Color.WHITE);
         scroll.addView(image,new ScrollView.LayoutParams(-1,-2));
 
-        AlertDialog.Builder builder=new AlertDialog.Builder(this)
+        AlertDialog.Builder builder=new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
             .setTitle(title)
             .setView(scroll)
             .setNeutralButton("🖨️ طباعة",(d,w)->{
@@ -2960,7 +2963,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         BluetoothDevice[] ds=paired.toArray(new BluetoothDevice[0]);
         String[] names=new String[ds.length];
         for(int i=0;i<ds.length;i++)names[i]=(ds[i].getName()==null?"طابعة 58mm":ds[i].getName())+"\n"+ds[i].getAddress();
-        new AlertDialog.Builder(this).setTitle("اختيار طابعة 58mm — أول مرة فقط").setItems(names,(d,w)->{
+        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("اختيار طابعة 58mm — أول مرة فقط").setItems(names,(d,w)->{
             getSharedPreferences("printer_settings",MODE_PRIVATE).edit().putString("printer_address",ds[w].getAddress()).apply();
             new Thread(()->sendBitmapToBluetooth(ds[w],bitmap)).start();
         }).setNegativeButton("إلغاء",null).show();
@@ -3220,7 +3223,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                     Toast.makeText(this,"تم تحميل الصنف للتعديل",Toast.LENGTH_SHORT).show();
                 });
 
-                deleteBtn.setOnClickListener(v->new AlertDialog.Builder(this)
+                deleteBtn.setOnClickListener(v->new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
                     .setTitle("حذف الصنف")
                     .setMessage("هل تريد حذف «"+itemName+"» نهائياً؟")
                     .setNegativeButton("إلغاء",null)
@@ -3663,7 +3666,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
             TextView date=tv(dt,12);date.setTextColor(MUTED);row.addView(top,new LinearLayout.LayoutParams(-1,-2));row.addView(who,new LinearLayout.LayoutParams(-1,-2));row.addView(date,new LinearLayout.LayoutParams(-1,-2));
             row.setOnClickListener(v->{
                 final String[] actions={"🖨️ طباعة إيصال (بلوتوث 58mm)","📲 إرسال للمستلم (واتساب)","📲 إرسال للمرسل (واتساب)","🖼️ مشاركة صورة الإيصال","📋 نسخ بيانات الحوالة",review!=0?"✅ تحديد كمجهزة":"⚠️ تحديد للمراجعة","🗑️ حذف الحوالة"};
-                new AlertDialog.Builder(this)
+                new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
                     .setTitle("حوالة: "+fmt(a)+" ريال")
                     .setItems(actions,(d,w)->{
                         String txt=transferReceiptText(a,sn,sp,rn,rp,dt);
@@ -3689,7 +3692,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                             db.getWritableDatabase().update("transfers",cv,"id=?",new String[]{String.valueOf(id)});
                             renderTransfers(list);
                         }else if(w==6){
-                            new AlertDialog.Builder(this).setTitle("حذف الحوالة؟").setMessage("هل تريد بالتأكيد حذف هذه الحوالة؟").setPositiveButton("حذف",(x,y)->{
+                            new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("حذف الحوالة؟").setMessage("هل تريد بالتأكيد حذف هذه الحوالة؟").setPositiveButton("حذف",(x,y)->{
                                 db.deleteTransfer(id);
                                 renderTransfers(list);
                                 Toast.makeText(this,"تم حذف الحوالة",Toast.LENGTH_SHORT).show();
@@ -3902,7 +3905,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         return col;
     }
     void editNoteItem(long pid,NoteItem it){
-        final Dialog dlg=new Dialog(this);
+        final Dialog dlg=new Dialog(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen);
         LinearLayout box=new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
@@ -3954,7 +3957,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         showCompactDialog(dlg,box,360);
     }
     void addNoteItem(long pid,EditText name,EditText qty,int side){String n=name.getText().toString().trim();double q=0; try { q=Double.parseDouble(qty.getText().toString().trim().replace(",", ".")); } catch(Exception ignored) {}if(n.isEmpty()){Toast.makeText(this,"اكتب اسم الصنف أولاً",Toast.LENGTH_SHORT).show();return;}if(q<=0){Toast.makeText(this,"العدد يجب أن يكون أكبر من صفر",Toast.LENGTH_SHORT).show();return;}db.addNoteItem(pid,n,q,side);name.setText("");qty.setText("1");notes();}
-    void clearNotesPage(){if(currentNotePageId<1)return;new AlertDialog.Builder(this).setTitle("تفريغ الصفحة").setMessage("سيتم حذف عناصر الصفحة الحالية فقط. هل تريد المتابعة؟").setNegativeButton("إلغاء",null).setPositiveButton("تفريغ",(d,w)->{db.clearNoteItems(currentNotePageId);notes();}).show();}
+    void clearNotesPage(){if(currentNotePageId<1)return;new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("تفريغ الصفحة").setMessage("سيتم حذف عناصر الصفحة الحالية فقط. هل تريد المتابعة؟").setNegativeButton("إلغاء",null).setPositiveButton("تفريغ",(d,w)->{db.clearNoteItems(currentNotePageId);notes();}).show();}
     void newNotesPage(){if(currentNotePageId>0)db.touchNotePage(currentNotePageId);currentNotePageId=db.createNotePage("ملاحظة جديدة",db.now());notes();}
     void showNotesHistoryFiltered(String q){
         base("بحث الملاحظات");LinearLayout list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);content.addView(list);
@@ -3976,7 +3979,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
             del.setTextColor(RED);
             del.setTextSize(14f);
             del.setOnClickListener(v->{
-                new AlertDialog.Builder(this)
+                new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
                     .setTitle("حذف الصفحة؟")
                     .setMessage("سيتم حذف هذه الصفحة وجميع عناصرها نهائياً.")
                     .setPositiveButton("حذف",(d,w)->{
@@ -4382,7 +4385,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
             "👁️ معاينة الإيصال والطباعة"
         };
 
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
             .setTitle("وضع الطباعة الذكية ⚡")
             .setItems(options,(d,which)->{
                 if(which==0){
@@ -4409,7 +4412,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                     "معالج طباعة أندرويد دائماً (Print Spooler)",
                     "طباعة بلوتوث مباشرة دائماً (Direct Bluetooth)"
                 };
-                new AlertDialog.Builder(this)
+                new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
                     .setTitle("اختر الوضع الافتراضي للطباعة")
                     .setItems(modes,(d2,w2)->{
                         android.content.SharedPreferences.Editor ed=getSharedPreferences("printer_settings",MODE_PRIVATE).edit();
@@ -5671,7 +5674,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
     }
 
     void showSupplierOperationDetails(long supplierId,String name,String phone,int kind,long id,String ref,String details,double amount,String date,double running){
-        final Dialog dlg=new Dialog(this);
+        final Dialog dlg=new Dialog(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen);
         boolean isInvoice=kind==1;
         int accent=isInvoice?RED:BLUE;
 
@@ -5782,7 +5785,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 long pid=id;
                 purchaseInvoiceForm(true,pid);
             }else{
-                final Dialog ed=new Dialog(this);
+                final Dialog ed=new Dialog(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen);
                 LinearLayout eb=new LinearLayout(this);
                 eb.setOrientation(LinearLayout.VERTICAL);
                 eb.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
@@ -6409,7 +6412,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                     lines.close();
                     if(count==0) box.addView(detailLine("الأصناف","لا توجد تفاصيل محفوظة"));
 
-                    new AlertDialog.Builder(this).setTitle("تفاصيل الفاتورة").setView(box)
+                    new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("تفاصيل الفاتورة").setView(box)
                         .setPositiveButton("إغلاق",null).show();
                     return;
                 }
@@ -6442,18 +6445,18 @@ void operationActions(long customerId,String customerName,long tid,String detail
                     box.addView(detailLine("الرصيد بعد العملية",balanceText(after)));
 
                     tc.close();
-                    new AlertDialog.Builder(this).setTitle("بيانات العملية كاملة").setView(box)
+                    new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("بيانات العملية كاملة").setView(box)
                         .setPositiveButton("إغلاق",null).show();
                     return;
                 }
                 tc.close();
             }
 
-            new AlertDialog.Builder(this).setTitle("بيانات الحركة")
+            new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("بيانات الحركة")
                 .setMessage(title+"\nالمبلغ: "+fmt(amount)+" ريال\nالتاريخ والوقت: "+date)
                 .setPositiveButton("إغلاق",null).show();
         }catch(Exception e){
-            new AlertDialog.Builder(this).setTitle("بيانات الحركة")
+            new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("بيانات الحركة")
                 .setMessage("تعذر عرض كل تفاصيل هذه الحركة.")
                 .setPositiveButton("إغلاق",null).show();
         }
@@ -7084,7 +7087,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         final File toDel=file;
         Button delBtn=action("🗑️ حذف",RED);
         delBtn.setOnClickListener(v->{
-            new AlertDialog.Builder(this)
+            new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
                 .setTitle("حذف الفاتورة")
                 .setMessage("حذف الفاتورة من الأرشيف؟")
                 .setNegativeButton("إلغاء",null)
@@ -8135,7 +8138,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
 
                 Button delBtn=button("🗑️ حذف");
                 delBtn.setTextSize(11.5f); delBtn.setTextColor(RED); delBtn.setBackground(outline(CARD,8));
-                delBtn.setOnClickListener(v->new AlertDialog.Builder(this)
+                delBtn.setOnClickListener(v->new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
                     .setTitle("حذف الفاتورة رقم "+no)
                     .setMessage("سيتم حذف الفاتورة وقيود الحساب.")
                     .setPositiveButton("حذف",(d,w)->{db.deleteInvoice(id); refreshList[0].run();})
@@ -8239,7 +8242,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
 
 
     void showInvoiceDialog(long id,String no,String customer,double total,String date){
-        final Dialog dlg=new Dialog(this);
+        final Dialog dlg=new Dialog(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen);
         LinearLayout box=new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(14),dp(12),dp(14),dp(12));
@@ -8445,7 +8448,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
     }
 
     void showPurchaseInvoiceDialog(long id,String no,String supplier,double total,String date){
-        final Dialog dlg=new Dialog(this);
+        final Dialog dlg=new Dialog(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen);
         LinearLayout box=new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(14),dp(12),dp(14),dp(12));
@@ -8655,7 +8658,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
 
 
     void confirmDeleteInvoice(long id,String no){
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
             .setTitle("حذف فاتورة المبيعات")
             .setMessage("هل تريد حذف فاتورة المبيعات رقم #"+no+"؟ سيتم حذف تفاصيلها وقيودها.")
             .setPositiveButton("حذف",(d,w)->{
@@ -8669,7 +8672,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
 
 
     void confirmDeletePurchaseInvoice(long id,String no){
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
             .setTitle("حذف فاتورة الشراء")
             .setMessage("حذف فاتورة الشراء رقم #"+no+"؟ سيتم خصم الكميات من المخزون.")
             .setPositiveButton("حذف",(d,w)->{
@@ -9434,7 +9437,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
 
 
     void showQuickCalculator(double initialTotal){
-        final Dialog dlg=new Dialog(this);
+        final Dialog dlg=new Dialog(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen);
         LinearLayout box=new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(14),dp(12),dp(14),dp(12));
@@ -9595,7 +9598,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
 
 
     void showLowStockDialog(){
-        final Dialog dlg=new Dialog(this);
+        final Dialog dlg=new Dialog(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen);
         LinearLayout box=new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(14),dp(12),dp(14),dp(12));
@@ -9978,7 +9981,7 @@ Uri saveReceiptBitmap(Bitmap bitmap,String no)throws Exception{
         if(saved!=null){final BluetoothDevice d=saved;new Thread(()->sendBitmapToBluetooth(d,receiptBitmap(text,384))).start();return;}
         Set<BluetoothDevice> paired=a.getBondedDevices();if(paired==null||paired.isEmpty()){Toast.makeText(this,"لا توجد طابعة مقترنة. اقترن بالطابعة من إعدادات البلوتوث أولاً.",Toast.LENGTH_LONG).show();return;}
         BluetoothDevice[] ds=paired.toArray(new BluetoothDevice[0]);String[] names=new String[ds.length];for(int i=0;i<ds.length;i++)names[i]=(ds[i].getName()==null?"طابعة 58mm":ds[i].getName())+"\n"+ds[i].getAddress();
-        new AlertDialog.Builder(this).setTitle("اختيار طابعة 58mm — أول مرة فقط").setItems(names,(d,w)->{getSharedPreferences("printer_settings",MODE_PRIVATE).edit().putString("printer_address",ds[w].getAddress()).apply();new Thread(()->sendBitmapToBluetooth(ds[w],receiptBitmap(text,384))).start();}).setNegativeButton("إلغاء",null).show();
+        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("اختيار طابعة 58mm — أول مرة فقط").setItems(names,(d,w)->{getSharedPreferences("printer_settings",MODE_PRIVATE).edit().putString("printer_address",ds[w].getAddress()).apply();new Thread(()->sendBitmapToBluetooth(ds[w],receiptBitmap(text,384))).start();}).setNegativeButton("إلغاء",null).show();
     }
 
     void sendBitmapToBluetooth(BluetoothDevice device,Bitmap bitmap){
@@ -10072,7 +10075,7 @@ Uri saveReceiptBitmap(Bitmap bitmap,String no)throws Exception{
         if(saved!=null){printToBluetooth(saved,no,customer,lines,total);return;}
         Set<BluetoothDevice> paired=a.getBondedDevices();if(paired==null||paired.isEmpty()){Toast.makeText(this,"لا توجد طابعة مقترنة. اقترن بالطابعة من إعدادات البلوتوث أولاً.",Toast.LENGTH_LONG).show();return;}
         BluetoothDevice[] ds=paired.toArray(new BluetoothDevice[0]);String[] names=new String[ds.length];for(int i=0;i<ds.length;i++)names[i]=(ds[i].getName()==null?"طابعة 58mm":ds[i].getName())+"\n"+ds[i].getAddress();
-        new AlertDialog.Builder(this).setTitle("اختيار طابعة 58mm — أول مرة فقط").setItems(names,(d,w)->{getSharedPreferences("printer_settings",MODE_PRIVATE).edit().putString("printer_address",ds[w].getAddress()).apply();printToBluetooth(ds[w],no,customer,lines,total);}).setNegativeButton("إلغاء",null).show();
+        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("اختيار طابعة 58mm — أول مرة فقط").setItems(names,(d,w)->{getSharedPreferences("printer_settings",MODE_PRIVATE).edit().putString("printer_address",ds[w].getAddress()).apply();printToBluetooth(ds[w],no,customer,lines,total);}).setNegativeButton("إلغاء",null).show();
     }
 
     void printToBluetooth(BluetoothDevice device,String no,String customer,ArrayList<Line> lines,double total){
@@ -10435,7 +10438,7 @@ void account(long id,String name){
         statement.setTextColor(DARK);
         statement.setBackground(outlined(Color.WHITE,dp(1),dp(8)));
         quickInvoice.setOnClickListener(v->unifiedInvoiceForm(InvoiceType.SALE,name));
-        quickOperation.setOnClickListener(v->new AlertDialog.Builder(this)
+        quickOperation.setOnClickListener(v->new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
             .setTitle("إضافة عملية للعميل")
             .setItems(new String[]{"قيد سحب — عليه","دفعة سداد — له"},(dialog,which)->
                 showCustomerTransactionDialog(which==1,id,name))
@@ -10503,7 +10506,7 @@ void customers(){
 
     void customerActions(long id,String name){
         String[] choices={"✏ تعديل بيانات العميل","🖨️ طباعة كشف الحساب (بلوتوث 58mm)","📄 كشف الحساب PDF + واتساب","📞 اتصال بالعميل","🗑 حذف حساب العميل"};
-        new AlertDialog.Builder(this).setTitle("حساب: "+name).setItems(choices,(d,w)->{
+        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("حساب: "+name).setItems(choices,(d,w)->{
             if(w==0)editCustomer(id,name);
             else if(w==1)printAccountStatementBluetooth(id,name);
             else if(w==2)shareAccountPdfToWhatsApp(id,name);
@@ -10511,7 +10514,7 @@ void customers(){
                 String p=db.phoneByName(name).replaceAll("[^0-9+]","");
                 if(p.isEmpty()){Toast.makeText(this,"لا يوجد رقم هاتف للعميل",Toast.LENGTH_SHORT).show();return;}
                 try{startActivity(new Intent(Intent.ACTION_DIAL,Uri.parse("tel:"+p)));}catch(Exception ignored){}
-            }else new AlertDialog.Builder(this).setTitle("حذف حساب العميل؟").setMessage("سيتم حذف الحساب وعملياته وفواتيره.").setPositiveButton("حذف",(x,y)->{db.deleteCustomer(id);home();}).setNegativeButton("إلغاء",null).show();
+            }else new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("حذف حساب العميل؟").setMessage("سيتم حذف الحساب وعملياته وفواتيره.").setPositiveButton("حذف",(x,y)->{db.deleteCustomer(id);home();}).setNegativeButton("إلغاء",null).show();
         }).setNegativeButton("إغلاق",null).show();
     }
 
