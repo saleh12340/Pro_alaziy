@@ -10453,8 +10453,11 @@ void account(long id,String name){
             tools.addView(toolBtns[i],p);
         }
         addCard.addView(tools,new LinearLayout.LayoutParams(-1,-2));
-        // إجراءات الإضافة أصبحت في شريط ثابت أسفل حساب العميل.
+        // أدوات كشف الحساب تبقى ظاهرة؛ أما حقول الإضافة فتنتقل إلى الشريط الثابت أسفل الشاشة.
+        addCard.removeView(tools);
         addCard.setVisibility(View.GONE);
+        content.addView(tools,new LinearLayout.LayoutParams(-1,-2));
+        addSpace(5);
 
         TextView title=denseText("سجل حركات وعمليات العميل",13.5f,12f,DARK);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
