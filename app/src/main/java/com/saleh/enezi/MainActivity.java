@@ -3520,44 +3520,25 @@ void operationActions(long customerId,String customerName,long tid,String detail
 
         final boolean[] isAutoUpdating={false};
 
-        EditText preview=new EditText(this);
-        preview.setHint("يمكنك كتابة أو لصق نص الحوالة هنا للتعرف على البيانات تلقائياً...");
-        preview.setText("لم يتم تجهيز حوالة بعد.");
-        preview.setTextSize(14.5f);
+        // معاينة الحوالة للقراءة والنسخ فقط؛ جميع البيانات تُكتب في حقول الإدخال أعلاه.
+        TextView preview=tv("لم يتم تجهيز حوالة بعد.",14.5f);
         preview.setTextColor(TEXT);
-        preview.setHintTextColor(MUTED);
         preview.setGravity(Gravity.TOP|Gravity.RIGHT);
         preview.setTextDirection(View.TEXT_DIRECTION_RTL);
         preview.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         preview.setSingleLine(false);
-        preview.setHorizontallyScrolling(false);
-        preview.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_MULTI_LINE|InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        preview.setImeOptions(android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI);
         preview.setMaxLines(8);
         preview.setMinLines(2);
         preview.setVerticalScrollBarEnabled(true);
         preview.setScrollBarStyle(View.SCROLLBARS_INSIDE_INSET);
         preview.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
+        preview.setTextIsSelectable(true);
+        preview.setFocusable(true);
+        preview.setFocusableInTouchMode(true);
         preview.setBackground(rounded(Color.WHITE,dp(8)));
         preview.setPadding(dp(10),dp(10),dp(10),dp(10));
-        preview.setSelectAllOnFocus(false);
         preview.setOnFocusChangeListener((v,has)->{
             if(has) preview.postDelayed(()->((ScrollView)root.getChildAt(1)).smoothScrollTo(0,Math.max(0,preview.getBottom()-dp(260))),120);
-        });
-        preview.addTextChangedListener(new TextWatcher(){
-            public void beforeTextChanged(CharSequence s,int st,int c,int a){}
-            public void onTextChanged(CharSequence s,int st,int before,int count){preview.post(()->{preview.requestLayout();});}
-            public void afterTextChanged(Editable e){
-                if(isAutoUpdating[0]) return;
-                String raw=e.toString().trim();
-                if(raw.isEmpty()||raw.equals("لم يتم تجهيز حوالة بعد.")||raw.equals("لم يتم إدخال بيانات الحوالة بعد.")) return;
-                boolean emptyFields = amount.getText().toString().trim().isEmpty() 
-                                   && rn.getText().toString().trim().isEmpty() 
-                                   && sn.getText().toString().trim().isEmpty();
-                if(emptyFields){
-                    parseAndFillTransferText(raw, amount, rn, transferReceiverPhone, sn, transferSenderPhone);
-                }
-            }
         });
         previewBox.addView(preview,new LinearLayout.LayoutParams(-1,dp(150)));
         addSpaceTo(previewBox,6);
@@ -3903,10 +3884,11 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 l=fLeft; r=fRight;
             }
 
-            split.addView(noteColumn("الشق الأيسر",l,1,pid),new LinearLayout.LayoutParams(0,-2,1));
+            // في حاوية RTL يكون أول عنصر على اليمين؛ لذلك نعرض الشق الأيمن أولاً.
             LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(0,-2,1);
             rp.setMargins(dp(4),0,0,0);
             split.addView(noteColumn("الشق الأيمن",r,2,pid),rp);
+            split.addView(noteColumn("الشق الأيسر",l,1,pid),new LinearLayout.LayoutParams(0,-2,1));
         };
 
         searchInput.addTextChangedListener(new TextWatcher(){
@@ -4187,7 +4169,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
             float maxNameW = colW - (32f * scale);
             if(maxNameW > 10){
                 StaticLayout sl = StaticLayout.Builder.obtain(nameStr.trim(), 0, nameStr.trim().length(), nameP, Math.round(maxNameW))
-                        .setAlignment(Layout.Alignment.ALIGN_OPPOSITE)
+                        .setAlignment(Layout.Alignment.ALIGN_NORMAL)
                         .setIncludePad(false)
                         .setMaxLines(1)
                         .setEllipsize(TextUtils.TruncateAt.END)
@@ -4195,7 +4177,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
                         .build();
 
                 canvas.save();
-                canvas.translate(colLeft + colW - maxNameW - (4f * scale), y + (rowH - sl.getHeight()) / 2f);
+                // الاسم في الجهة اليسرى من خانة الصنف، والكمية مستقلة في الجهة اليمنى.
+                canvas.translate(colLeft + (4f * scale), y + (rowH - sl.getHeight()) / 2f);
                 sl.draw(canvas);
                 canvas.restore();
             }
@@ -4204,7 +4187,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         if(qtyStr!=null && !qtyStr.trim().isEmpty()){
             qtyP.setTextAlign(Paint.Align.CENTER);
             float textY = y + rowH / 2f - (qtyP.ascent() + qtyP.descent()) / 2f;
-            canvas.drawText(qtyStr, colLeft + (16f * scale), textY, qtyP);
+            canvas.drawText(qtyStr, colLeft + colW - (16f * scale), textY, qtyP);
         }
     }
 
