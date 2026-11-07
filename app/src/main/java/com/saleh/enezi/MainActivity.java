@@ -446,9 +446,11 @@ public class MainActivity extends Activity {
         EditText e=new EditText(this);
         e.setHint(h);
         e.setTextSize(14f);
-        e.setMinHeight(dp(44));
-        e.setSingleLine(true);
-        e.setMaxLines(1);
+        boolean multiline=h!=null&&(h.contains("تفاصيل")||h.contains("البيان")||h.contains("ملاحظات")||h.contains("وصف")||h.contains("عنوان"));
+        e.setMinHeight(dp(multiline?68:52));
+        e.setSingleLine(!multiline);
+        e.setMinLines(multiline?2:1);
+        e.setMaxLines(multiline?4:1);
         e.setEllipsize(null);
         e.setHorizontallyScrolling(false);
         e.setIncludeFontPadding(true);
@@ -601,14 +603,16 @@ public class MainActivity extends Activity {
     void addSpace(int h){Space s=new Space(this); content.addView(s,new LinearLayout.LayoutParams(1,dp(h)));}
     TextView section(String s){
         TextView v=tv(s,14f); v.setTextColor(DARK); v.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-        v.setSingleLine(true); v.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
-        v.setPadding(dp(12),0,dp(12),0);
+        v.setSingleLine(false); v.setMaxLines(3); v.setEllipsize(null);
+        v.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+        v.setPadding(dp(12),dp(5),dp(12),dp(5));
         GradientDrawable bg=new GradientDrawable();
         bg.setColor(CARD); bg.setCornerRadius(dp(12));
         bg.setStroke(dp(1),BORDER); v.setBackground(bg);
         v.setElevation(dp(1));
         fitInside(v,14f,11f);
-        content.addView(v,new LinearLayout.LayoutParams(-1,dp(40)));
+        v.setMinHeight(dp(40));
+        content.addView(v,new LinearLayout.LayoutParams(-1,-2));
         addSpace(5); return v;
     }
 
@@ -648,7 +652,7 @@ public class MainActivity extends Activity {
         titleBox.setPadding(dp(4),0,dp(8),0);
         TextView pt=tv(title.equals("الرئيسية")?"بقالة العزي للمواد الغذائية":title,17f);
         pt.setTextColor(Color.WHITE); pt.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-        pt.setSingleLine(false); pt.setMaxLines(2); pt.setEllipsize(null); pt.setHorizontallyScrolling(false); pt.setIncludeFontPadding(true); fitInside(pt,18f,14f);
+        pt.setSingleLine(false); pt.setMaxLines(3); pt.setEllipsize(null); pt.setHorizontallyScrolling(false); pt.setIncludeFontPadding(true); pt.setMinHeight(dp(42)); fitInside(pt,18f,14f);
         titleBox.addView(pt,new LinearLayout.LayoutParams(-1,-2));
         bar.addView(titleBox,new LinearLayout.LayoutParams(0,-2,1));
         root.addView(bar,new LinearLayout.LayoutParams(-1,-2));
@@ -1442,8 +1446,11 @@ public class MainActivity extends Activity {
                 name.setTextColor(TEXT);
                 name.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
                 name.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
-                name.setSingleLine(true);
-                name.setEllipsize(TextUtils.TruncateAt.END);
+                name.setSingleLine(false);
+                name.setMaxLines(3);
+                name.setEllipsize(null);
+                name.setHorizontallyScrolling(false);
+                name.setIncludeFontPadding(true);
                 TextView amount=tv(fmt(Math.abs(balance))+" ريال",13.5f);
                 amount.setTextColor(balanceColor(balance));
                 amount.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
@@ -2317,7 +2324,6 @@ void showGeneralActions(){
         dlg.show();
         compactDialogWindow(dlg,maxWidthDp);
         if(contentView instanceof ViewGroup){
-            contentView.setLayoutParams(new WindowManager.LayoutParams(WindowManager.LayoutParams.MATCH_PARENT,WindowManager.LayoutParams.MATCH_PARENT));
             normalizeAppText(contentView);
         }
     }
