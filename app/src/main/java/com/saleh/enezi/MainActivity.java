@@ -306,10 +306,14 @@ public class MainActivity extends Activity {
         t.setEllipsize(null);
         if(t instanceof EditText){
             EditText e=(EditText)t;
+            int inputType=e.getInputType();
+            boolean numeric=(inputType & InputType.TYPE_MASK_CLASS)==InputType.TYPE_CLASS_NUMBER
+                    || (inputType & InputType.TYPE_MASK_CLASS)==InputType.TYPE_CLASS_PHONE
+                    || isNumericOrFinancial(String.valueOf(e.getHint()));
             if(e.isSingleLine() || e.getMaxLines()<=1){
                 e.setSingleLine(true);
                 e.setMaxLines(1);
-                e.setHorizontallyScrolling(false);
+                if(!numeric) e.setHorizontallyScrolling(false);
                 if(Build.VERSION.SDK_INT>=26){
                     try{
                         float current=e.getTextSize()/getResources().getDisplayMetrics().scaledDensity;
