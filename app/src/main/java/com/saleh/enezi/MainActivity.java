@@ -1338,8 +1338,8 @@ public class MainActivity extends Activity {
         View.OnClickListener[] qActions={
             v->unifiedInvoiceForm(InvoiceType.SALE),
             v->unifiedInvoiceForm(InvoiceType.PURCHASE),
-            v->showCustomerTransactionDialog(false),
-            v->suppliers()
+            v->showCustomerTransactionDialog(true),
+            v->showSupplierPaymentPicker()
         };
         for(int i=0;i<qLabels.length;i++){
             Button b=new Button(this);
@@ -1490,7 +1490,7 @@ public class MainActivity extends Activity {
             "📥 فاتورة شراء جديدة",
             "🔴 قيد سحب عميل (عليه +)",
             "🟢 دفعة سداد عميل (سداد ✓)",
-            "🏪 إضافة عملية مورد",
+            "🏪 سداد للمورد",
             "💸 تسجيل حوالة مالية",
             "📦 إضافة صنف للمخزون"
         };
@@ -1499,7 +1499,7 @@ public class MainActivity extends Activity {
             v->unifiedInvoiceForm(InvoiceType.PURCHASE),
             v->showCustomerTransactionDialog(false),
             v->showCustomerTransactionDialog(true),
-            v->suppliers(),
+            v->showSupplierPaymentPicker(),
             v->transfers(),
             v->inventory()
         };
@@ -5866,6 +5866,32 @@ void operationActions(long customerId,String customerName,long tid,String detail
             Toast.makeText(this,"تعذر إنشاء كشف المورد PDF",Toast.LENGTH_SHORT).show();
         }
     }
+    void showSupplierPaymentPicker(){
+        String[] names=db.supplierNames();
+        if(names==null||names.length==0){
+            new AlertDialog.Builder(this)
+                .setTitle("لا يوجد موردون")
+                .setMessage("أضف مورداً أولاً حتى تتمكن من تسجيل السداد.")
+                .setPositiveButton("إضافة مورد",(d,w)->suppliers())
+                .setNegativeButton("إلغاء",null)
+                .show();
+            return;
+        }
+        new AlertDialog.Builder(this)
+            .setTitle("اختر المورد لتسجيل السداد")
+            .setItems(names,(dialog,which)->{
+                String supplierName=names[which];
+                long supplierId=db.supplierIdByName(supplierName);
+                if(supplierId<=0){
+                    Toast.makeText(this,"تعذر العثور على حساب المورد",Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                showSupplierPaymentDialog(supplierId,supplierName,()->suppliers());
+            })
+            .setNegativeButton("إلغاء",null)
+            .show();
+    }
+
     void showSupplierPaymentDialog(long supplierId,String name,Runnable refresh){
         final Dialog dlg=new Dialog(this);
         LinearLayout box=new LinearLayout(this);
