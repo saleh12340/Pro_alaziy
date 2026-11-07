@@ -3313,8 +3313,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
         add.setOnClickListener(v->{
             try{
                 String n=name.getText().toString().trim();
-                double q=Double.parseDouble(qty.getText().toString().trim());
-                double m=Double.parseDouble(min.getText().toString().trim());
+                double q=parseDoubleSafe(qty.getText().toString(),-1);
+                double m=parseDoubleSafe(min.getText().toString(),-1);
                 if(n.isEmpty()||q<0||m<0)throw new Exception();
 
                 if(editingId[0]>0){
