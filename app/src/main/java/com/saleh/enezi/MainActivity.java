@@ -285,7 +285,8 @@ public class MainActivity extends Activity {
         int top=e.getPaddingTop();
         int bottomPad=e.getPaddingBottom();
         e.setPadding(lr,Math.max(dp(4),top),rr,Math.max(dp(4),bottomPad));
-        e.setHorizontallyScrolling(false);
+        // لا تلغِ التمرير الأفقي للحقول الرقمية؛ نحتاجه لإظهار المبالغ الطويلة كاملة.
+        if(!numeric) e.setHorizontallyScrolling(false);
     }
 
     void normalizeInputViews(View v){
