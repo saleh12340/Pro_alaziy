@@ -1578,7 +1578,7 @@ public class MainActivity extends Activity {
         if(content!=null) content.setPadding(dp(6),dp(4),dp(6),dp(88));
     }
 
-    void showCustomerTransactionDialog(boolean payment,long presetCustomerId,String presetCustomerName){
+    void showCustomerTransactionDialog(boolean payment){\n        showCustomerTransactionDialog(payment,0,null);\n    }\n\n    void showCustomerTransactionDialog(boolean payment,long presetCustomerId,String presetCustomerName){
         beginFullPage(payment?"تسجيل دفعة سداد للعميل":"تسجيل عملية على العميل",
             presetCustomerName==null?"اختر العميل وأدخل المبلغ والبيان.":"الحساب المحدد: "+presetCustomerName);
         AutoCompleteTextView name=new AutoCompleteTextView(this);
@@ -1605,71 +1605,7 @@ public class MainActivity extends Activity {
         },()->{if(presetCustomerId>0)account(presetCustomerId,presetCustomerName);else home();});
     }
 
-    void showCustomerTransactionDialog(boolean payment,long presetCustomerId,String presetCustomerName){
-        final Dialog dlg=new Dialog(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen);
-        LinearLayout box=new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        box.setPadding(dp(14),dp(12),dp(14),dp(12));
-        box.setBackground(rounded(CARD,dp(16)));
 
-        LinearLayout head=new LinearLayout(this);
-        head.setOrientation(LinearLayout.HORIZONTAL);
-        head.setGravity(Gravity.CENTER_VERTICAL);
-        head.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        TextView hTitle=tv(payment?"💵 تسجيل سداد عميل":"💰 تسجيل حركة على عميل",16);
-        hTitle.setTextColor(payment?GREEN:RED); hTitle.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-        head.addView(hTitle,new LinearLayout.LayoutParams(0,-2,1));
-        Button close=button("✕"); close.setTextColor(MUTED); close.setBackgroundColor(Color.TRANSPARENT);
-        close.setOnClickListener(v->dlg.dismiss());
-        head.addView(close,new LinearLayout.LayoutParams(dp(32),dp(32)));
-        box.addView(head,new LinearLayout.LayoutParams(-1,-2));
-        addSpaceTo(box,8);
-
-        AutoCompleteTextView name=new AutoCompleteTextView(this);
-        name.setHint("اسم العميل"); name.setTextSize(15); name.setSingleLine(true); name.setThreshold(1);
-        name.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,db.customerNames()));
-        if(presetCustomerName!=null&&!presetCustomerName.trim().isEmpty()){name.setText(presetCustomerName);if(presetCustomerId>0)name.setEnabled(false);}
-        name.setBackground(outlined(CARD,1,10)); name.setPadding(dp(10),0,dp(10),0);
-        name.setLayoutDirection(View.LAYOUT_DIRECTION_RTL); name.setTextDirection(View.TEXT_DIRECTION_RTL);
-        box.addView(name,new LinearLayout.LayoutParams(-1,dp(46)));
-        addSpaceTo(box,6);
-
-        EditText amount=numberField(payment?"مبلغ السداد":"مبلغ الحركة");
-        amount.setTextSize(15);
-        box.addView(amount,new LinearLayout.LayoutParams(-1,dp(46)));
-        addSpaceTo(box,6);
-
-        EditText detail=field("البيان / التفاصيل");
-        detail.setTextSize(15);
-        box.addView(detail,new LinearLayout.LayoutParams(-1,dp(46)));
-        addSpaceTo(box,10);
-
-        LinearLayout actions=new LinearLayout(this);
-        actions.setOrientation(LinearLayout.HORIZONTAL);
-        actions.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        Button saveBtn=action("✓ حفظ",payment?GREEN:RED);
-        Button cancelBtn=button("إلغاء");
-        cancelBtn.setOnClickListener(v->dlg.dismiss());
-        actions.addView(saveBtn,new LinearLayout.LayoutParams(0,dp(42),1.3f));
-        LinearLayout.LayoutParams clp=new LinearLayout.LayoutParams(0,dp(42),0.7f); clp.setMargins(dp(6),0,0,0);
-        actions.addView(cancelBtn,clp);
-        box.addView(actions,new LinearLayout.LayoutParams(-1,-2));
-
-        saveBtn.setOnClickListener(v->{
-            String n=name.getText().toString().trim();
-            double a=parseDoubleSafe(amount.getText().toString().replace(",","").trim(),0);
-            if(n.isEmpty()||a<=0){Toast.makeText(this,"اختر العميل وأدخل مبلغاً صحيحاً",Toast.LENGTH_SHORT).show();return;}
-            long id=presetCustomerId>0?presetCustomerId:db.customer(n);
-            if(id<=0){Toast.makeText(this,"تعذر فتح حساب العميل",Toast.LENGTH_SHORT).show();return;}
-            db.addTransaction(id,a,detail.getText().toString().trim(),payment?0:1,db.now());
-            dlg.dismiss();
-            account(id,n);
-            showCompactSaveSnackbar(payment?"✓ تم تسجيل السداد":"✓ تم تسجيل الحركة","مشاركة",()->shareOperationImage(n,detail.getText().toString().trim(),a,payment?0:1,""));
-        });
-
-        showCompactDialog(dlg,box,360);
-    }
 void showGeneralActions(){
         beginFullPage("الإجراءات السريعة","اختر المهمة. ستفتح كل عملية في صفحة كاملة مستقلة.");
         String[] labels={"🧾 فاتورة مبيعات","🛒 فاتورة شراء","💰 عملية على عميل","💵 دفعة سداد عميل","🏪 الموردون","💸 الحوالات","👤 إضافة عميل","📦 المخزون والأصناف"};
