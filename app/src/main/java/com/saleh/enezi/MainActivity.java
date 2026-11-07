@@ -1520,6 +1520,10 @@ public class MainActivity extends Activity {
     }
 
     void showCustomerTransactionDialog(boolean payment){
+        showCustomerTransactionDialog(payment,0,null);
+    }
+
+    void showCustomerTransactionDialog(boolean payment,long presetCustomerId,String presetCustomerName){
         final Dialog dlg=new Dialog(this);
         LinearLayout box=new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
@@ -1543,6 +1547,7 @@ public class MainActivity extends Activity {
         AutoCompleteTextView name=new AutoCompleteTextView(this);
         name.setHint("اسم العميل"); name.setTextSize(15); name.setSingleLine(true); name.setThreshold(1);
         name.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,db.customerNames()));
+        if(presetCustomerName!=null&&!presetCustomerName.trim().isEmpty())name.setText(presetCustomerName);
         name.setBackground(outlined(CARD,1,10)); name.setPadding(dp(10),0,dp(10),0);
         name.setLayoutDirection(View.LAYOUT_DIRECTION_RTL); name.setTextDirection(View.TEXT_DIRECTION_RTL);
         box.addView(name,new LinearLayout.LayoutParams(-1,dp(46)));
@@ -1573,7 +1578,7 @@ public class MainActivity extends Activity {
             String n=name.getText().toString().trim();
             double a=parseDoubleSafe(amount.getText().toString().replace(",","").trim(),0);
             if(n.isEmpty()||a<=0){Toast.makeText(this,"اختر العميل وأدخل مبلغاً صحيحاً",Toast.LENGTH_SHORT).show();return;}
-            long id=db.customer(n);
+            long id=presetCustomerId>0?presetCustomerId:db.customer(n);
             if(id<=0){Toast.makeText(this,"تعذر فتح حساب العميل",Toast.LENGTH_SHORT).show();return;}
             db.addTransaction(id,a,detail.getText().toString().trim(),payment?0:1,db.now());
             dlg.dismiss();
@@ -10446,7 +10451,7 @@ Uri saveReceiptBitmap(Bitmap bitmap,String no)throws Exception{
     }
 
 void account(long id,String name){
-        base("حساب العميل");
+        base("حساب العميل",false);
         darkCardMode=false;
         applyDenseGlassPage();
 
@@ -10547,8 +10552,8 @@ void account(long id,String name){
             tools.addView(toolBtns[i],p);
         }
         addCard.addView(tools,new LinearLayout.LayoutParams(-1,-2));
-        content.addView(addCard,new LinearLayout.LayoutParams(-1,-2));
-        addSpace(6);
+        // إجراءات الإضافة أصبحت في شريط ثابت أسفل حساب العميل.
+        addCard.setVisibility(View.GONE);
 
         TextView title=denseText("سجل حركات وعمليات العميل",13.5f,12f,DARK);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
@@ -10688,6 +10693,37 @@ void account(long id,String name){
         };
         debit.setOnClickListener(addTx);credit.setOnClickListener(addTx);
         refresh.run();
+
+        LinearLayout fixedActions=new LinearLayout(this);
+        fixedActions.setOrientation(LinearLayout.HORIZONTAL);
+        fixedActions.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        fixedActions.setGravity(Gravity.CENTER);
+        fixedActions.setPadding(dp(6),dp(6),dp(6),dp(6));
+        fixedActions.setBackgroundColor(Color.WHITE);
+        fixedActions.setElevation(dp(8));
+
+        Button quickInvoice=action("＋ فاتورة سريعة",DARK);
+        Button quickOperation=action("＋ عملية",ORANGE);
+        Button statement=button("كشف الحساب");
+        statement.setTextColor(DARK);
+        statement.setBackground(outlined(Color.WHITE,dp(1),dp(8)));
+        quickInvoice.setOnClickListener(v->unifiedInvoiceForm(InvoiceType.SALE,name));
+        quickOperation.setOnClickListener(v->new AlertDialog.Builder(this)
+            .setTitle("إضافة عملية للعميل")
+            .setItems(new String[]{"قيد سحب — عليه","دفعة سداد — له"},(dialog,which)->
+                showCustomerTransactionDialog(which==1,id,name))
+            .setNegativeButton("إلغاء",null).show());
+        statement.setOnClickListener(v->customerActions(id,name));
+
+        fixedActions.addView(quickInvoice,new LinearLayout.LayoutParams(0,dp(46),1.2f));
+        LinearLayout.LayoutParams opLp=new LinearLayout.LayoutParams(0,dp(46),1f);
+        opLp.setMargins(dp(5),0,0,0);
+        fixedActions.addView(quickOperation,opLp);
+        LinearLayout.LayoutParams stLp=new LinearLayout.LayoutParams(0,dp(46),.85f);
+        stLp.setMargins(dp(5),0,0,0);
+        fixedActions.addView(statement,stLp);
+        bottom.removeAllViews();
+        bottom.addView(fixedActions,new LinearLayout.LayoutParams(-1,dp(58)));
     }
 
 
