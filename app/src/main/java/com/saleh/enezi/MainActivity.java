@@ -1330,155 +1330,97 @@ public class MainActivity extends Activity {
         pageStack.clear();
         base("الرئيسية",true);
 
-        // Quick Actions Row at the top (Rounded Pill Cards)
-        LinearLayout quick=new LinearLayout(this);
-        quick.setOrientation(LinearLayout.HORIZONTAL);
-        quick.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        String[] qLabels={"＋ بيع جديد","📥 شراء جديد","👤 سداد عميل","🏪 سداد مورد"};
-        View.OnClickListener[] qActions={
-            v->unifiedInvoiceForm(InvoiceType.SALE),
-            v->unifiedInvoiceForm(InvoiceType.PURCHASE),
-            v->showCustomerTransactionDialog(true),
-            v->showSupplierPaymentPicker()
-        };
-        for(int i=0;i<qLabels.length;i++){
-            Button b=new Button(this);
-            b.setText(qLabels[i]);
-            b.setTextSize(12f);
-            b.setAllCaps(false);
-            b.setIncludeFontPadding(false);
-            b.setTextColor(Color.WHITE);
-            b.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-            GradientDrawable bBg=new GradientDrawable();
-            bBg.setCornerRadius(dp(14));
-            bBg.setColor(i==0?ORANGE:(i==1?BLUE_PRIMARY:(i==2?GREEN:DARK)));
-            b.setBackground(bBg);
-            b.setElevation(dp(2));
-            LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(0,dp(42),1);
-            if(i>0) bp.setMargins(dp(4),0,0,0);
-            b.setOnClickListener(qActions[i]);
-            quick.addView(b,bp);
-        }
-        content.addView(quick,new LinearLayout.LayoutParams(-1,-2));
-        addSpace(8);
+        LinearLayout searchRow=new LinearLayout(this);
+        searchRow.setOrientation(LinearLayout.HORIZONTAL);
+        searchRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        searchRow.setGravity(Gravity.CENTER_VERTICAL);
+        AutoCompleteTextView search=new AutoCompleteTextView(this);
+        search.setHint("ابحث عن اسم العميل");
+        search.setTextSize(14);
+        search.setSingleLine(true);
+        search.setThreshold(1);
+        search.setPadding(dp(10),0,dp(10),0);
+        search.setTextColor(TEXT);
+        search.setHintTextColor(MUTED);
+        search.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+        search.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        search.setTextDirection(View.TEXT_DIRECTION_RTL);
+        search.setBackground(outlined(Color.WHITE,dp(1),dp(8)));
+        search.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,db.customerNames()));
+        Button add=action("＋ عميل",GREEN);
+        add.setTextSize(12.5f);
+        add.setOnClickListener(v->showCustomerCreatePopup());
+        searchRow.addView(search,new LinearLayout.LayoutParams(0,dp(44),1f));
+        LinearLayout.LayoutParams addLp=new LinearLayout.LayoutParams(dp(88),dp(44));
+        addLp.setMargins(dp(6),0,0,0);
+        searchRow.addView(add,addLp);
+        content.addView(searchRow,new LinearLayout.LayoutParams(-1,-2));
+        addSpace(5);
 
-        // Main Modules as Grid Rows of Cards (بطاقات في صفوف - شبكة عمودين)
-        String[] labels={
-            "لوحة التحكم والتحليلات",
-            "الفواتير والسجل",
-            "الحسابات والعملاء",
-            "الموردون والمشتريات",
-            "المخزون والأصناف",
-            "التقارير المالية",
-            "الحوالات المالية",
-            "الملاحظات والمهام",
-            "الإعدادات والبيانات"
-        };
-        String[] icons={"📊","🧾","👥","🏪","📦","📑","💸","📝","⚙️"};
-        int[] iconBgColors={
-            DARK,
-            DARK,
-            Color.rgb(30, 91, 170),
-            Color.rgb(15, 76, 129),
-            Color.rgb(51, 65, 85),
-            DARK,
-            Color.rgb(16, 185, 129),
-            Color.rgb(71, 85, 105),
-            Color.rgb(100, 116, 139)
-        };
-        View.OnClickListener[] actions={
-            v->dashboard(),
-            v->invoicesHub(),
-            v->customers(),
-            v->suppliers(),
-            v->inventory(),
-            v->reports(),
-            v->transfers(),
-            v->notes(),
-            v->settingsHub()
-        };
+        TextView heading=tv("العملاء",13.5f);
+        heading.setTextColor(DARK);
+        heading.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        content.addView(heading,new LinearLayout.LayoutParams(-1,dp(28)));
+        LinearLayout list=new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        content.addView(list,new LinearLayout.LayoutParams(-1,-2));
 
-        for(int i=0; i<labels.length; i+=2){
-            LinearLayout row=new LinearLayout(this);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-
-            for(int j=0; j<2 && (i+j)<labels.length; j++){
-                final int idx=i+j;
-                LinearLayout card = new LinearLayout(this);
-                card.setOrientation(LinearLayout.VERTICAL);
-                card.setGravity(Gravity.CENTER);
-                card.setPadding(dp(10), dp(12), dp(10), dp(12));
-
-                GradientDrawable cBg = new GradientDrawable();
-                cBg.setColor(Color.WHITE);
-                cBg.setCornerRadius(dp(16));
-                cBg.setStroke(dp(1), BORDER);
-                card.setBackground(cBg);
-                card.setElevation(dp(2));
-
-                TextView iconView = tv(icons[idx], 22);
-                iconView.setGravity(Gravity.CENTER);
-                iconView.setTextColor(Color.WHITE);
-                GradientDrawable iBg = new GradientDrawable();
-                iBg.setColor(iconBgColors[idx]);
-                iBg.setCornerRadius(dp(12));
-                iconView.setBackground(iBg);
-                card.addView(iconView, new LinearLayout.LayoutParams(dp(44), dp(44)));
-                addSpaceTo(card, 6);
-
-                TextView titleTv = tv(labels[idx], 14f);
-                titleTv.setTextColor(TEXT);
-                titleTv.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-                titleTv.setGravity(Gravity.CENTER);
-                card.addView(titleTv, new LinearLayout.LayoutParams(-1, -2));
-
-                card.setOnClickListener(actions[idx]);
-
-                LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(0, dp(100), 1f);
-                if(j>0) cp.setMargins(dp(6), 0, 0, 0);
-                else cp.setMargins(0, 0, dp(6), 0);
-                row.addView(card, cp);
+        Runnable render=()->{
+            list.removeAllViews();
+            Cursor cur=db.customers(search.getText().toString().trim());
+            int count=0;
+            while(cur.moveToNext()){
+                long id=cur.getLong(0);
+                String customerName=cur.getString(1);
+                double balance=db.balance(id);
+                LinearLayout row=new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+                row.setGravity(Gravity.CENTER_VERTICAL);
+                row.setPadding(dp(8),dp(8),dp(8),dp(8));
+                TextView name=tv(customerName,14.5f);
+                name.setTextColor(TEXT);
+                name.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+                name.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+                name.setSingleLine(true);
+                name.setEllipsize(TextUtils.TruncateAt.END);
+                TextView amount=tv(fmt(Math.abs(balance))+" ريال",13.5f);
+                amount.setTextColor(balanceColor(balance));
+                amount.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+                amount.setGravity(Gravity.CENTER);
+                TextView status=tv(balance>0.005?"عليه":(balance< -0.005?"له":"خالص"),10.5f);
+                status.setTextColor(balanceColor(balance));
+                status.setGravity(Gravity.CENTER);
+                LinearLayout info=new LinearLayout(this);
+                info.setOrientation(LinearLayout.VERTICAL);
+                info.setGravity(Gravity.CENTER_VERTICAL);
+                info.addView(name,new LinearLayout.LayoutParams(-1,-2));
+                info.addView(status,new LinearLayout.LayoutParams(-1,-2));
+                row.addView(info,new LinearLayout.LayoutParams(0,-2,1f));
+                row.addView(amount,new LinearLayout.LayoutParams(dp(112),-2));
+                row.setOnClickListener(v->account(id,customerName));
+                row.setOnLongClickListener(v->{customerActions(id,customerName);return true;});
+                list.addView(row,new LinearLayout.LayoutParams(-1,-2));
+                View divider=new View(this);
+                divider.setBackgroundColor(BORDER);
+                list.addView(divider,new LinearLayout.LayoutParams(-1,dp(1)));
+                count++;
             }
-
-            LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, -2);
-            rp.setMargins(0, 0, 0, dp(8));
-            content.addView(row, rp);
-        }
-
-        // Floating Action Button (+) for Quick Add in Full Screen
-        try {
-            FrameLayout rootContainer = (FrameLayout) root.getParent();
-            if(rootContainer == null && root.getRootView() instanceof FrameLayout){
-                rootContainer = (FrameLayout) root.getRootView();
+            cur.close();
+            if(count==0){
+                TextView empty=tv("لا يوجد عملاء. أضف عميلاً للبدء.",13);
+                empty.setTextColor(MUTED);
+                empty.setGravity(Gravity.CENTER);
+                list.addView(empty,new LinearLayout.LayoutParams(-1,dp(76)));
             }
-            if(rootContainer != null){
-                Button fab = new Button(this);
-                fab.setText("＋");
-                fab.setTextSize(24);
-                fab.setTextColor(Color.WHITE);
-                fab.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-                GradientDrawable fabBg = new GradientDrawable();
-                fabBg.setShape(GradientDrawable.OVAL);
-                fabBg.setColor(DARK);
-                fab.setBackground(fabBg);
-                fab.setElevation(dp(8));
-                fab.setOnClickListener(v -> showQuickAddFullScreenHub());
-
-                FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(dp(56), dp(56));
-                flp.gravity = Gravity.BOTTOM | Gravity.LEFT;
-                flp.setMargins(dp(20), 0, dp(20), dp(70));
-                if(fab.getParent() != null) ((ViewGroup)fab.getParent()).removeView(fab);
-                rootContainer.addView(fab, flp);
-            }
-        }catch(Throwable ignored){
-            // Fallback: Add button at bottom of content
-            Button fabFallback = action("＋ إضافة فاتورة أو عملية جديدة في شاشة مستقلة", DARK);
-            fabFallback.setOnClickListener(v -> showQuickAddFullScreenHub());
-            content.addView(fabFallback, new LinearLayout.LayoutParams(-1, dp(48)));
-        }
-        addSpace(4);
+        };
+        search.addTextChangedListener(new TextWatcher(){
+            public void beforeTextChanged(CharSequence s,int start,int count,int after){}
+            public void onTextChanged(CharSequence s,int start,int before,int count){render.run();}
+            public void afterTextChanged(Editable e){}
+        });
+        render.run();
     }
 
     void showQuickAddFullScreenHub(){
