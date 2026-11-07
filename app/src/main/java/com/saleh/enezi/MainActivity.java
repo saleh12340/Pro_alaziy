@@ -200,7 +200,7 @@ public class MainActivity extends Activity {
         if(pageStack.isEmpty()){ confirmExit(); return; }
         String prev=pageStack.pop();
         if(prev.equals("الرئيسية")) home();
-        else if(prev.equals("الحسابات")||prev.equals("العملاء")) customers();
+        else if(prev.equals("الحسابات")||prev.equals("العملاء")) home();
         else if(prev.equals("الفواتير")) invoiceHistory();
         else if(prev.equals("فواتير الشراء")) invoicesHub();
         else if(prev.equals("المخزون")) inventory();
@@ -745,7 +745,7 @@ public class MainActivity extends Activity {
             else if(w==6)showBackupRestore();
         }).setNegativeButton("إغلاق",null).show();
     }
-    void navigate(String n){hideKeyboard(); if(n.equals("الرئيسية"))home();else if(n.equals("العملاء")||n.equals("الحسابات"))customers();else if(n.equals("الفواتير")||n.equals("فواتير الشراء"))invoicesHub();else if(n.equals("المخزون"))inventory();else if(n.equals("لوحة التحكم")||n.equals("التحليلات"))dashboard();else if(n.equals("ماسح الفواتير")||n.equals("الماسح الضوئي"))scanner();else if(n.equals("الحوالات"))transfers();else if(n.equals("الملاحظات"))notes();else reports();}
+    void navigate(String n){hideKeyboard(); if(n.equals("الرئيسية"))home();else if(n.equals("العملاء")||n.equals("الحسابات"))home();else if(n.equals("الفواتير")||n.equals("فواتير الشراء"))invoicesHub();else if(n.equals("المخزون"))inventory();else if(n.equals("لوحة التحكم")||n.equals("التحليلات"))dashboard();else if(n.equals("ماسح الفواتير")||n.equals("الماسح الضوئي"))scanner();else if(n.equals("الحوالات"))transfers();else if(n.equals("الملاحظات"))notes();else reports();}
     String amountInWords(double amount){
         long n=Math.round(Math.abs(amount));
         if(n==0)return "صفر ريال";
@@ -10691,7 +10691,7 @@ void customers(){
                 String p=db.phoneByName(name).replaceAll("[^0-9+]","");
                 if(p.isEmpty()){Toast.makeText(this,"لا يوجد رقم هاتف للعميل",Toast.LENGTH_SHORT).show();return;}
                 try{startActivity(new Intent(Intent.ACTION_DIAL,Uri.parse("tel:"+p)));}catch(Exception ignored){}
-            }else new AlertDialog.Builder(this).setTitle("حذف حساب العميل؟").setMessage("سيتم حذف الحساب وعملياته وفواتيره.").setPositiveButton("حذف",(x,y)->{db.deleteCustomer(id);customers();}).setNegativeButton("إلغاء",null).show();
+            }else new AlertDialog.Builder(this).setTitle("حذف حساب العميل؟").setMessage("سيتم حذف الحساب وعملياته وفواتيره.").setPositiveButton("حذف",(x,y)->{db.deleteCustomer(id);home();}).setNegativeButton("إلغاء",null).show();
         }).setNegativeButton("إغلاق",null).show();
     }
 
@@ -10706,7 +10706,7 @@ void customers(){
             .setPositiveButton("حفظ",(d,w)->{
                 String n=name.getText().toString().trim(), p=phone.getText().toString().trim();
                 if(n.isEmpty()){Toast.makeText(this,"اسم العميل مطلوب",Toast.LENGTH_SHORT).show();return;}
-                db.updateCustomer(id,oldName,n,p); customers();
+                db.updateCustomer(id,oldName,n,p); account(id,n);
                 Toast.makeText(this,"تم تعديل بيانات العميل",Toast.LENGTH_SHORT).show();
             }).show();
     }
