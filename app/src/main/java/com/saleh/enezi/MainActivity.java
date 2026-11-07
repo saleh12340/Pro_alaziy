@@ -1547,7 +1547,7 @@ public class MainActivity extends Activity {
         AutoCompleteTextView name=new AutoCompleteTextView(this);
         name.setHint("اسم العميل"); name.setTextSize(15); name.setSingleLine(true); name.setThreshold(1);
         name.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,db.customerNames()));
-        if(presetCustomerName!=null&&!presetCustomerName.trim().isEmpty())name.setText(presetCustomerName);
+        if(presetCustomerName!=null&&!presetCustomerName.trim().isEmpty()){name.setText(presetCustomerName);if(presetCustomerId>0)name.setEnabled(false);}
         name.setBackground(outlined(CARD,1,10)); name.setPadding(dp(10),0,dp(10),0);
         name.setLayoutDirection(View.LAYOUT_DIRECTION_RTL); name.setTextDirection(View.TEXT_DIRECTION_RTL);
         box.addView(name,new LinearLayout.LayoutParams(-1,dp(46)));
@@ -10493,8 +10493,8 @@ void account(long id,String name){
                 row.setOrientation(LinearLayout.HORIZONTAL);
                 row.setGravity(Gravity.CENTER_VERTICAL);
                 row.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-                row.setPadding(dp(5),dp(6),dp(5),dp(6));
-                row.setBackground(glassFill(Color.argb(190,255,255,255)));
+                row.setPadding(dp(4),dp(3),dp(4),dp(3));
+                row.setBackgroundColor(Color.TRANSPARENT);
                 row.setClipChildren(false);
                 row.setClipToPadding(false);
 
@@ -10574,6 +10574,9 @@ void account(long id,String name){
                 LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);
                 rp.setMargins(0,0,0,dp(4));
                 list.addView(row,rp);
+                View ruledLine=new View(this);
+                ruledLine.setBackgroundColor(BORDER);
+                list.addView(ruledLine,new LinearLayout.LayoutParams(-1,dp(1)));
             }
             if(count==0){
                 LinearLayout emptyBox=card();emptyBox.setPadding(dp(16),dp(14),dp(16),dp(14));emptyBox.setGravity(Gravity.CENTER);
