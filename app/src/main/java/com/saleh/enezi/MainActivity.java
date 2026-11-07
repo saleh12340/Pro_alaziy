@@ -4980,6 +4980,10 @@ void operationActions(long customerId,String customerName,long tid,String detail
         UnifiedInvoiceItem(String n,double q,double t,double u,double sale){name=n;qty=q;total=t;unitPrice=u;salePrice=sale;}
     }
     void unifiedInvoiceForm(InvoiceType type){
+        unifiedInvoiceForm(type,null);
+    }
+
+    void unifiedInvoiceForm(InvoiceType type,String presetParty){
         /*
          * UnifiedInvoiceForm is the single invoice-entry component for both flows.
          * The UI, item model, validation, navigation order and calculations are shared.
@@ -5025,312 +5029,209 @@ void operationActions(long customerId,String customerName,long tid,String detail
         party.setThreshold(1);
         party.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,
             sale?db.customerNames():db.supplierNames()));
+        if(presetParty!=null&&!presetParty.trim().isEmpty())party.setText(presetParty);
         content.addView(party,new LinearLayout.LayoutParams(-1,dp(44)));
         addSpace(3);
 
         TextView invNo=tv(displayInvoiceNo(String.valueOf(sale?db.nextInvoice():db.nextPurchaseNo())),13.5f);
         invNo.setVisibility(View.GONE);
 
-        // إدخال مدمج ومرن: يمتلئ العمود الأيمن أولاً ثم ينتقل الباقي إلى الأيسر.
+        ArrayList<UnifiedInvoiceItem> items=new ArrayList<>();
+
         LinearLayout itemBox=card();
         itemBox.setPadding(dp(5),dp(5),dp(5),dp(5));
         itemBox.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        TextView tableTitle=tv("أصناف الفاتورة",13.5f);
+        tableTitle.setTextColor(DARK);
+        tableTitle.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        itemBox.addView(tableTitle,new LinearLayout.LayoutParams(-1,dp(26)));
 
-        LinearLayout fieldColumns=new LinearLayout(this);
-        fieldColumns.setOrientation(LinearLayout.HORIZONTAL);
-        fieldColumns.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        fieldColumns.setGravity(Gravity.TOP);
-
-        LinearLayout rightFields=new LinearLayout(this);
-        rightFields.setOrientation(LinearLayout.VERTICAL);
-        rightFields.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        rightFields.setPadding(0,0,dp(2),0);
-
-        LinearLayout leftFields=new LinearLayout(this);
-        leftFields.setOrientation(LinearLayout.VERTICAL);
-        leftFields.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        leftFields.setPadding(dp(2),0,0,0);
-
-        fieldColumns.addView(rightFields,new LinearLayout.LayoutParams(0,-2,1f));
-        fieldColumns.addView(leftFields,new LinearLayout.LayoutParams(0,-2,1f));
-
-        EditText total=numberField("الإجمالي");
-        EditText qty=numberField("الكمية");
-        qty.setText("1");
-
-        AutoCompleteTextView name=new AutoCompleteTextView(this);
-        name.setHint("اسم الصنف");
-        name.setTextSize(14);
-        name.setSingleLine(true);
-        name.setMaxLines(1);
-        name.setTextColor(TEXT);
-        name.setHintTextColor(Color.rgb(105,105,105));
-        name.setPadding(dp(8),0,dp(8),0);
-        name.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
-        name.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        name.setTextDirection(View.TEXT_DIRECTION_RTL);
-        name.setEllipsize(null);
-        name.setHorizontallyScrolling(false);
-        name.setSelectAllOnFocus(true);
-        name.setThreshold(1);
-        name.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,db.itemNames()));
-        name.setBackground(outlined(CARD,dp(1),14));
-        name.setOnClickListener(v->name.selectAll());
-        name.setOnFocusChangeListener((v,has)->{
-            name.setBackground(outlined(CARD,has?dp(2):dp(1),14));
-            if(has)name.postDelayed(name::selectAll,60);
-        });
-
-        EditText unit=numberField("سعر الوحدة");
-        unit.setEnabled(false);
-        unit.setAlpha(.88f);
-        EditText salePrice=numberField("سعر البيع");
-        salePrice.setVisibility(sale?View.GONE:View.VISIBLE);
-
-        java.util.function.BiConsumer<LinearLayout,View> addInvoiceField=(column,view)->{
-            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(44));
-            lp.setMargins(0,0,0,dp(4));
-            column.addView(view,lp);
-        };
-
-        addInvoiceField.accept(rightFields,total);
-        addInvoiceField.accept(rightFields,qty);
-        addInvoiceField.accept(rightFields,name);
-        addInvoiceField.accept(leftFields,unit);
-        if(!sale)addInvoiceField.accept(leftFields,salePrice);
-
-        itemBox.addView(fieldColumns,new LinearLayout.LayoutParams(-1,-2));
-
-        Button add=action("＋ إضافة الصنف إلى الفاتورة",DARK);
-        add.setTextSize(13.5f);
-        add.setPadding(dp(8),0,dp(8),0);
-        LinearLayout.LayoutParams addLp=new LinearLayout.LayoutParams(-1,dp(42));
-        addLp.setMargins(0,dp(4),0,0);
-        itemBox.addView(add,addLp);
-
-        // جدول الفاتورة المسطر داخل صندوق الفاتورة (Ruled Table Rows)
         LinearLayout tableHeader=new LinearLayout(this);
         tableHeader.setOrientation(LinearLayout.HORIZONTAL);
         tableHeader.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         tableHeader.setGravity(Gravity.CENTER_VERTICAL);
         tableHeader.setBackground(rounded(DARK,dp(6)));
-        tableHeader.setPadding(dp(4),dp(6),dp(4),dp(6));
-        
-        TextView thM=tv("م",11.5f); thM.setTextColor(Color.WHITE); thM.setGravity(Gravity.CENTER); thM.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-        TextView thDesc=tv("التفاصيل",11.5f); thDesc.setTextColor(Color.WHITE); thDesc.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL); thDesc.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-        TextView thQty=tv("العدد",11.5f); thQty.setTextColor(Color.WHITE); thQty.setGravity(Gravity.CENTER); thQty.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-        TextView thPrice=tv("سعر الوحدة",11.5f); thPrice.setTextColor(Color.WHITE); thPrice.setGravity(Gravity.CENTER); thPrice.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-        TextView thTotal=tv("الإجمالي",11.5f); thTotal.setTextColor(Color.WHITE); thTotal.setGravity(Gravity.CENTER); thTotal.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-
-        tableHeader.addView(thM,new LinearLayout.LayoutParams(dp(28),-2));
-        tableHeader.addView(thDesc,new LinearLayout.LayoutParams(0,-2,1.8f));
-        tableHeader.addView(thQty,new LinearLayout.LayoutParams(dp(44),-2));
-        tableHeader.addView(thPrice,new LinearLayout.LayoutParams(dp(64),-2));
-        tableHeader.addView(thTotal,new LinearLayout.LayoutParams(dp(64),-2));
+        tableHeader.setPadding(dp(3),dp(7),dp(3),dp(7));
+        TextView hName=tv("اسم الصنف",10.5f);
+        TextView hQty=tv("الكمية",10.5f);
+        TextView hUnit=tv("سعر الوحدة",10.5f);
+        TextView hTotal=tv("الإجمالي",10.5f);
+        for(TextView h:new TextView[]{hName,hQty,hUnit,hTotal}){
+            h.setTextColor(Color.WHITE);
+            h.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+            h.setGravity(Gravity.CENTER);
+        }
+        tableHeader.addView(hName,new LinearLayout.LayoutParams(0,-2,1.8f));
+        tableHeader.addView(hQty,new LinearLayout.LayoutParams(dp(48),-2));
+        tableHeader.addView(hUnit,new LinearLayout.LayoutParams(dp(76),-2));
+        tableHeader.addView(hTotal,new LinearLayout.LayoutParams(dp(82),-2));
         itemBox.addView(tableHeader,new LinearLayout.LayoutParams(-1,-2));
-        addSpaceTo(itemBox,2);
 
         LinearLayout rows=new LinearLayout(this);
         rows.setOrientation(LinearLayout.VERTICAL);
         rows.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         itemBox.addView(rows,new LinearLayout.LayoutParams(-1,-2));
 
-        Button addFallbackRow=button("＋ إضافة صنف (صف مسطر احتياطي)");
-        addFallbackRow.setTextSize(12f);
-        addFallbackRow.setTextColor(DARK);
-        addFallbackRow.setBackground(outline(CARD,10));
-        LinearLayout.LayoutParams afLp=new LinearLayout.LayoutParams(-1,dp(36));
-        afLp.setMargins(0,dp(4),0,0);
-        itemBox.addView(addFallbackRow,afLp);
+        final ArrayList<AutoCompleteTextView> rowNames=new ArrayList<>();
+        final ArrayList<EditText> rowQtys=new ArrayList<>();
+        final ArrayList<EditText> rowPrices=new ArrayList<>();
+        final ArrayList<TextView> rowTotals=new ArrayList<>();
+        final boolean[] addingRow={false};
+        final Runnable[] redraw={null};
+        final Runnable[] addEntryRow={null};
 
-        content.addView(itemBox,new LinearLayout.LayoutParams(-1,-2));
-        addSpace(4);
-
-        ArrayList<UnifiedInvoiceItem> items=new ArrayList<>();
-        
-        // لوحة المبلغ الإجمالي العام (Grand Total)
         LinearLayout grandTotalBox=new LinearLayout(this);
         grandTotalBox.setOrientation(LinearLayout.HORIZONTAL);
         grandTotalBox.setGravity(Gravity.CENTER_VERTICAL);
         grandTotalBox.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         grandTotalBox.setBackground(rounded(DARK,dp(12)));
         grandTotalBox.setPadding(dp(12),dp(10),dp(12),dp(10));
-        grandTotalBox.setElevation(dp(2));
-
-        TextView gtLabel=tv("المبلغ الإجمالي العام (Grand Total):",13.5f);
-        gtLabel.setTextColor(Color.WHITE); gtLabel.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        TextView gtLabel=tv("الإجمالي الكلي",13.5f);
+        gtLabel.setTextColor(Color.WHITE);
+        gtLabel.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         TextView finalTotal=tv("0 ريال",16f);
-        finalTotal.setTextColor(Color.WHITE); finalTotal.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        finalTotal.setTextColor(Color.WHITE);
+        finalTotal.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         finalTotal.setGravity(Gravity.LEFT|Gravity.CENTER_VERTICAL);
-
-        grandTotalBox.addView(gtLabel,new LinearLayout.LayoutParams(0,-2,1.2f));
+        grandTotalBox.addView(gtLabel,new LinearLayout.LayoutParams(0,-2,1f));
         grandTotalBox.addView(finalTotal,new LinearLayout.LayoutParams(0,-2,1f));
+
+        content.addView(itemBox,new LinearLayout.LayoutParams(-1,-2));
+        addSpace(4);
         content.addView(grandTotalBox,new LinearLayout.LayoutParams(-1,-2));
         addSpace(6);
 
         EditText paid=numberField(sale?"المبلغ المدفوع":"المبلغ المدفوع للمورد");
-        EditText remaining=numberField("المتبقي (خالص)");
+        EditText remaining=numberField("المتبقي");
         remaining.setEnabled(false);
         content.addView(paid,new LinearLayout.LayoutParams(-1,dp(44)));
         addSpace(4);
         content.addView(remaining,new LinearLayout.LayoutParams(-1,dp(44)));
         final EditText paidRef=paid;
         final EditText remainingRef=remaining;
-        
-        final Runnable[] redraw=new Runnable[1];
+
         redraw[0]=()->{
-            rows.removeAllViews();
+            items.clear();
             double sum=0;
-            int idx=1;
-            for(UnifiedInvoiceItem x:items){
-                sum+=x.total;
-                LinearLayout rBox=new LinearLayout(this);
-                rBox.setOrientation(LinearLayout.HORIZONTAL);
-                rBox.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-                rBox.setGravity(Gravity.CENTER_VERTICAL);
-                rBox.setBackground(outlined(Color.WHITE,1,dp(8)));
-                rBox.setPadding(dp(2),dp(4),dp(2),dp(4));
-
-                TextView tvM=tv(String.valueOf(idx++),11); tvM.setGravity(Gravity.CENTER); tvM.setTextColor(TEXT);
-                TextView tvDesc=tv(x.name,11.5f); tvDesc.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL); tvDesc.setTextColor(TEXT); tvDesc.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-                TextView tvQty=tv(fmt(x.qty),11); tvQty.setGravity(Gravity.CENTER); tvQty.setTextColor(TEXT);
-                TextView tvPrice=tv(fmt(x.unitPrice),11); tvPrice.setGravity(Gravity.CENTER); tvPrice.setTextColor(TEXT);
-                TextView tvTotal=tv(fmt(x.total),11.5f); tvTotal.setGravity(Gravity.CENTER); tvTotal.setTextColor(DARK); tvTotal.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-
-                rBox.addView(tvM,new LinearLayout.LayoutParams(dp(28),-2));
-                rBox.addView(tvDesc,new LinearLayout.LayoutParams(0,-2,1.8f));
-                rBox.addView(tvQty,new LinearLayout.LayoutParams(dp(44),-2));
-                rBox.addView(tvPrice,new LinearLayout.LayoutParams(dp(64),-2));
-                rBox.addView(tvTotal,new LinearLayout.LayoutParams(dp(64),-2));
-
-                LinearLayout.LayoutParams rLp=new LinearLayout.LayoutParams(-1,-2);
-                rLp.setMargins(0,0,0,dp(3));
-                rows.addView(rBox,rLp);
+            for(int i=0;i<rowNames.size();i++){
+                String nm=rowNames.get(i).getText().toString().trim();
+                double q=parseDoubleSafe(rowQtys.get(i).getText().toString(),1);
+                double price=parseDoubleSafe(rowPrices.get(i).getText().toString(),0);
+                double lineTotal=(q>0&&price>0)?q*price:0;
+                rowTotals.get(i).setText(fmt(lineTotal));
+                if(!nm.isEmpty()&&q>0&&price>0){
+                    double salePrice=sale?0:db.itemSalePrice(nm);
+                    items.add(new UnifiedInvoiceItem(nm,q,lineTotal,price,salePrice));
+                    sum+=lineTotal;
+                }
             }
-
-            // إضافة صفين مسطرين احتياطيين فارغين داخل الصندوق (Ruled fallback entry rows)
-            for(int fallbackIdx=0; fallbackIdx<2; fallbackIdx++){
-                LinearLayout fBox=new LinearLayout(this);
-                fBox.setOrientation(LinearLayout.HORIZONTAL);
-                fBox.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-                fBox.setGravity(Gravity.CENTER_VERTICAL);
-                fBox.setBackground(outlined(Color.rgb(250,252,255),1,dp(8)));
-                fBox.setPadding(dp(2),dp(3),dp(2),dp(3));
-
-                TextView fM=tv(String.valueOf(idx++),11); fM.setGravity(Gravity.CENTER); fM.setTextColor(MUTED);
-                AutoCompleteTextView fDesc=new AutoCompleteTextView(this);
-                fDesc.setHint("أدخل اسم الصنف..."); fDesc.setTextSize(12); fDesc.setSingleLine(true);
-                fDesc.setTextColor(TEXT); fDesc.setHintTextColor(MUTED); fDesc.setBackgroundColor(Color.TRANSPARENT);
-                fDesc.setPadding(dp(4),0,dp(4),0); fDesc.setThreshold(1);
-                fDesc.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
-                fDesc.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-                fDesc.setTextDirection(View.TEXT_DIRECTION_RTL);
-                fDesc.setHorizontallyScrolling(false);
-                fDesc.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,db.itemNames()));
-
-                EditText fQty=new EditText(this);
-                fQty.setText("1"); fQty.setTextSize(12); fQty.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL);
-                fQty.setTextDirection(View.TEXT_DIRECTION_LTR);
-                fQty.setGravity(Gravity.CENTER); fQty.setBackgroundColor(Color.TRANSPARENT); fQty.setTextColor(TEXT); fQty.setPadding(0,0,0,0);
-
-                EditText fPrice=new EditText(this);
-                fPrice.setHint("سعر"); fPrice.setTextSize(12); fPrice.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL);
-                fPrice.setTextDirection(View.TEXT_DIRECTION_LTR);
-                fPrice.setGravity(Gravity.CENTER); fPrice.setBackgroundColor(Color.TRANSPARENT); fPrice.setTextColor(TEXT); fPrice.setPadding(0,0,0,0);
-
-                TextView fTotal=tv("0",12); fTotal.setGravity(Gravity.CENTER); fTotal.setTextColor(MUTED);
-
-                fBox.addView(fM,new LinearLayout.LayoutParams(dp(28),-2));
-                fBox.addView(fDesc,new LinearLayout.LayoutParams(0,dp(36),1.8f));
-                fBox.addView(fQty,new LinearLayout.LayoutParams(dp(44),dp(36)));
-                fBox.addView(fPrice,new LinearLayout.LayoutParams(dp(64),dp(36)));
-                fBox.addView(fTotal,new LinearLayout.LayoutParams(dp(64),-2));
-
-                // تحديث الإجمالي تلقائياً عند التعديل في الصف المسطر
-                TextWatcher tw=new TextWatcher(){
-                    public void beforeTextChanged(CharSequence s,int a,int b,int c){}
-                    public void onTextChanged(CharSequence s,int a,int b,int c){
-                        try{
-                            double q=parseDoubleSafe(fQty.getText().toString(),1);
-                            double pr=parseDoubleSafe(fPrice.getText().toString(),0);
-                            fTotal.setText(fmt(q*pr));
-                        }catch(Exception ignored){}
-                    }
-                    public void afterTextChanged(Editable e){}
-                };
-                fQty.addTextChangedListener(tw);
-                fPrice.addTextChangedListener(tw);
-
-                fDesc.setOnItemClickListener((p,v,pos,idTag)->{
-                    String selected=(String)p.getItemAtPosition(pos);
-                    double price=sale?db.itemSalePrice(selected):db.itemCostPrice(selected);
-                    if(price>0){
-                        fPrice.setText(fmt(price));
-                        double q=parseDoubleSafe(fQty.getText().toString(),1);
-                        fTotal.setText(fmt(price*q));
-                    }
-                });
-
-                // عند الضغط على زر الإضافة أو حفظ الصنف المسطر
-                fDesc.setOnEditorActionListener((v,actionId,event)->{
-                    try{
-                        String nm=fDesc.getText().toString().trim();
-                        double q=parseDoubleSafe(fQty.getText().toString(),1);
-                        double pr=parseDoubleSafe(fPrice.getText().toString(),0);
-                        if(!nm.isEmpty() && pr>0){
-                            items.add(new UnifiedInvoiceItem(nm,q,q*pr,pr,0));
-                            redraw[0].run();
-                        }
-                    }catch(Exception ignored){}
-                    return true;
-                });
-
-                LinearLayout.LayoutParams fLp=new LinearLayout.LayoutParams(-1,-2);
-                fLp.setMargins(0,0,0,dp(3));
-                rows.addView(fBox,fLp);
-            }
-
             finalTotal.setText(fmt(sum)+" ريال");
-            double p=parseDoubleSafe(paidRef.getText().toString(),0);
-            double rem=Math.max(0,sum-p);
-            remainingRef.setText(rem<=0.005?"خالص":fmt(rem));
+            double paidAmount=parseDoubleSafe(paidRef.getText().toString(),0);
+            double due=Math.max(0,sum-paidAmount);
+            remainingRef.setText(due<=0.005?"خالص":fmt(due));
+
+            if(!addingRow[0]&&!rowNames.isEmpty()){
+                int last=rowNames.size()-1;
+                String nm=rowNames.get(last).getText().toString().trim();
+                double q=parseDoubleSafe(rowQtys.get(last).getText().toString(),1);
+                double price=parseDoubleSafe(rowPrices.get(last).getText().toString(),0);
+                if(!nm.isEmpty()&&q>0&&price>0)addEntryRow[0].run();
+            }
         };
 
-        addFallbackRow.setOnClickListener(v->{
-            // نقل التركيز أو إضافة صف جديد يدوي
-            Toast.makeText(this,"يمكنك الكتابة مباشرة في الصفوف المسطرة بالأسفل أو استخدام حقل الإدخال العلوي",Toast.LENGTH_SHORT).show();
-        });
+        addEntryRow[0]=()->{
+            if(addingRow[0])return;
+            addingRow[0]=true;
+            LinearLayout line=new LinearLayout(this);
+            line.setOrientation(LinearLayout.HORIZONTAL);
+            line.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+            line.setGravity(Gravity.CENTER_VERTICAL);
+            line.setPadding(dp(2),dp(3),dp(2),dp(3));
+            line.setBackground(outlined(Color.WHITE,dp(1),dp(5)));
 
-        add.setOnClickListener(v->{
-            try{
-                double t=parseDoubleSafe(total.getText().toString(),-1);
-                double q=parseDoubleSafe(qty.getText().toString(),-1);
-                String nm=name.getText().toString().trim();
-                if(t<0||q<=0||nm.isEmpty())throw new Exception();
-                double u=t/q;
-                double sp=0;
-                if(!sale)sp=parseDoubleSafe(salePrice.getText().toString(),-1);
-                if(!sale && sp<0)throw new Exception();
-                items.add(new UnifiedInvoiceItem(nm,q,t,u,sp));
-                redraw[0].run();
-                total.setText("");
-                qty.setText("1");
-                name.setText("");
-                unit.setText("");
-                salePrice.setText("");
-                total.requestFocus();
-            }catch(Exception e){
-                Toast.makeText(this,"أدخل الإجمالي والكمية واسم الصنف"+(sale?"":" وسعر البيع")+" بشكل صحيح",Toast.LENGTH_SHORT).show();
-            }
-        });
+            AutoCompleteTextView itemName=new AutoCompleteTextView(this);
+            itemName.setHint("اسم الصنف");
+            itemName.setTextSize(11.5f);
+            itemName.setSingleLine(true);
+            itemName.setThreshold(1);
+            itemName.setTextColor(TEXT);
+            itemName.setHintTextColor(MUTED);
+            itemName.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+            itemName.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+            itemName.setTextDirection(View.TEXT_DIRECTION_RTL);
+            itemName.setPadding(dp(5),0,dp(5),0);
+            itemName.setBackgroundColor(Color.TRANSPARENT);
+            itemName.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,db.itemNames()));
 
-        if(paidRef!=null){
-            paidRef.addTextChangedListener(new TextWatcher(){
-                public void beforeTextChanged(CharSequence s,int a,int b,int c){}
-                public void onTextChanged(CharSequence s,int a,int b,int c){redraw[0].run();}
+            EditText quantity=numberField("1");
+            quantity.setText("1");
+            quantity.setTextSize(11.5f);
+            quantity.setGravity(Gravity.CENTER);
+            quantity.setPadding(0,0,0,0);
+            quantity.setBackgroundColor(Color.TRANSPARENT);
+            quantity.setTextDirection(View.TEXT_DIRECTION_LTR);
+
+            EditText unitPrice=numberField("السعر");
+            unitPrice.setTextSize(11.5f);
+            unitPrice.setGravity(Gravity.CENTER);
+            unitPrice.setPadding(0,0,0,0);
+            unitPrice.setBackgroundColor(Color.TRANSPARENT);
+            unitPrice.setTextDirection(View.TEXT_DIRECTION_LTR);
+
+            TextView lineTotal=tv("0",11.5f);
+            lineTotal.setTextColor(DARK);
+            lineTotal.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+            lineTotal.setGravity(Gravity.CENTER);
+
+            line.addView(itemName,new LinearLayout.LayoutParams(0,dp(38),1.8f));
+            line.addView(quantity,new LinearLayout.LayoutParams(dp(48),dp(38)));
+            line.addView(unitPrice,new LinearLayout.LayoutParams(dp(76),dp(38)));
+            line.addView(lineTotal,new LinearLayout.LayoutParams(dp(82),-2));
+            LinearLayout.LayoutParams lineLp=new LinearLayout.LayoutParams(-1,-2);
+            lineLp.setMargins(0,0,0,dp(3));
+            rows.addView(line,lineLp);
+
+            rowNames.add(itemName);
+            rowQtys.add(quantity);
+            rowPrices.add(unitPrice);
+            rowTotals.add(lineTotal);
+
+            TextWatcher watcher=new TextWatcher(){
+                public void beforeTextChanged(CharSequence s,int start,int count,int after){}
+                public void onTextChanged(CharSequence s,int start,int before,int count){if(!addingRow[0])redraw[0].run();}
                 public void afterTextChanged(Editable e){}
+            };
+            itemName.addTextChangedListener(watcher);
+            quantity.addTextChangedListener(watcher);
+            unitPrice.addTextChangedListener(watcher);
+
+            itemName.setOnItemClickListener((parent,view,position,idTag)->{
+                String selected=(String)parent.getItemAtPosition(position);
+                double price=sale?db.itemSalePrice(selected):db.itemCostPrice(selected);
+                if(price>0)unitPrice.setText(fmt(price));
+                redraw[0].run();
+                quantity.requestFocus();
             });
-        }
+            itemName.setOnEditorActionListener((v,actionId,event)->{
+                quantity.requestFocus();
+                quantity.selectAll();
+                return true;
+            });
+            unitPrice.setOnEditorActionListener((v,actionId,event)->{
+                hideKeyboard();
+                redraw[0].run();
+                return true;
+            });
+            addingRow[0]=false;
+        };
+
+        addEntryRow[0].run();
+        redraw[0].run();
+        paidRef.addTextChangedListener(new TextWatcher(){
+            public void beforeTextChanged(CharSequence s,int start,int count,int after){}
+            public void onTextChanged(CharSequence s,int start,int before,int count){redraw[0].run();}
+            public void afterTextChanged(Editable e){}
+        });
 
         Button save=action("💾 حفظ الفاتورة",DARK);
         content.addView(save,new LinearLayout.LayoutParams(-1,dp(46)));
