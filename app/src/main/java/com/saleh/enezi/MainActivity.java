@@ -211,6 +211,8 @@ public class MainActivity extends Activity {
         else if(prev.equals("الموردون")) suppliers();
         else if(prev.equals("حساب المورد")) suppliers();
         else if(prev.equals("حساب العميل")){if(activeCustomerId>0)account(activeCustomerId,activeCustomerName);else home();}
+        else if(prev.equals("تسجيل عملية على العميل"))showCustomerTransactionDialog(false);
+        else if(prev.equals("تسجيل دفعة سداد للعميل"))showCustomerTransactionDialog(true);
         else if(prev.equals("الإعدادات")) settingsHub();
         else if(prev.equals("لوحة التحكم")||prev.equals("التحليلات")||prev.equals("لوحة التحكم والتحليلات")) dashboard();
         else home();
@@ -1633,8 +1635,8 @@ public class MainActivity extends Activity {
     }
 
     void showCustomerTransactionDialog(boolean payment,long presetCustomerId,String presetCustomerName){
-        beginFullPage(payment?"تسجيل دفعة سداد للعميل":"تسجيل عملية على العميل",
-            presetCustomerName==null?"اختر العميل وأدخل المبلغ والبيان.":"الحساب المحدد: "+presetCustomerName);
+        final String pageTitle=payment?"تسجيل دفعة سداد للعميل":"تسجيل عملية على العميل";
+        beginFullPage(pageTitle,presetCustomerName==null?"اختر العميل، ويمكنك تسجيل عدة عمليات في دفعة واحدة.":"الحساب المحدد: "+presetCustomerName);
         AutoCompleteTextView name=new AutoCompleteTextView(this);
         name.setHint("اسم العميل"); name.setTextSize(16); name.setSingleLine(true); name.setThreshold(1);
         name.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,db.customerNames()));
@@ -1642,25 +1644,63 @@ public class MainActivity extends Activity {
         name.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);name.setTextDirection(View.TEXT_DIRECTION_RTL);
         if(presetCustomerName!=null&&!presetCustomerName.trim().isEmpty()){name.setText(presetCustomerName);name.setEnabled(false);}
         addFullPageField("العميل",name);
-        EditText amount=fullPageField(payment?"مبلغ السداد *":"مبلغ العملية *",true);
-        addFullPageField("المبلغ بالريال اليمني",amount);
-        EditText detail=fullPageField("البيان / التفاصيل (اختياري)",false);
-        detail.setSingleLine(false);detail.setMinLines(2);detail.setGravity(Gravity.RIGHT|Gravity.TOP);
-        addFullPageField("تفاصيل العملية",detail);
-        setFullPageActions(payment?"✓ حفظ السداد":"✓ حفظ العملية","إلغاء",payment?GREEN:RED,()->{
+        Button history=button("عرض حساب العميل وجميع عملياته");
+        history.setTextColor(DARK);history.setBackground(outlined(Color.WHITE,dp(1),dp(10)));history.setMinHeight(dp(46));
+        history.setOnClickListener(v->{
             String n=name.getText().toString().trim();
-            double a=parseDoubleSafe(amount.getText().toString().replace(",","").trim(),0);
-            if(n.isEmpty()||a<=0){Toast.makeText(this,"اختر العميل وأدخل مبلغاً صحيحاً",Toast.LENGTH_SHORT).show();return;}
+            long id=presetCustomerId>0?presetCustomerId:(n.isEmpty()?0:db.customer(n));
+            if(id<=0){Toast.makeText(this,"اختر عميلاً أولاً",Toast.LENGTH_SHORT).show();return;}
+            account(id,n);
+        });
+        content.addView(history,new LinearLayout.LayoutParams(-1,dp(46)));
+        addSpace(8);
+        TextView rowsTitle=tv("العمليات المراد تسجيلها",14);
+        rowsTitle.setTypeface(Typeface.DEFAULT,Typeface.BOLD);rowsTitle.setTextColor(DARK);
+        content.addView(rowsTitle,new LinearLayout.LayoutParams(-1,dp(32)));
+        LinearLayout rows=new LinearLayout(this);rows.setOrientation(LinearLayout.VERTICAL);
+        content.addView(rows,new LinearLayout.LayoutParams(-1,-2));
+        final ArrayList<EditText> amounts=new ArrayList<>();
+        final ArrayList<EditText> details=new ArrayList<>();
+        Runnable addEntry=()->{
+            LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);
+            card.setPadding(dp(9),dp(8),dp(9),dp(8));card.setBackground(outlined(Color.WHITE,dp(1),dp(10)));
+            LinearLayout.LayoutParams cardLp=new LinearLayout.LayoutParams(-1,-2);cardLp.setMargins(0,0,0,dp(8));rows.addView(card,cardLp);
+            TextView label=tv("عملية رقم "+(amounts.size()+1),12.5f);label.setTextColor(DARK);label.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+            card.addView(label,new LinearLayout.LayoutParams(-1,dp(26)));
+            EditText amount=fullPageField(payment?"مبلغ السداد *":"مبلغ العملية *",true);
+            amount.setHint("المبلغ بالريال اليمني");card.addView(amount,new LinearLayout.LayoutParams(-1,-2));
+            EditText detail=fullPageField("البيان / التفاصيل (اختياري)",false);
+            detail.setSingleLine(false);detail.setMinLines(2);detail.setMaxLines(4);detail.setGravity(Gravity.RIGHT|Gravity.TOP);
+            LinearLayout.LayoutParams detailLp=new LinearLayout.LayoutParams(-1,-2);detailLp.setMargins(0,dp(6),0,0);
+            card.addView(detail,detailLp);amounts.add(amount);details.add(detail);
+        };
+        addEntry.run();
+        Button addAnother=button("+ إضافة عملية أخرى");
+        addAnother.setTextColor(DARK);addAnother.setBackground(outlined(Color.WHITE,dp(1),dp(10)));
+        addAnother.setMinHeight(dp(48));addAnother.setOnClickListener(v->addEntry.run());
+        content.addView(addAnother,new LinearLayout.LayoutParams(-1,dp(48)));
+        setFullPageActions("✓ حفظ جميع العمليات","رجوع",payment?GREEN:RED,()->{
+            String n=name.getText().toString().trim();
+            if(n.isEmpty()){Toast.makeText(this,"اختر العميل أولاً",Toast.LENGTH_SHORT).show();return;}
             long id=presetCustomerId>0?presetCustomerId:db.customer(n);
             if(id<=0){Toast.makeText(this,"تعذر فتح حساب العميل",Toast.LENGTH_SHORT).show();return;}
-            db.addTransaction(id,a,detail.getText().toString().trim(),payment?0:1,db.now());
+            ArrayList<Integer> valid=new ArrayList<>();
+            for(int i=0;i<amounts.size();i++){
+                double value=parseDoubleSafe(amounts.get(i).getText().toString().replace(",","").trim(),0);
+                if(value>0)valid.add(i);
+            }
+            if(valid.isEmpty()){Toast.makeText(this,"أدخل مبلغاً صحيحاً لعملية واحدة على الأقل",Toast.LENGTH_SHORT).show();return;}
+            for(int i:valid){
+                double value=parseDoubleSafe(amounts.get(i).getText().toString().replace(",","").trim(),0);
+                db.addTransaction(id,value,details.get(i).getText().toString().trim(),payment?0:1,db.now());
+            }
+            Toast.makeText(this,"تم حفظ "+valid.size()+" عملية بنجاح",Toast.LENGTH_SHORT).show();
             account(id,n);
-            showCompactSaveSnackbar(payment?"✓ تم تسجيل السداد":"✓ تم تسجيل الحركة","مشاركة",()->shareOperationImage(n,detail.getText().toString().trim(),a,payment?0:1,""));
-        },()->{if(presetCustomerId>0)account(presetCustomerId,presetCustomerName);else home();});
+        },()->goBack());
     }
 
 
-void showGeneralActions(){
+    void showGeneralActions(){
         beginFullPage("الإجراءات السريعة","اختر المهمة. ستفتح كل عملية في صفحة كاملة مستقلة.");
         String[] labels={"🧾 فاتورة مبيعات","🛒 فاتورة شراء","💰 عملية على عميل","💵 دفعة سداد عميل","🏪 الموردون","💸 الحوالات","👤 إضافة عميل","📦 المخزون والأصناف"};
         Runnable[] actions={()->unifiedInvoiceForm(InvoiceType.SALE),()->unifiedInvoiceForm(InvoiceType.PURCHASE),()->showCustomerTransactionDialog(false),()->showCustomerTransactionDialog(true),()->suppliers(),()->transfers(),()->showCustomerCreatePopup(),()->inventory()};
@@ -10164,6 +10204,7 @@ Uri saveReceiptBitmap(Bitmap bitmap,String no)throws Exception{
     }
 
 void account(long id,String name){
+        activeCustomerId=id; activeCustomerName=name==null?"":name;
         base("حساب العميل",false);
         darkCardMode=false;
         applyDenseGlassPage();
