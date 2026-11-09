@@ -7627,6 +7627,30 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         }
         Cursor transactions(long id){return getReadableDatabase().rawQuery("SELECT id,date,details,amount,type FROM transactions WHERE customer_id=? ORDER BY datetime(date) DESC, id DESC",new String[]{String.valueOf(id)});}
         Cursor transactionsChronological(long id){return getReadableDatabase().rawQuery("SELECT id,date,details,amount,type FROM transactions WHERE customer_id=? ORDER BY datetime(date) ASC, id ASC",new String[]{String.valueOf(id)});}
+        void syncCustomerInvoicesToLedger(long customerId){
+            if(customerId<=0)return;
+            Cursor customer=getReadableDatabase().rawQuery("SELECT name FROM customers WHERE id=?",new String[]{String.valueOf(customerId)});
+            String customerName=customer.moveToFirst()?customer.getString(0):"";
+            customer.close();
+            if(customerName==null||customerName.trim().isEmpty())return;
+            Cursor invoices=getReadableDatabase().rawQuery(
+                "SELECT COALESCE(no,''),COALESCE(total,0),COALESCE(paid,0),COALESCE(date,'') FROM invoices WHERE lower(trim(customer))=lower(trim(?)) ORDER BY datetime(date),id",
+                new String[]{customerName});
+            ArrayList<String> nos=new ArrayList<>(),dates=new ArrayList<>();
+            ArrayList<Double> totals=new ArrayList<>(),paids=new ArrayList<>();
+            while(invoices.moveToNext()){
+                nos.add(invoices.getString(0));totals.add(invoices.getDouble(1));
+                paids.add(invoices.getDouble(2));dates.add(invoices.getString(3));
+            }
+            invoices.close();
+            // Backfill missing ledger rows for older invoices, without duplicating existing entries.
+            for(int i=0;i<nos.size();i++){
+                String no=nos.get(i),date=dates.get(i);
+                if(date==null||date.trim().isEmpty())date=now();
+                addTransactionOnce(customerId,totals.get(i),"فاتورة مبيعات رقم "+no,date);
+                addPaymentTransaction(customerId,paids.get(i),"دفعة فاتورة رقم "+no,date);
+            }
+        }
         int nextPurchaseNo(){return nextSequentialInvoiceNo("purchase_invoices");}
         int nextInvoice(){return nextSequentialInvoiceNo("invoices");}
         int nextSequentialInvoiceNo(String table){
@@ -10205,6 +10229,8 @@ Uri saveReceiptBitmap(Bitmap bitmap,String no)throws Exception{
 
 void account(long id,String name){
         activeCustomerId=id; activeCustomerName=name==null?"":name;
+        // Include historical invoices in the account ledger before calculating totals or rendering rows.
+        db.syncCustomerInvoicesToLedger(id);
         base("حساب العميل",false);
         darkCardMode=false;
         applyDenseGlassPage();
