@@ -1466,7 +1466,21 @@ public class MainActivity extends Activity {
                 info.setGravity(Gravity.CENTER_VERTICAL);
                 info.addView(name,new LinearLayout.LayoutParams(-1,-2));
                 info.addView(status,new LinearLayout.LayoutParams(-1,-2));
-                row.addView(info,new LinearLayout.LayoutParams(0,-2,1f));
+                // زر إجراء سريع لكل عميل، مستقل عن فتح تفاصيل الحساب.
+                Button quick=button("+");
+                quick.setTextSize(31f);
+                quick.setTypeface(Typeface.DEFAULT,Typeface.NORMAL);
+                quick.setTextColor(DARK);
+                quick.setGravity(Gravity.CENTER);
+                quick.setPadding(0,0,0,dp(3));
+                quick.setBackground(outlined(Color.WHITE,dp(1),dp(12)));
+                quick.setMinWidth(dp(48));
+                quick.setMinHeight(dp(48));
+                quick.setOnClickListener(v->showCustomerTransactionDialog(false,id,customerName));
+                row.addView(quick,new LinearLayout.LayoutParams(dp(52),dp(52)));
+                LinearLayout.LayoutParams infoLp=new LinearLayout.LayoutParams(0,-2,1f);
+                infoLp.setMargins(dp(8),0,dp(6),0);
+                row.addView(info,infoLp);
                 row.addView(amount,new LinearLayout.LayoutParams(dp(112),-2));
                 row.setOnClickListener(v->account(id,customerName));
                 row.setOnLongClickListener(v->{customerActions(id,customerName);return true;});
@@ -1490,6 +1504,32 @@ public class MainActivity extends Activity {
             public void afterTextChanged(Editable e){}
         });
         render.run();
+
+        // شريط ملخص ثابت أسفل قائمة العملاء مع اختصاري الحوالات والإضافة العامة.
+        LinearLayout summary=new LinearLayout(this);
+        summary.setOrientation(LinearLayout.HORIZONTAL);
+        summary.setGravity(Gravity.CENTER_VERTICAL);
+        summary.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        summary.setPadding(dp(8),dp(6),dp(8),dp(6));
+        summary.setBackgroundColor(DARK);
+        TextView totals=tv("عليك: "+fmt(db.totalDebts())+"   |   لك: "+fmt(db.totalCredits()),13.5f);
+        totals.setTextColor(Color.WHITE);
+        totals.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        totals.setGravity(Gravity.CENTER);
+        summary.addView(totals,new LinearLayout.LayoutParams(0,dp(48),1f));
+        Button transfer=button("⇄");
+        transfer.setTextSize(27);transfer.setTextColor(Color.WHITE);
+        transfer.setBackgroundColor(Color.TRANSPARENT);
+        transfer.setMinWidth(dp(48));transfer.setOnClickListener(v->transfers());
+        summary.addView(transfer,new LinearLayout.LayoutParams(dp(50),dp(48)));
+        Button floatingAdd=action("+",GREEN);
+        floatingAdd.setTextSize(30);floatingAdd.setTextColor(Color.WHITE);
+        floatingAdd.setBackground(rounded(GREEN,dp(28)));
+        floatingAdd.setElevation(dp(6));
+        floatingAdd.setMinWidth(dp(52));floatingAdd.setMinHeight(dp(52));
+        floatingAdd.setOnClickListener(v->showCustomerTransactionDialog(false));
+        summary.addView(floatingAdd,new LinearLayout.LayoutParams(dp(54),dp(52)));
+        bottom.addView(summary,0,new LinearLayout.LayoutParams(-1,-2));
     }
 
     void showQuickAddFullScreenHub(){
