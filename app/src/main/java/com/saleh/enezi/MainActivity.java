@@ -10332,9 +10332,9 @@ void account(long id,String name){
             tools.addView(toolBtns[i],p);
         }
         addCard.addView(tools,new LinearLayout.LayoutParams(-1,-2));
-        // أدوات كشف الحساب تبقى ظاهرة؛ أما حقول الإضافة فتنتقل إلى الشريط الثابت أسفل الشاشة.
+        // أدوات كشف الحساب تبقى ظاهرة، وحقول الإضافة تبقى مفتوحة أعلى سجل العمليات.
         addCard.removeView(tools);
-        addCard.setVisibility(View.GONE);
+        addCard.setVisibility(View.VISIBLE);
         content.addView(tools,new LinearLayout.LayoutParams(-1,-2));
         addSpace(5);
 
@@ -10343,6 +10343,8 @@ void account(long id,String name){
         title.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         content.addView(title,new LinearLayout.LayoutParams(-1,-2));
         addSpace(4);
+        content.addView(addCard,new LinearLayout.LayoutParams(-1,-2));
+        addSpace(6);
 
         LinearLayout list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);content.addView(list,new LinearLayout.LayoutParams(-1,-2));
         final ArrayList<CheckBox> checks=new ArrayList<>();
@@ -10472,8 +10474,14 @@ void account(long id,String name){
                 double a=Double.parseDouble(amount.getText().toString().trim());if(a<=0)throw new Exception();
                 String d=detail.getText().toString().trim();int type=v==debit?1:0;
                 db.addTransaction(id,a,d,type,db.now());
-                account(id,name);
-                showPostSaveOperation("تم حفظ العملية","العميل: "+name+"\nالمبلغ: "+(type==1?"عليه ":"له ")+fmt(a)+" ريال\nالرصيد: "+balanceText(db.balance(id)),
+                // حدّث سجل العميل في الصفحة الحالية دون إعادة بنائها؛ تبقى خانات الإدخال جاهزة للعملية التالية.
+                refresh.run();
+                amount.setText("");
+                detail.setText("");
+                double updatedBalance=db.balance(id);
+                balHead.setText("الإجمالي: "+fmt(Math.abs(updatedBalance))+" ريال");
+                balHead.setTextColor(updatedBalance>0.005?RED:(updatedBalance<-0.005?BLUE:GREEN));
+                showPostSaveOperation("تم حفظ العملية","العميل: "+name+"\nالمبلغ: "+(type==1?"عليه ":"له ")+fmt(a)+" ريال\nالرصيد: "+balanceText(updatedBalance),
                     ()->shareOperationImage(name,d,a,type,""),()->{});
             }catch(Exception e){Toast.makeText(this,"أدخل المبلغ بشكل صحيح",Toast.LENGTH_SHORT).show();}
         };
