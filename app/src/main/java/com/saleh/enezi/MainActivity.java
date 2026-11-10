@@ -3188,6 +3188,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 long id=c.getLong(0);
                 String itemName=c.getString(1);
                 double q=c.getDouble(2),m=c.getDouble(3);
+                double cost=c.getDouble(4),sale=c.getDouble(5);
                 count++;
 
                 LinearLayout row=new LinearLayout(this);
@@ -3237,6 +3238,11 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 metaRow.addView(minTv,new LinearLayout.LayoutParams(0,-2,1));
 
                 row.addView(metaRow,new LinearLayout.LayoutParams(-1,-2));
+                spaceTo(row,3);
+                TextView priceTv=tv("شراء: "+fmt(cost)+" ر.ي  •  بيع: "+fmt(sale)+" ر.ي  •  قيمة المخزون: "+fmt(q*cost)+" ر.ي",10.5f);
+                priceTv.setTextColor(MUTED);
+                priceTv.setMaxLines(2);
+                row.addView(priceTv,new LinearLayout.LayoutParams(-1,-2));
                 spaceTo(row,6);
 
                 LinearLayout actions=new LinearLayout(this);
