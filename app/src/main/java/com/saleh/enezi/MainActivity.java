@@ -8021,7 +8021,18 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
             }
             d.delete("purchase_items","purchase_id=?",new String[]{String.valueOf(purchaseId)});
         }
-        void deletePurchase(long id){if(id<=0)return;revertStockFromPurchase(id);getWritableDatabase().delete("purchase_invoices","id=?",new String[]{String.valueOf(id)});}
+        void deletePurchase(long id){
+            if(id<=0)return;
+            SQLiteDatabase d=getWritableDatabase();
+            d.beginTransaction();
+            try{
+                revertStockFromPurchase(id);
+                d.delete("purchase_invoices","id=?",new String[]{String.valueOf(id)});
+                d.setTransactionSuccessful();
+            }finally{
+                if(d.inTransaction())d.endTransaction();
+            }
+        }
         String supplierPhoneByName(String n){Cursor c=getReadableDatabase().rawQuery("SELECT COALESCE(phone,'') FROM suppliers WHERE name=? ORDER BY id DESC LIMIT 1",new String[]{n==null?"":n});String x=c.moveToFirst()?c.getString(0):"";c.close();return x==null?"":x;}
         Cursor invoices(){return getReadableDatabase().rawQuery("SELECT id,no,customer,total,date FROM invoices ORDER BY datetime(date) DESC, id DESC LIMIT 100",null);}
         Cursor recentActivity(){
@@ -8153,13 +8164,18 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         void replaceInvoiceLines(long id,ArrayList<Line> ls){SQLiteDatabase d=getWritableDatabase();d.delete("invoice_items","invoice_id=?",new String[]{String.valueOf(id)});for(Line l:ls){ContentValues v=new ContentValues();v.put("invoice_id",id);v.put("name",l.name);v.put("qty",l.qty);v.put("total",l.total);v.put("unit_cost",itemCostPrice(l.name));d.insert("invoice_items",null,v);}}
         void deleteInvoice(long id){
             if(id<=0)return;
-            String no=invoiceNo(id);
-            revertStockFromInvoice(id);
-            deleteInvoiceTransactions(no);
             SQLiteDatabase d=getWritableDatabase();
-            d.delete("invoice_items","invoice_id=?",new String[]{String.valueOf(id)});
-            d.delete("invoices","id=?",new String[]{String.valueOf(id)});
-
+            d.beginTransaction();
+            try{
+                String no=invoiceNo(id);
+                revertStockFromInvoice(id);
+                deleteInvoiceTransactions(no);
+                d.delete("invoice_items","invoice_id=?",new String[]{String.valueOf(id)});
+                d.delete("invoices","id=?",new String[]{String.valueOf(id)});
+                d.setTransactionSuccessful();
+            }finally{
+                if(d.inTransaction())d.endTransaction();
+            }
         }
         void deleteInvoiceTransaction(String no){deleteInvoiceTransactions(no);}
         void deleteInvoiceTransactions(String no){
