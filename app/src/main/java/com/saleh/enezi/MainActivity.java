@@ -3151,15 +3151,20 @@ void operationActions(long customerId,String customerName,long tid,String detail
         invActions.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         Button printInvBtn=button("🖨️ طباعة الجرد (58mm)");
         Button lowStockShareBtn=button("⚠️ طلبية النواقص");
-        printInvBtn.setTextSize(12f); lowStockShareBtn.setTextSize(12f);
+        Button stockHistoryBtn=button("📋 حركة المخزون");
+        printInvBtn.setTextSize(11.5f); lowStockShareBtn.setTextSize(11.5f); stockHistoryBtn.setTextSize(11.5f);
         invActions.addView(printInvBtn,new LinearLayout.LayoutParams(0,dp(42),1));
         LinearLayout.LayoutParams lpShare=new LinearLayout.LayoutParams(0,dp(42),1);
-        lpShare.setMargins(dp(6),0,0,0);
+        lpShare.setMargins(dp(5),0,0,0);
         invActions.addView(lowStockShareBtn,lpShare);
+        LinearLayout.LayoutParams lpHistory=new LinearLayout.LayoutParams(0,dp(42),1);
+        lpHistory.setMargins(dp(5),0,0,0);
+        invActions.addView(stockHistoryBtn,lpHistory);
         content.addView(invActions,new LinearLayout.LayoutParams(-1,-2));
         addSpace(6);
         printInvBtn.setOnClickListener(v->printInventoryReport());
         lowStockShareBtn.setOnClickListener(v->showLowStockDialog());
+        stockHistoryBtn.setOnClickListener(v->showStockMovementsDialog());
 
         LinearLayout list=new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
@@ -7877,12 +7882,12 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                     String name=c.getString(0)==null?"":c.getString(0).trim();
                     double q=c.getDouble(1);
                     if(name.isEmpty()||q<=0)continue;
-                    Cursor ic=d.rawQuery("SELECT id,qty FROM items WHERE lower(trim(name))=? LIMIT 1",new String[]{name.toLowerCase(Locale.ROOT)});
+                    Cursor ic=d.rawQuery("SELECT id,qty FROM items WHERE normalized_name=? OR lower(trim(name))=? LIMIT 1",new String[]{norm(name),name.toLowerCase(Locale.ROOT)});
                     if(ic.moveToFirst()){
                         long iid=ic.getLong(0); double current=ic.getDouble(1);
                         ContentValues v=new ContentValues(); v.put("qty",current+q);
                         d.update("items",v,"id=?",new String[]{String.valueOf(iid)});
-                        ContentValues mv=new ContentValues(); mv.put("item_id",iid); mv.put("item_name",name); mv.put("qty",q); mv.put("source_type","sale_reversal"); mv.put("source_id",invoiceId); mv.put("created_at",now());
+                        ContentValues mv=new ContentValues(); mv.put("item_id",iid); mv.put("item_name",name); mv.put("qty",q); mv.put("unit_cost",itemCostPrice(name)); mv.put("source_type","sale_reversal"); mv.put("source_id",invoiceId); mv.put("created_at",now());
                         d.insert("stock_movements",null,mv);
                     }
                     ic.close();
@@ -7899,7 +7904,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                 for(Line l:ls){
                     String name=l.name==null?"":l.name.trim(); double q=Math.max(0,l.qty);
                     if(name.isEmpty()||q<=0)continue;
-                    c=d.rawQuery("SELECT id,qty FROM items WHERE lower(trim(name))=? LIMIT 1",new String[]{name.toLowerCase(Locale.ROOT)});
+                    c=d.rawQuery("SELECT id,qty FROM items WHERE normalized_name=? OR lower(trim(name))=? LIMIT 1",new String[]{norm(name),name.toLowerCase(Locale.ROOT)});
                     if(!c.moveToFirst()){
                         c.close(); c=null;
                         ContentValues nv=new ContentValues();
@@ -8154,7 +8159,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
             SQLiteDatabase d=getWritableDatabase();
             d.delete("invoice_items","invoice_id=?",new String[]{String.valueOf(id)});
             d.delete("invoices","id=?",new String[]{String.valueOf(id)});
-            d.delete("stock_movements","source_id=? AND source_type IN ('sale','sale_reversal')",new String[]{String.valueOf(id)});
+
         }
         void deleteInvoiceTransaction(String no){deleteInvoiceTransactions(no);}
         void deleteInvoiceTransactions(String no){
@@ -9812,6 +9817,66 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         showCompactDialog(dlg,box,360);
     }
 
+
+    void showStockMovementsDialog(){
+        LinearLayout wrap=new LinearLayout(this);
+        wrap.setOrientation(LinearLayout.VERTICAL);
+        wrap.setPadding(dp(12),dp(8),dp(12),dp(8));
+        EditText search=field("ابحث باسم الصنف أو نوع الحركة");
+        search.setSingleLine(true);
+        wrap.addView(search,new LinearLayout.LayoutParams(-1,dp(46)));
+        ScrollView scroll=new ScrollView(this);
+        LinearLayout rows=new LinearLayout(this);
+        rows.setOrientation(LinearLayout.VERTICAL);
+        scroll.addView(rows);
+        wrap.addView(scroll,new LinearLayout.LayoutParams(-1,dp(420)));
+        AlertDialog dialog=new AlertDialog.Builder(this)
+            .setTitle("سجل حركة المخزون")
+            .setView(wrap)
+            .setPositiveButton("إغلاق",null).create();
+        Runnable render=()->{
+            rows.removeAllViews();
+            String q=search.getText().toString().trim().toLowerCase(Locale.ROOT);
+            Cursor c=null;int count=0;
+            try{
+                c=db.getReadableDatabase().rawQuery(
+                    "SELECT item_name,qty,COALESCE(unit_cost,0),source_type,source_id,COALESCE(created_at,'') FROM stock_movements ORDER BY id DESC LIMIT 500",null);
+                while(c.moveToNext()){
+                    String item=c.getString(0)==null?"":c.getString(0);
+                    double qty=c.getDouble(1),cost=c.getDouble(2);
+                    String type=c.getString(3)==null?"":c.getString(3);
+                    long source=c.getLong(4);
+                    String date=c.getString(5)==null?"":c.getString(5);
+                    String label="purchase".equals(type)?"شراء":("purchase_reversal".equals(type)?"عكس شراء":("sale".equals(type)?"بيع":("sale_reversal".equals(type)?"عكس بيع":type)));
+                    if(!q.isEmpty()&&!(item+" "+label+" "+date+" "+source).toLowerCase(Locale.ROOT).contains(q))continue;
+                    LinearLayout row=card();row.setOrientation(LinearLayout.VERTICAL);
+                    row.setPadding(dp(10),dp(8),dp(10),dp(8));row.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+                    TextView title=tv("📦 "+item+" • "+label,12.5f);
+                    title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);title.setTextColor(TEXT);
+                    row.addView(title,new LinearLayout.LayoutParams(-1,-2));
+                    TextView meta=tv((qty>=0?"+":"")+fmt(qty)+" وحدة  •  تكلفة الوحدة "+fmt(cost)+" ر.ي",11f);
+                    meta.setTextColor(qty>=0?GREEN:RED);
+                    row.addView(meta,new LinearLayout.LayoutParams(-1,-2));
+                    TextView detail=tv(date+"  •  مرجع #"+source,10f);detail.setTextColor(MUTED);
+                    row.addView(detail,new LinearLayout.LayoutParams(-1,-2));
+                    LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.setMargins(0,0,0,dp(5));rows.addView(row,rp);
+                    count++;
+                }
+            }catch(Exception e){
+                TextView err=tv("تعذر تحميل سجل الحركة",12);err.setTextColor(RED);rows.addView(err);
+            }finally{if(c!=null)c.close();}
+            if(count==0){
+                TextView empty=tv("لا توجد حركات مخزون مطابقة",12);empty.setTextColor(MUTED);empty.setGravity(Gravity.CENTER);
+                rows.addView(empty,new LinearLayout.LayoutParams(-1,dp(60)));
+            }
+        };
+        search.addTextChangedListener(new TextWatcher(){
+            public void beforeTextChanged(CharSequence s,int st,int count,int after){}
+            public void onTextChanged(CharSequence s,int st,int before,int count){render.run();}
+            public void afterTextChanged(Editable e){}
+        });
+        render.run();dialog.show();
+    }
 
     void showLowStockDialog(){
         final Dialog dlg=new Dialog(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen);
