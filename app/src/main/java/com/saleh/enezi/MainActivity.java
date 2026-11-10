@@ -3257,7 +3257,11 @@ void operationActions(long customerId,String customerName,long tid,String detail
                     .setMessage("هل تريد حذف «"+itemName+"» نهائياً؟")
                     .setNegativeButton("إلغاء",null)
                     .setPositiveButton("حذف",(d,w)->{
-                        db.deleteItem(id);
+                        boolean deleted=db.deleteItem(id);
+                        if(!deleted){
+                            Toast.makeText(this,"لا يمكن حذف الصنف لأنه مرتبط بحركات أو فواتير سابقة؛ يمكنك إبقاؤه دون استخدام",Toast.LENGTH_LONG).show();
+                            return;
+                        }
                         if(editingId[0]==id)clearForm.run();
                         refresh[0].run();
                         Toast.makeText(this,"تم حذف الصنف",Toast.LENGTH_SHORT).show();
@@ -3303,7 +3307,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 clearForm.run();
                 refresh[0].run();
             }catch(Exception e){
-                Toast.makeText(this,"أدخل بيانات الصنف بشكل صحيح",Toast.LENGTH_SHORT).show();
+                String error=e.getMessage()==null?"":e.getMessage();
+                Toast.makeText(this,error.contains("duplicate")?"يوجد صنف آخر بالاسم نفسه؛ اختر اسماً مختلفاً":"أدخل بيانات الصنف بشكل صحيح",Toast.LENGTH_SHORT).show();
             }
         });
         refresh[0].run();
@@ -7941,9 +7946,40 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         }
         Cursor items(){return getReadableDatabase().rawQuery("SELECT id,name,qty,min_qty,cost,sale FROM items ORDER BY name",null);}
         boolean itemExists(String n){String key=norm(n);Cursor c=getReadableDatabase().rawQuery("SELECT id FROM items WHERE normalized_name=? LIMIT 1",new String[]{key});boolean x=c.moveToFirst();c.close();return x;}
-        void addItem(String n,double q,double m){if(n.isEmpty()||q<0||m<0)throw new IllegalArgumentException();SQLiteDatabase d=getWritableDatabase();Cursor c=d.rawQuery("SELECT id FROM items WHERE name=? LIMIT 1",new String[]{n});if(c.moveToFirst()){long id=c.getLong(0);c.close();ContentValues v=new ContentValues();v.put("qty",q);v.put("min_qty",m);d.update("items",v,"id=?",new String[]{String.valueOf(id)});return;}c.close();ContentValues v=new ContentValues();v.put("name",n);v.put("qty",q);v.put("min_qty",m);d.insert("items",null,v);}
-        void updateItem(long id,String n,double q,double m){if(id<1||n==null||n.trim().isEmpty()||q<0||m<0)throw new IllegalArgumentException();ContentValues v=new ContentValues();v.put("name",n.trim());v.put("qty",q);v.put("min_qty",m);getWritableDatabase().update("items",v,"id=?",new String[]{String.valueOf(id)});}
-        void deleteItem(long id){if(id>0)getWritableDatabase().delete("items","id=?",new String[]{String.valueOf(id)});}
+        void addItem(String n,double q,double m){
+            if(n==null||n.trim().isEmpty()||q<0||m<0)throw new IllegalArgumentException();
+            String clean=n.trim(),key=norm(clean);
+            SQLiteDatabase d=getWritableDatabase();
+            Cursor c=d.rawQuery("SELECT id FROM items WHERE normalized_name=? LIMIT 1",new String[]{key});
+            if(c.moveToFirst()){
+                long id=c.getLong(0);c.close();
+                ContentValues v=new ContentValues();v.put("name",clean);v.put("normalized_name",key);v.put("qty",q);v.put("min_qty",m);
+                d.update("items",v,"id=?",new String[]{String.valueOf(id)});return;
+            }
+            c.close();
+            ContentValues v=new ContentValues();v.put("name",clean);v.put("normalized_name",key);v.put("qty",q);v.put("min_qty",m);
+            d.insertOrThrow("items",null,v);
+        }
+        void updateItem(long id,String n,double q,double m){
+            if(id<1||n==null||n.trim().isEmpty()||q<0||m<0)throw new IllegalArgumentException();
+            String clean=n.trim(),key=norm(clean);
+            SQLiteDatabase d=getWritableDatabase();
+            Cursor c=d.rawQuery("SELECT id FROM items WHERE normalized_name=? AND id<>? LIMIT 1",new String[]{key,String.valueOf(id)});
+            boolean duplicate=c.moveToFirst();c.close();
+            if(duplicate)throw new IllegalArgumentException("duplicate item name");
+            ContentValues v=new ContentValues();v.put("name",clean);v.put("normalized_name",key);v.put("qty",q);v.put("min_qty",m);
+            int changed=d.update("items",v,"id=?",new String[]{String.valueOf(id)});
+            if(changed==0)throw new IllegalArgumentException("item not found");
+        }
+        boolean deleteItem(long id){
+            if(id<=0)return false;
+            SQLiteDatabase d=getWritableDatabase();
+            Cursor c=d.rawQuery("SELECT (SELECT COUNT(*) FROM stock_movements WHERE item_id=?)+(SELECT COUNT(*) FROM invoice_items WHERE lower(trim(name))=(SELECT lower(trim(name)) FROM items WHERE id=?))+(SELECT COUNT(*) FROM purchase_items WHERE lower(trim(name))=(SELECT lower(trim(name)) FROM items WHERE id=?))",
+                new String[]{String.valueOf(id),String.valueOf(id),String.valueOf(id)});
+            boolean referenced=c.moveToFirst()&&c.getLong(0)>0;c.close();
+            if(referenced)return false;
+            return d.delete("items","id=?",new String[]{String.valueOf(id)})>0;
+        }
         int transactionCount(long id){Cursor c=getReadableDatabase().rawQuery("SELECT COUNT(*) FROM transactions WHERE customer_id=?",new String[]{String.valueOf(id)});int x=c.moveToFirst()?c.getInt(0):0;c.close();return x;}
         String invoiceNoFromTransaction(String details){if(details==null)return "";String p="فاتورة مبيعات رقم ";return details.startsWith(p)?details.substring(p.length()).trim():"";}
         String invoiceCompactDetails(String no){Cursor c=getReadableDatabase().rawQuery("SELECT name,qty,total FROM invoice_items WHERE invoice_id=(SELECT id FROM invoices WHERE no=? ORDER BY id DESC LIMIT 1) ORDER BY id",new String[]{no});StringBuilder s=new StringBuilder("تفاصيل: ");int n=0;while(c.moveToNext()&&n<6){if(n>0)s.append(" • ");s.append(c.getString(0)).append(" × ").append(fmt(c.getDouble(1))).append(" = ").append(fmt(c.getDouble(2)));n++;}c.close();return n==0?"تفاصيل الفاتورة غير متاحة":s.toString();}
