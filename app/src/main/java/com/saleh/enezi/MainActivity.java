@@ -6293,6 +6293,36 @@ void operationActions(long customerId,String customerName,long tid,String detail
             statRow1.addView(cProfit,slp2);
 
             statGrid.addView(statRow1,new LinearLayout.LayoutParams(-1,-2));
+
+            // Snapshot metrics: current positive stock value at recorded cost and negative-stock item count.
+            LinearLayout stockStatsRow=new LinearLayout(this);
+            stockStatsRow.setOrientation(LinearLayout.HORIZONTAL);
+            stockStatsRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+            stockStatsRow.setPadding(0,dp(5),0,0);
+            double stockCostValue=0;int negativeStockItems=0;
+            Cursor stockStatsCursor=db.getReadableDatabase().rawQuery(
+                "SELECT COALESCE(SUM(CASE WHEN COALESCE(qty,0)>0 THEN qty*COALESCE(cost,0) ELSE 0 END),0),COALESCE(SUM(CASE WHEN COALESCE(qty,0)<0 THEN 1 ELSE 0 END),0) FROM items",null);
+            if(stockStatsCursor.moveToFirst()){stockCostValue=stockStatsCursor.getDouble(0);negativeStockItems=stockStatsCursor.getInt(1);}
+            stockStatsCursor.close();
+
+            LinearLayout stockValueCard=card();stockValueCard.setOrientation(LinearLayout.VERTICAL);
+            stockValueCard.setGravity(Gravity.CENTER);stockValueCard.setPadding(dp(6),dp(6),dp(6),dp(6));
+            TextView stockValueTitle=tv("📦 قيمة المخزون بالتكلفة",10f);stockValueTitle.setTextColor(MUTED);stockValueTitle.setGravity(Gravity.CENTER);
+            TextView stockValueText=tv(fmt(stockCostValue)+" ر.ي",12.5f);stockValueText.setTextColor(BLUE);stockValueText.setTypeface(Typeface.DEFAULT,Typeface.BOLD);stockValueText.setGravity(Gravity.CENTER);
+            stockValueCard.addView(stockValueTitle,new LinearLayout.LayoutParams(-1,-2));
+            stockValueCard.addView(stockValueText,new LinearLayout.LayoutParams(-1,-2));
+
+            LinearLayout negativeCard=card();negativeCard.setOrientation(LinearLayout.VERTICAL);
+            negativeCard.setGravity(Gravity.CENTER);negativeCard.setPadding(dp(6),dp(6),dp(6),dp(6));
+            TextView negativeTitle=tv("⚠️ أصناف برصيد سالب",10f);negativeTitle.setTextColor(MUTED);negativeTitle.setGravity(Gravity.CENTER);
+            TextView negativeText=tv(String.valueOf(negativeStockItems)+" صنف",12.5f);negativeText.setTextColor(negativeStockItems>0?RED:GREEN);negativeText.setTypeface(Typeface.DEFAULT,Typeface.BOLD);negativeText.setGravity(Gravity.CENTER);
+            negativeCard.addView(negativeTitle,new LinearLayout.LayoutParams(-1,-2));
+            negativeCard.addView(negativeText,new LinearLayout.LayoutParams(-1,-2));
+            stockStatsRow.addView(stockValueCard,new LinearLayout.LayoutParams(0,-2,1));
+            LinearLayout.LayoutParams negativeLp=new LinearLayout.LayoutParams(0,-2,1);negativeLp.setMargins(dp(4),0,0,0);
+            stockStatsRow.addView(negativeCard,negativeLp);
+            statGrid.addView(stockStatsRow,new LinearLayout.LayoutParams(-1,-2));
+
             content.addView(statGrid,new LinearLayout.LayoutParams(-1,-2));
             addSpace(8);
 
