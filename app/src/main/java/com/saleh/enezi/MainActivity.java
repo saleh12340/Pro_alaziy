@@ -5232,9 +5232,12 @@ void operationActions(long customerId,String customerName,long tid,String detail
             }catch(Exception e){
                 Toast.makeText(this,"تعذر حفظ فاتورة الشراء.",Toast.LENGTH_LONG).show();
             }finally{
-                if(ptx!=null&&ptx.inTransaction())ptx.endTransaction();
-                savingPurchase[0]=false;
-                pSaveBtn.setEnabled(true);
+                try{
+                    if(ptx!=null&&ptx.inTransaction())ptx.endTransaction();
+                }finally{
+                    savingPurchase[0]=false;
+                    pSaveBtn.setEnabled(true);
+                }
             }
             if(saved){
                 Toast.makeText(this,edit?"تم حفظ التعديل وتحديث المخزون":"تم حفظ الفاتورة وتحديث المخزون",Toast.LENGTH_SHORT).show();
