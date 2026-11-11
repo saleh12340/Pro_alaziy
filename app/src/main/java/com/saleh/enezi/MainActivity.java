@@ -9581,7 +9581,7 @@ File createPurchaseInvoicePdf(String no,String supplier,ArrayList<PurchaseLine> 
             File file=createPurchaseInvoicePdf(no,supplier,lines,total,date);
             saveAndNotifyPdf(file,"تم تجهيز فاتورة الشراء PDF");
             String text=purchaseReceiptText(no,supplier,lines,total,date);
-            DocumentCenter.sharePdf(this,file,text,"مشاركة فاتورة شراء PDF");
+            shareWhatsAppDocument(db.supplierPhoneByName(supplier),text,file,"application/pdf","مشاركة فاتورة شراء PDF");
         }catch(Exception e){
             Toast.makeText(this,"تعذر مشاركة فاتورة شراء PDF",Toast.LENGTH_SHORT).show();
         }
@@ -9853,7 +9853,7 @@ File createPurchaseInvoicePdf(String no,String supplier,ArrayList<PurchaseLine> 
             File file=createCustomerStatementPdf(id,name);
             saveAndNotifyPdf(file,"تم تجهيز كشف حساب العميل PDF");
             String caption="كشف حساب تفصيلي\nبقالة العزي للمواد الغذائية\nالرصيد الحالي: "+balanceText(db.balance(id));
-            DocumentCenter.sharePdf(this,file,caption,"مشاركة كشف الحساب PDF");
+            shareWhatsAppDocument(db.phoneByName(name),caption,file,"application/pdf","مشاركة كشف الحساب PDF");
         }catch(Exception e){
             Toast.makeText(this,"تعذر مشاركة كشف الحساب PDF",Toast.LENGTH_SHORT).show();
         }
@@ -10000,7 +10000,8 @@ File createPurchaseInvoicePdf(String no,String supplier,ArrayList<PurchaseLine> 
             File file=createInvoicePdf(no,customer,lines,total,paid,balanceAfter,date);
             saveAndNotifyPdf(file,"تم تجهيز فاتورة المبيعات PDF");
             String text=invoiceWhatsAppText(no,customer,lines,total,paid,balanceAfter,date);
-            DocumentCenter.sharePdf(this,file,text,"مشاركة فاتورة PDF");
+            String phone=(customer==null||customer.trim().isEmpty()||"نقدي".equals(customer.trim()))?"":db.phoneByName(customer.trim());
+            shareWhatsAppDocument(phone,text,file,"application/pdf","مشاركة فاتورة PDF");
         }catch(Exception e){
             Toast.makeText(this,"تعذر مشاركة فاتورة PDF",Toast.LENGTH_SHORT).show();
         }
@@ -10086,6 +10087,32 @@ File createPurchaseInvoicePdf(String no,String supplier,ArrayList<PurchaseLine> 
         return p;
     }
 
+    void shareWhatsAppDocument(String phone,String text,File file,String mimeType,String chooserTitle){
+        try{
+            if(file==null||!file.isFile()||file.length()<=0)throw new IllegalStateException("ملف المشاركة غير موجود");
+            Uri uri=FileProvider.getUriForFile(this,getPackageName()+".fileprovider",file);
+            if(uri==null||!"content".equalsIgnoreCase(uri.getScheme()))throw new IllegalStateException("رابط الملف غير صالح");
+            String p=normalizeWhatsAppPhone(phone);
+            Intent base=new Intent(Intent.ACTION_SEND);
+            base.setType(mimeType==null?"application/octet-stream":mimeType);
+            base.putExtra(Intent.EXTRA_STREAM,uri);
+            if(text!=null&&!text.isEmpty())base.putExtra(Intent.EXTRA_TEXT,text);
+            if(!p.isEmpty())base.putExtra("jid",p+"@s.whatsapp.net");
+            base.setClipData(android.content.ClipData.newUri(getContentResolver(),"مرفق الفاتورة",uri));
+            base.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            try{
+                Intent wa=new Intent(base);wa.setPackage("com.whatsapp");startActivity(wa);return;
+            }catch(Exception ignored){}
+            try{
+                Intent business=new Intent(base);business.setPackage("com.whatsapp.w4b");startActivity(business);return;
+            }catch(Exception ignored){}
+            startActivity(Intent.createChooser(base,chooserTitle==null?"مشاركة الملف":chooserTitle));
+        }catch(Exception e){
+            android.util.Log.e("AlAzziShare","Document share failed",e);
+            Toast.makeText(this,"تعذر مشاركة الملف عبر واتساب. تحقق من وجود التطبيق والملف.",Toast.LENGTH_LONG).show();
+        }
+    }
+
     void shareWhatsAppToCustomer(String phone,String text,Uri image){
         String p=normalizeWhatsAppPhone(phone);
         try{
@@ -10095,6 +10122,7 @@ File createPurchaseInvoicePdf(String no,String supplier,ArrayList<PurchaseLine> 
             if(image!=null){
                 if("content".equalsIgnoreCase(image.getScheme())){
                     i.putExtra(Intent.EXTRA_STREAM,image);
+                    i.setClipData(android.content.ClipData.newUri(getContentResolver(),"صورة الفاتورة",image));
                     i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     i.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                 }
