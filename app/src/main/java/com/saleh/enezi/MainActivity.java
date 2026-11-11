@@ -6398,8 +6398,10 @@ void operationActions(long customerId,String customerName,long tid,String detail
             final String yesterdayDate=new SimpleDateFormat("yyyy-MM-dd",Locale.US).format(new Date(System.currentTimeMillis()-86400000L));
             final String monthPrefix=new SimpleDateFormat("yyyy-MM",Locale.US).format(new Date());
 
-            final int PERIOD_ALL=0, PERIOD_TODAY=1, PERIOD_YESTERDAY=2, PERIOD_MONTH=3;
+            final int PERIOD_ALL=0, PERIOD_TODAY=1, PERIOD_YESTERDAY=2, PERIOD_MONTH=3, PERIOD_CUSTOM=4;
             final int[] currentPeriod={PERIOD_ALL};
+            final String[] customFrom={todayDate},customTo={todayDate};
+            final java.text.SimpleDateFormat isoDateFormat=new java.text.SimpleDateFormat("yyyy-MM-dd",Locale.US);
 
             final int FILTER_ALL=0, FILTER_SALES=1, FILTER_PURCHASES=2, FILTER_OPS=3;
             final int[] currentFilter={FILTER_ALL};
@@ -6421,6 +6423,9 @@ void operationActions(long customerId,String customerName,long tid,String detail
             periodBar.addView(pYesterday,plp);
             periodBar.addView(pMonth,plp);
             content.addView(periodBar,new LinearLayout.LayoutParams(-1,-2));
+            Button customPeriodBtn=button("📅 تحديد فترة مخصصة");
+            customPeriodBtn.setTextSize(12f);
+            content.addView(customPeriodBtn,new LinearLayout.LayoutParams(-1,dp(42)));
             addSpace(6);
 
             // Live Search Box
@@ -6579,6 +6584,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                         if(currentPeriod[0]==PERIOD_TODAY && !fd.startsWith(todayDate)) continue;
                         if(currentPeriod[0]==PERIOD_YESTERDAY && !fd.startsWith(yesterdayDate)) continue;
                         if(currentPeriod[0]==PERIOD_MONTH && !fd.startsWith(monthPrefix)) continue;
+                        if(currentPeriod[0]==PERIOD_CUSTOM && (fd.compareTo(customFrom[0])<0 || fd.compareTo(customTo[0]+" 23:59:59")>0)) continue;
 
                         // Search text query check
                         if(!q.isEmpty()){
@@ -6688,31 +6694,34 @@ void operationActions(long customerId,String customerName,long tid,String detail
                     String reportDateLike=currentPeriod[0]==PERIOD_TODAY?todayDate+"%":
                             (currentPeriod[0]==PERIOD_YESTERDAY?yesterdayDate+"%":
                             (currentPeriod[0]==PERIOD_MONTH?monthPrefix+"%":"%"));
+                    boolean customRange=currentPeriod[0]==PERIOD_CUSTOM;
+                    String dateCondition=customRange?"date>=? AND date<?":"date LIKE ?";
+                    String[] dateArgs=customRange?new String[]{customFrom[0],customTo[0]+" 23:59:59"}:new String[]{reportDateLike};
                     SQLiteDatabase reportDb=db.getReadableDatabase();
-                    Cursor totalCursor=reportDb.rawQuery("SELECT COALESCE(SUM(total),0) FROM invoices WHERE date LIKE ?",new String[]{reportDateLike});
+                    Cursor totalCursor=reportDb.rawQuery("SELECT COALESCE(SUM(total),0) FROM invoices WHERE "+dateCondition,dateArgs);
                     if(totalCursor.moveToFirst())periodSalesTotal=totalCursor.getDouble(0);totalCursor.close();
-                    totalCursor=reportDb.rawQuery("SELECT COALESCE(SUM(total),0) FROM purchase_invoices WHERE date LIKE ?",new String[]{reportDateLike});
+                    totalCursor=reportDb.rawQuery("SELECT COALESCE(SUM(total),0) FROM purchase_invoices WHERE "+dateCondition,dateArgs);
                     if(totalCursor.moveToFirst())periodPurchasesTotal=totalCursor.getDouble(0);totalCursor.close();
                     totalCursor=reportDb.rawQuery(
                             "SELECT COALESCE(SUM(CASE WHEN COALESCE(ii.unit_cost,0)>0 THEN COALESCE(ii.total,0) ELSE 0 END),0),"+
                             "COALESCE(SUM(CASE WHEN COALESCE(ii.unit_cost,0)>0 THEN COALESCE(ii.qty,0)*ii.unit_cost ELSE 0 END),0),"+
                             "COALESCE(SUM(CASE WHEN COALESCE(ii.unit_cost,0)<=0 THEN 1 ELSE 0 END),0) "+
-                            "FROM invoice_items ii INNER JOIN invoices i ON i.id=ii.invoice_id WHERE i.date LIKE ?",
-                            new String[]{reportDateLike});
+                            "FROM invoice_items ii INNER JOIN invoices i ON i.id=ii.invoice_id WHERE "+(customRange?"i.date>=? AND i.date<?":"i.date LIKE ?"),
+                            dateArgs);
                     if(totalCursor.moveToFirst()){
                         periodKnownCostSales=totalCursor.getDouble(0);
                         periodCogsTotal=totalCursor.getDouble(1);
                         periodMissingCostLines=totalCursor.getInt(2);
                     }
                     totalCursor.close();
-                    totalCursor=reportDb.rawQuery("SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type=0 AND date LIKE ?",new String[]{reportDateLike});
+                    totalCursor=reportDb.rawQuery("SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type=0 AND "+dateCondition,dateArgs);
                     if(totalCursor.moveToFirst())periodCustomerCollections=totalCursor.getDouble(0);totalCursor.close();
                     totalCursor=reportDb.rawQuery(
-                            "SELECT COALESCE((SELECT SUM(st.amount) FROM supplier_transactions st WHERE st.date LIKE ?),0)+"+
-                            "COALESCE((SELECT SUM(COALESCE(pi.paid,0)) FROM purchase_invoices pi WHERE pi.date LIKE ? AND "+
+                            "SELECT COALESCE((SELECT SUM(st.amount) FROM supplier_transactions st WHERE "+(customRange?"st.date>=? AND st.date<?":"st.date LIKE ?")+"),0)+"+
+                            "COALESCE((SELECT SUM(COALESCE(pi.paid,0)) FROM purchase_invoices pi WHERE "+(customRange?"pi.date>=? AND pi.date<?":"pi.date LIKE ?")+" AND "+
                             "NOT EXISTS(SELECT 1 FROM supplier_transactions st WHERE st.invoice_no=pi.no "+
                             "AND st.details LIKE 'دفعة فاتورة شراء رقم %')),0)",
-                            new String[]{reportDateLike,reportDateLike});
+                            customRange?new String[]{customFrom[0],customTo[0]+" 23:59:59",customFrom[0],customTo[0]+" 23:59:59"}:new String[]{reportDateLike,reportDateLike});
                     if(totalCursor.moveToFirst())periodSupplierPayments=totalCursor.getDouble(0);totalCursor.close();
 
                     cSv.setText(fmt(periodSalesTotal)+" ر.ي");
@@ -6753,6 +6762,9 @@ void operationActions(long customerId,String customerName,long tid,String detail
 
                 pMonth.setTextColor(currentPeriod[0]==PERIOD_MONTH?Color.WHITE:TEXT);
                 pMonth.setBackground(currentPeriod[0]==PERIOD_MONTH?rounded(BLUE,dp(8)):outline(CARD,8));
+                customPeriodBtn.setText(currentPeriod[0]==PERIOD_CUSTOM?"📅 "+customFrom[0]+" إلى "+customTo[0]:"📅 تحديد فترة مخصصة");
+                customPeriodBtn.setTextColor(currentPeriod[0]==PERIOD_CUSTOM?Color.WHITE:TEXT);
+                customPeriodBtn.setBackground(currentPeriod[0]==PERIOD_CUSTOM?rounded(BLUE,dp(8)):outline(CARD,8));
 
                 renderReportsList.run();
             };
@@ -6777,6 +6789,27 @@ void operationActions(long customerId,String customerName,long tid,String detail
             pToday.setOnClickListener(v->{currentPeriod[0]=PERIOD_TODAY; updatePeriodStyle[0].run();});
             pYesterday.setOnClickListener(v->{currentPeriod[0]=PERIOD_YESTERDAY; updatePeriodStyle[0].run();});
             pMonth.setOnClickListener(v->{currentPeriod[0]=PERIOD_MONTH; updatePeriodStyle[0].run();});
+            customPeriodBtn.setOnClickListener(v->{
+                java.util.Calendar cal=java.util.Calendar.getInstance();
+                final String[] pickedStart={customFrom[0]};
+                final String[] pickedEnd={customTo[0]};
+                java.util.function.Consumer<String> chooseEnd=start->{
+                    try{cal.setTime(isoDateFormat.parse(start));}catch(Exception ignored){}
+                    new android.app.DatePickerDialog(this,(view,y,m,day)->{
+                        cal.set(y,m,day);pickedEnd[0]=isoDateFormat.format(cal.getTime());
+                        if(pickedEnd[0].compareTo(pickedStart[0])<0){
+                            Toast.makeText(this,"تاريخ النهاية يجب أن يكون بعد تاريخ البداية",Toast.LENGTH_LONG).show();return;
+                        }
+                        customFrom[0]=pickedStart[0];customTo[0]=pickedEnd[0];
+                        currentPeriod[0]=PERIOD_CUSTOM;updatePeriodStyle[0].run();
+                    },cal.get(java.util.Calendar.YEAR),cal.get(java.util.Calendar.MONTH),cal.get(java.util.Calendar.DAY_OF_MONTH)).show();
+                };
+                try{cal.setTime(isoDateFormat.parse(customFrom[0]));}catch(Exception ignored){}
+                new android.app.DatePickerDialog(this,(view,y,m,day)->{
+                    cal.set(y,m,day);pickedStart[0]=isoDateFormat.format(cal.getTime());
+                    chooseEnd.accept(pickedStart[0]);
+                },cal.get(java.util.Calendar.YEAR),cal.get(java.util.Calendar.MONTH),cal.get(java.util.Calendar.DAY_OF_MONTH)).show();
+            });
 
             fAll.setOnClickListener(v->{currentFilter[0]=FILTER_ALL; updateCategoryStyle[0].run();});
             fSales.setOnClickListener(v->{currentFilter[0]=FILTER_SALES; updateCategoryStyle[0].run();});
