@@ -9596,13 +9596,9 @@ File createPurchaseInvoicePdf(String no,String supplier,ArrayList<PurchaseLine> 
             Uri savedImage=AppStorage.saveAppImage(this,b,savedName);
             if(savedImage!=null)notifySavedFile("تم حفظ صورة فاتورة الشراء",savedName,savedImage,"image/png");
             Uri uri=saveReceiptBitmap(b,"purchase_"+no);
-            Intent i=new Intent(Intent.ACTION_SEND);
-            i.setType("image/png");
-            i.putExtra(Intent.EXTRA_STREAM,uri);
             String text=purchaseReceiptText(no,supplier,lines,total,date);
-            i.putExtra(Intent.EXTRA_TEXT,text);
-            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            startActivity(Intent.createChooser(i,"مشاركة صورة فاتورة الشراء"));
+            if(uri==null||!"content".equalsIgnoreCase(uri.getScheme()))throw new IllegalStateException("رابط صورة الفاتورة غير صالح");
+            shareWhatsAppToCustomer(db.supplierPhoneByName(supplier),text,uri);
         }catch(Exception e){Toast.makeText(this,"تعذر مشاركة صورة فاتورة الشراء",Toast.LENGTH_SHORT).show();}
     }
 
@@ -10777,6 +10773,9 @@ Uri saveReceiptBitmap(Bitmap bitmap,String no)throws Exception{
 
         try{
             Bitmap receipt=invoiceReceiptBitmap(invoiceNo.trim(),customer,lines,total,paid,balanceAfter,date);
+            String savedName="فاتورة_"+invoiceNo.trim()+"_"+System.currentTimeMillis()+".png";
+            Uri savedImage=AppStorage.saveAppImage(this,receipt,savedName);
+            if(savedImage!=null)notifySavedFile("تم حفظ صورة الفاتورة",savedName,savedImage,"image/png");
             Uri uri=saveReceiptBitmap(receipt,invoiceNo.trim());
             if(uri==null||!"content".equalsIgnoreCase(uri.getScheme())){
                 throw new IllegalStateException("Receipt URI is not content://");
