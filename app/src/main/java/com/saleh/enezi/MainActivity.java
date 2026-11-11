@@ -8208,9 +8208,27 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
             }
         }
         String[] itemNames(){Cursor c=getReadableDatabase().rawQuery("SELECT name FROM items ORDER BY name",null);ArrayList<String>a=new ArrayList<>();while(c.moveToNext())a.add(c.getString(0));c.close();return a.toArray(new String[0]);}
-        double itemSalePrice(String n){if(n==null||n.trim().isEmpty())return 0;Cursor c=getReadableDatabase().rawQuery("SELECT COALESCE(sale,0) FROM items WHERE name=? LIMIT 1",new String[]{n.trim()});double p=c.moveToFirst()?c.getDouble(0):0;c.close();return p;}
-        double itemCostPrice(String n){if(n==null||n.trim().isEmpty())return 0;Cursor c=getReadableDatabase().rawQuery("SELECT COALESCE(cost,0) FROM items WHERE name=? LIMIT 1",new String[]{n.trim()});double p=c.moveToFirst()?c.getDouble(0):0;c.close();return p;}
-        double itemQty(String n){if(n==null||n.trim().isEmpty())return 0;Cursor c=getReadableDatabase().rawQuery("SELECT COALESCE(qty,0) FROM items WHERE name=? LIMIT 1",new String[]{n.trim()});double q=c.moveToFirst()?c.getDouble(0):0;c.close();return q;}
+        double itemSalePrice(String n){
+            if(n==null||n.trim().isEmpty())return 0;
+            String clean=n.trim();
+            Cursor c=getReadableDatabase().rawQuery("SELECT COALESCE(sale,0) FROM items WHERE normalized_name=? OR lower(trim(name))=? LIMIT 1",
+                    new String[]{norm(clean),clean.toLowerCase(Locale.ROOT)});
+            double p=c.moveToFirst()?c.getDouble(0):0;c.close();return p;
+        }
+        double itemCostPrice(String n){
+            if(n==null||n.trim().isEmpty())return 0;
+            String clean=n.trim();
+            Cursor c=getReadableDatabase().rawQuery("SELECT COALESCE(cost,0) FROM items WHERE normalized_name=? OR lower(trim(name))=? LIMIT 1",
+                    new String[]{norm(clean),clean.toLowerCase(Locale.ROOT)});
+            double p=c.moveToFirst()?c.getDouble(0):0;c.close();return p;
+        }
+        double itemQty(String n){
+            if(n==null||n.trim().isEmpty())return 0;
+            String clean=n.trim();
+            Cursor c=getReadableDatabase().rawQuery("SELECT COALESCE(qty,0) FROM items WHERE normalized_name=? OR lower(trim(name))=? LIMIT 1",
+                    new String[]{norm(clean),clean.toLowerCase(Locale.ROOT)});
+            double q=c.moveToFirst()?c.getDouble(0):0;c.close();return q;
+        }
         void learnItemPrice(String name, double sale, double cost){
             if(name==null||name.trim().isEmpty())return;
             String n=name.trim(),key=norm(n);
