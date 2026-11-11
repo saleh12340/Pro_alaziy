@@ -3379,7 +3379,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
 
                 row.addView(metaRow,new LinearLayout.LayoutParams(-1,-2));
                 spaceTo(row,3);
-                TextView priceTv=tv("شراء: "+fmt(cost)+" ر.ي  •  بيع: "+fmt(sale)+" ر.ي  •  قيمة المخزون: "+fmt(q*cost)+" ر.ي",10.5f);
+                double stockValue=Math.max(0,q)*Math.max(0,cost);
+                TextView priceTv=tv("شراء: "+fmt(cost)+" ر.ي  •  بيع: "+fmt(sale)+" ر.ي  •  قيمة المخزون: "+fmt(stockValue)+" ر.ي",10.5f);
                 priceTv.setTextColor(MUTED);
                 priceTv.setMaxLines(2);
                 row.addView(priceTv,new LinearLayout.LayoutParams(-1,-2));
