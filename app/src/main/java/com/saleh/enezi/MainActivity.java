@@ -604,7 +604,7 @@ public class MainActivity extends Activity {
         e.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL|InputType.TYPE_NUMBER_VARIATION_NORMAL);
         e.setRawInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL|InputType.TYPE_NUMBER_VARIATION_NORMAL);
         e.setPrivateImeOptions("noAutoCorrect noSuggestions noLearning");
-        e.setKeyListener(DigitsKeyListener.getInstance("0123456789."));
+        e.setKeyListener(DigitsKeyListener.getInstance("0123456789٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹.,٫٬-"));
         configureFullTextInput(e);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             e.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
