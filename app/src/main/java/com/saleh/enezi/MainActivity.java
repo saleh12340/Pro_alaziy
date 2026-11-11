@@ -8034,17 +8034,19 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
             SQLiteDatabase d=getWritableDatabase();
             Cursor c=null;
             try{
-                c=d.rawQuery("SELECT name,qty FROM invoice_items WHERE invoice_id=?",new String[]{String.valueOf(invoiceId)});
+                // تكلفة العكس تؤخذ من لقطة تكلفة الفاتورة الأصلية، لا من سعر الصنف الحالي.
+                c=d.rawQuery("SELECT name,qty,COALESCE(unit_cost,0) FROM invoice_items WHERE invoice_id=?",new String[]{String.valueOf(invoiceId)});
                 while(c.moveToNext()){
                     String name=c.getString(0)==null?"":c.getString(0).trim();
                     double q=c.getDouble(1);
+                    double originalUnitCost=c.getDouble(2);
                     if(name.isEmpty()||q<=0)continue;
                     Cursor ic=d.rawQuery("SELECT id,qty FROM items WHERE normalized_name=? OR lower(trim(name))=? LIMIT 1",new String[]{norm(name),name.toLowerCase(Locale.ROOT)});
                     if(ic.moveToFirst()){
                         long iid=ic.getLong(0); double current=ic.getDouble(1);
                         ContentValues v=new ContentValues(); v.put("qty",current+q);
                         d.update("items",v,"id=?",new String[]{String.valueOf(iid)});
-                        ContentValues mv=new ContentValues(); mv.put("item_id",iid); mv.put("item_name",name); mv.put("qty",q); mv.put("unit_cost",itemCostPrice(name)); mv.put("source_type","sale_reversal"); mv.put("source_id",invoiceId); mv.put("created_at",now());
+                        ContentValues mv=new ContentValues(); mv.put("item_id",iid); mv.put("item_name",name); mv.put("qty",q); mv.put("unit_cost",originalUnitCost); mv.put("source_type","sale_reversal"); mv.put("source_id",invoiceId); mv.put("created_at",now());
                         d.insert("stock_movements",null,mv);
                     }
                     ic.close();
