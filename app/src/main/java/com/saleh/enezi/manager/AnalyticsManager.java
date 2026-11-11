@@ -51,7 +51,7 @@ public final class AnalyticsManager {
             this.minQuantity = minQuantity;
             this.unitCost = unitCost;
             this.salePrice = salePrice;
-            this.valuation = Math.max(0, quantity) * (unitCost > 0 ? unitCost : salePrice);
+            this.valuation = calculateStockValuation(quantity, unitCost);
             if (quantity <= 0) {
                 this.status = 2; // Empty
             } else if (minQuantity > 0 && quantity <= minQuantity) {
@@ -82,9 +82,23 @@ public final class AnalyticsManager {
         public double stockValuation;
         public int lowStockCount;
         public int totalItemsCount;
-        public double estimatedProfit;
+        public double estimatedProfit; // هامش الأصناف التي لها تكلفة مسجلة فقط
+        public double knownCostSales;
+        public double knownCostOfGoods;
+        public double customerCollections;
+        public double supplierPayments;
+        public int missingCostLines;
+        public int uncostedStockItems;
 
         public DashboardKPIs(double todaySales, double monthSales, double totalCredits, double totalDebts, double stockValuation, int lowStockCount, int totalItemsCount, double estimatedProfit) {
+            this(todaySales, monthSales, totalCredits, totalDebts, stockValuation, lowStockCount, totalItemsCount,
+                    estimatedProfit, 0, 0, 0, 0, 0, 0);
+        }
+
+        public DashboardKPIs(double todaySales, double monthSales, double totalCredits, double totalDebts,
+                             double stockValuation, int lowStockCount, int totalItemsCount, double estimatedProfit,
+                             double knownCostSales, double knownCostOfGoods, double customerCollections,
+                             double supplierPayments, int missingCostLines, int uncostedStockItems) {
             this.todaySales = todaySales;
             this.monthSales = monthSales;
             this.totalCredits = totalCredits;
@@ -93,6 +107,12 @@ public final class AnalyticsManager {
             this.lowStockCount = lowStockCount;
             this.totalItemsCount = totalItemsCount;
             this.estimatedProfit = estimatedProfit;
+            this.knownCostSales = knownCostSales;
+            this.knownCostOfGoods = knownCostOfGoods;
+            this.customerCollections = customerCollections;
+            this.supplierPayments = supplierPayments;
+            this.missingCostLines = missingCostLines;
+            this.uncostedStockItems = uncostedStockItems;
         }
     }
 
@@ -127,8 +147,9 @@ public final class AnalyticsManager {
                 double paid = c.getDouble(2);
                 String saleType = c.getString(3);
 
-                double cash = "cash".equalsIgnoreCase(saleType) || paid >= total ? total : paid;
-                double credit = Math.max(0, total - cash);
+                // تصنيف الفاتورة نقدي/آجل مستقل عن التحصيلات التي قد تتم لاحقاً.
+                double cash = "cash".equalsIgnoreCase(saleType) ? total : 0;
+                double credit = "cash".equalsIgnoreCase(saleType) ? 0 : total;
 
                 double[] vals = map.get(datePart);
                 if (vals == null) {
@@ -218,6 +239,12 @@ public final class AnalyticsManager {
         int lowStockCount = 0;
         int totalItemsCount = 0;
         double estimatedProfit = 0;
+        double knownCostSales = 0;
+        double knownCostOfGoods = 0;
+        double customerCollections = 0;
+        double supplierPayments = 0;
+        int missingCostLines = 0;
+        int uncostedStockItems = 0;
 
         SimpleDateFormat isoFmt = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
         SimpleDateFormat monthFmt = new SimpleDateFormat("yyyy-MM", Locale.US);
@@ -284,20 +311,43 @@ public final class AnalyticsManager {
                 double cost = c.getDouble(2);
                 double sale = c.getDouble(3);
 
-                if (q > 0) stockValuation += q * (cost > 0 ? cost : sale);
+                if (q > 0) {
+                    if (cost > 0) stockValuation += q * cost;
+                    else uncostedStockItems++;
+                }
                 if (mq > 0 && q <= mq) lowStockCount++;
             }
             c.close();
 
-            // Estimated Gross Profit
-            c = db.rawQuery("SELECT qty, total, unit_cost FROM invoice_items", null);
+            // هامش الربح الجزئي: لا نعامل التكلفة المفقودة على أنها صفر.
+            c = db.rawQuery("SELECT COALESCE(qty,0),COALESCE(total,0),COALESCE(unit_cost,0) FROM invoice_items", null);
             while (c.moveToNext()) {
                 double q = c.getDouble(0);
                 double rev = c.getDouble(1);
                 double uCost = c.getDouble(2);
-                double cogs = q * uCost;
-                estimatedProfit += (rev - cogs);
+                if (q <= 0) continue;
+                if (hasRecordedCost(uCost)) {
+                    knownCostSales += rev;
+                    knownCostOfGoods += q * uCost;
+                } else {
+                    missingCostLines++;
+                }
             }
+            c.close();
+            estimatedProfit = knownCostSales - knownCostOfGoods;
+
+            c = db.rawQuery("SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type=0", null);
+            if (c.moveToFirst()) customerCollections = c.getDouble(0);
+            c.close();
+
+            // Include supplier ledger payments and legacy invoice-paid values only when no
+            // linked supplier payment row exists, avoiding double counting.
+            c = db.rawQuery(
+                    "SELECT COALESCE((SELECT SUM(amount) FROM supplier_transactions),0) + " +
+                    "COALESCE((SELECT SUM(COALESCE(pi.paid,0)) FROM purchase_invoices pi WHERE " +
+                    "NOT EXISTS (SELECT 1 FROM supplier_transactions st WHERE st.invoice_no=pi.no " +
+                    "AND st.details LIKE 'دفعة فاتورة شراء رقم %')),0)", null);
+            if (c.moveToFirst()) supplierPayments = c.getDouble(0);
             c.close();
 
         } catch (Exception ignored) {
@@ -305,6 +355,22 @@ public final class AnalyticsManager {
             if (c != null && !c.isClosed()) c.close();
         }
 
-        return new DashboardKPIs(todaySales, monthSales, totalCredits, totalDebts, stockValuation, lowStockCount, totalItemsCount, estimatedProfit);
+        return new DashboardKPIs(todaySales, monthSales, totalCredits, totalDebts, stockValuation,
+                lowStockCount, totalItemsCount, estimatedProfit, knownCostSales, knownCostOfGoods,
+                customerCollections, supplierPayments, missingCostLines, uncostedStockItems);
+    }
+
+    public static boolean hasRecordedCost(double unitCost) {
+        return !Double.isNaN(unitCost) && !Double.isInfinite(unitCost) && unitCost > 0;
+    }
+
+    public static double calculateStockValuation(double quantity, double unitCost) {
+        if (Double.isNaN(quantity) || Double.isInfinite(quantity) || quantity <= 0 || !hasRecordedCost(unitCost)) return 0;
+        return quantity * unitCost;
+    }
+
+    public static double calculateKnownCostProfit(double quantity, double revenue, double unitCost) {
+        if (quantity <= 0 || !hasRecordedCost(unitCost)) return 0;
+        return revenue - quantity * unitCost;
     }
 }
