@@ -2611,6 +2611,7 @@ public class MainActivity extends Activity {
                 if(qty.hasFocus()){double v=parseDoubleSafe(c.toString(),-1);if(v>0)l.qty=v;}
                 if(item.hasFocus()){String v=c.toString().trim();if(!v.isEmpty())l.name=v;}
                 unit.setText(l.qty<=0?"0":fmt(l.total/l.qty));
+                refreshInvoiceTotalLabels(parent.getRootView(),all);
             }
             public void afterTextChanged(android.text.Editable e){}
         };
@@ -2647,6 +2648,20 @@ public class MainActivity extends Activity {
         LinearLayout box=new LinearLayout(this);box.setPadding(dp(8),dp(4),dp(8),dp(2));box.addView(q,new LinearLayout.LayoutParams(-1,dp(42)));
         new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("تعديل كمية الصنف").setMessage(line.name+" — الكمية الحالية: "+fmt(line.qty)).setView(box)
             .setNegativeButton("إلغاء",null).setPositiveButton("حفظ",(d,w)->{try{double value=parseDoubleSafe(q.getText().toString(),-1);if(value<=0)throw new Exception();line.qty=value;redrawInvoiceRows(parent,all,baseBal);}catch(Exception e){Toast.makeText(this,"أدخل كمية صحيحة",Toast.LENGTH_SHORT).show();}}).show();
+    }
+    void refreshInvoiceTotalLabels(View root,ArrayList<Line> all){
+        if(root==null)return;
+        if(root instanceof TextView){
+            TextView label=(TextView)root;
+            CharSequence current=label.getText();
+            if(current!=null&&current.toString().trim().startsWith("الإجمالي:")){
+                label.setText("الإجمالي: "+fmt(totalOf(all))+" ريال");
+            }
+        }
+        if(root instanceof ViewGroup){
+            ViewGroup group=(ViewGroup)root;
+            for(int i=0;i<group.getChildCount();i++)refreshInvoiceTotalLabels(group.getChildAt(i),all);
+        }
     }
     void redrawInvoiceRows(LinearLayout parent,ArrayList<Line> all,double baseBal){parent.removeAllViews();double run=0;for(Line x:all){run+=x.total;addRow(parent,x,run,baseBal,all);}}
     void spaceTo(LinearLayout p,int h){Space x=new Space(this);p.addView(x,new LinearLayout.LayoutParams(1,dp(h)));}
