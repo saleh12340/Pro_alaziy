@@ -130,7 +130,8 @@ public class AppStorage {
             }
             ContentValues ready=new ContentValues();
             ready.put(MediaStore.MediaColumns.IS_PENDING,0);
-            context.getContentResolver().update(uri,ready,null,null);
+            int published=context.getContentResolver().update(uri,ready,null,null);
+            if(published<=0)throw new IOException("تعذر إتاحة الصورة المحفوظة");
             return uri;
         }catch(Exception e){
             if(uri!=null){try{context.getContentResolver().delete(uri,null,null);}catch(Exception ignored){}}
@@ -192,7 +193,9 @@ public class AppStorage {
 
     public static Uri savePdf(Context context,File source,String fileName) {
         if(context==null||source==null||!source.isFile()||source.length()<=0)return null;
-        String safeName=(fileName==null||fileName.trim().isEmpty())?source.getName():fileName.trim();
+        String requestedName=(fileName==null||fileName.trim().isEmpty())?source.getName():fileName.trim();
+        String safeName=new File(requestedName).getName();
+        if(safeName.isEmpty()||".".equals(safeName)||"..".equals(safeName))safeName=source.getName();
         File internal=new File(getInternalPdfsDir(context),safeName);
         boolean internalSaved=false;
         try(InputStream in=new FileInputStream(source);OutputStream out=new FileOutputStream(internal,false)){
@@ -219,7 +222,8 @@ public class AppStorage {
                         out.flush();
                     }
                     ContentValues ready=new ContentValues();ready.put(MediaStore.MediaColumns.IS_PENDING,0);
-                    context.getContentResolver().update(uri,ready,null,null);
+                    int published=context.getContentResolver().update(uri,ready,null,null);
+                    if(published<=0)throw new IOException("تعذر إتاحة ملف PDF المحفوظ");
                     return uri;
                 }
             }catch(Exception e){
