@@ -365,6 +365,8 @@ public class MainActivity extends Activity {
     // ما لم تكن شاشة فرعية قد حددت LTR صراحةً. نضبط اتجاه النص العربي فقط هنا.
     void applyRtlLayoutDirection(View view){
         if(view==null) return;
+        boolean preserveLtr="preserve_ltr".equals(view.getTag());
+        if(!preserveLtr) view.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         if(view instanceof TextView && !(view instanceof EditText)){
             ((TextView)view).setTextDirection(View.TEXT_DIRECTION_RTL);
         }
@@ -1399,7 +1401,11 @@ public class MainActivity extends Activity {
         sb.append("💰 ديون العملاء (لك): ").append(fmt(kpis.totalCredits)).append(" ر.ي\n");
         sb.append("💳 مستحقات الموردين (عليك): ").append(fmt(kpis.totalDebts)).append(" ر.ي\n");
         sb.append("⚠️ أصناف منخفضة المخزون: ").append(kpis.lowStockCount).append(" صنف\n");
-        sb.append("📈 تقدير الأرباح: ").append(fmt(kpis.estimatedProfit)).append(" ر.ي\n");
+        sb.append("💵 تحصيلات العملاء: ").append(fmt(kpis.customerCollections)).append(" ر.ي\n");
+        sb.append("🏪 مدفوعات الموردين: ").append(fmt(kpis.supplierPayments)).append(" ر.ي\n");
+        sb.append("📈 هامش الأصناف معلومة التكلفة: ").append(fmt(kpis.estimatedProfit)).append(" ر.ي\n");
+        if(kpis.missingCostLines>0)sb.append("⚠️ أصناف مبيعات بلا تكلفة مسجلة: ").append(kpis.missingCostLines).append(" بند\n");
+        if(kpis.uncostedStockItems>0)sb.append("⚠️ أصناف مخزون بلا تكلفة: ").append(kpis.uncostedStockItems).append(" صنف\n");
 
         DocumentCenter.shareText(this, sb.toString());
     }
@@ -1411,7 +1417,12 @@ public class MainActivity extends Activity {
         sb.append("----------------------------\n");
         sb.append("مبيعات اليوم: ").append(fmt(kpis.todaySales)).append(" ر.ي\n");
         sb.append("مبيعات الشهر: ").append(fmt(kpis.monthSales)).append(" ر.ي\n");
-        sb.append("قيمة المخزون: ").append(fmt(kpis.stockValuation)).append(" ر.ي\n");
+        sb.append("قيمة المخزون بالتكلفة المسجلة: ").append(fmt(kpis.stockValuation)).append(" ر.ي\n");
+        sb.append("تحصيلات العملاء: ").append(fmt(kpis.customerCollections)).append(" ر.ي\n");
+        sb.append("مدفوعات الموردين: ").append(fmt(kpis.supplierPayments)).append(" ر.ي\n");
+        sb.append("هامش الأصناف معلومة التكلفة: ").append(fmt(kpis.estimatedProfit)).append(" ر.ي\n");
+        if(kpis.missingCostLines>0)sb.append("تنبيه: ").append(kpis.missingCostLines).append(" بند مبيعات بلا تكلفة مسجلة\n");
+        if(kpis.uncostedStockItems>0)sb.append("تنبيه: ").append(kpis.uncostedStockItems).append(" صنف مخزون بلا تكلفة مسجلة\n");
         sb.append("ديون العملاء: ").append(fmt(kpis.totalCredits)).append(" ر.ي\n");
         sb.append("التزامات الموردين: ").append(fmt(kpis.totalDebts)).append(" ر.ي\n");
         sb.append("نقص المخزون: ").append(kpis.lowStockCount).append(" صنف\n");
@@ -3952,6 +3963,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.CENTER_VERTICAL);
             row.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+            row.setTag("preserve_ltr");
             row.setPadding(dp(2),dp(padV),dp(2),dp(padV));
             row.setBackground(outlined(CARD,1,9));
             row.setClickable(true);
@@ -8077,30 +8089,57 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         }
         Cursor items(){return getReadableDatabase().rawQuery("SELECT id,name,qty,min_qty,cost,sale FROM items ORDER BY name",null);}
         boolean itemExists(String n){String key=norm(n);Cursor c=getReadableDatabase().rawQuery("SELECT id FROM items WHERE normalized_name=? LIMIT 1",new String[]{key});boolean x=c.moveToFirst();c.close();return x;}
+        void insertManualStockMovement(SQLiteDatabase d,long itemId,String itemName,double delta,double unitCost){
+            if(Math.abs(delta)<0.000001)return;
+            ContentValues movement=new ContentValues();
+            movement.put("item_id",itemId);
+            movement.put("item_name",itemName);
+            movement.put("qty",delta);
+            movement.put("unit_cost",Math.max(0,unitCost));
+            movement.put("source_type","manual_adjustment");
+            movement.put("source_id",itemId);
+            movement.put("created_at",now());
+            d.insertOrThrow("stock_movements",null,movement);
+        }
         void addItem(String n,double q,double m){
             if(n==null||n.trim().isEmpty()||q<0||m<0)throw new IllegalArgumentException();
             String clean=n.trim(),key=norm(clean);
             SQLiteDatabase d=getWritableDatabase();
-            Cursor c=d.rawQuery("SELECT id FROM items WHERE normalized_name=? LIMIT 1",new String[]{key});
-            if(c.moveToFirst()){
-                long id=c.getLong(0);c.close();
-                ContentValues v=new ContentValues();v.put("name",clean);v.put("normalized_name",key);v.put("qty",q);v.put("min_qty",m);
-                d.update("items",v,"id=?",new String[]{String.valueOf(id)});return;
-            }
-            c.close();
-            ContentValues v=new ContentValues();v.put("name",clean);v.put("normalized_name",key);v.put("qty",q);v.put("min_qty",m);
-            d.insertOrThrow("items",null,v);
+            d.beginTransaction();
+            try{
+                Cursor c=d.rawQuery("SELECT id,COALESCE(qty,0),COALESCE(cost,0) FROM items WHERE normalized_name=? LIMIT 1",new String[]{key});
+                long id;double oldQty=0,unitCost=0;
+                if(c.moveToFirst()){
+                    id=c.getLong(0);oldQty=c.getDouble(1);unitCost=c.getDouble(2);c.close();
+                    ContentValues v=new ContentValues();v.put("name",clean);v.put("normalized_name",key);v.put("qty",q);v.put("min_qty",m);
+                    d.update("items",v,"id=?",new String[]{String.valueOf(id)});
+                }else{
+                    c.close();
+                    ContentValues v=new ContentValues();v.put("name",clean);v.put("normalized_name",key);v.put("qty",q);v.put("min_qty",m);
+                    id=d.insertOrThrow("items",null,v);
+                }
+                insertManualStockMovement(d,id,clean,q-oldQty,unitCost);
+                d.setTransactionSuccessful();
+            }finally{if(d.inTransaction())d.endTransaction();}
         }
         void updateItem(long id,String n,double q,double m){
             if(id<1||n==null||n.trim().isEmpty()||q<0||m<0)throw new IllegalArgumentException();
             String clean=n.trim(),key=norm(clean);
             SQLiteDatabase d=getWritableDatabase();
-            Cursor c=d.rawQuery("SELECT id FROM items WHERE normalized_name=? AND id<>? LIMIT 1",new String[]{key,String.valueOf(id)});
-            boolean duplicate=c.moveToFirst();c.close();
-            if(duplicate)throw new IllegalArgumentException("duplicate item name");
-            ContentValues v=new ContentValues();v.put("name",clean);v.put("normalized_name",key);v.put("qty",q);v.put("min_qty",m);
-            int changed=d.update("items",v,"id=?",new String[]{String.valueOf(id)});
-            if(changed==0)throw new IllegalArgumentException("item not found");
+            d.beginTransaction();
+            try{
+                Cursor duplicateCursor=d.rawQuery("SELECT id FROM items WHERE normalized_name=? AND id<>? LIMIT 1",new String[]{key,String.valueOf(id)});
+                boolean duplicate=duplicateCursor.moveToFirst();duplicateCursor.close();
+                if(duplicate)throw new IllegalArgumentException("duplicate item name");
+                Cursor current=d.rawQuery("SELECT COALESCE(qty,0),COALESCE(cost,0) FROM items WHERE id=?",new String[]{String.valueOf(id)});
+                if(!current.moveToFirst()){current.close();throw new IllegalArgumentException("item not found");}
+                double oldQty=current.getDouble(0),unitCost=current.getDouble(1);current.close();
+                ContentValues v=new ContentValues();v.put("name",clean);v.put("normalized_name",key);v.put("qty",q);v.put("min_qty",m);
+                int changed=d.update("items",v,"id=?",new String[]{String.valueOf(id)});
+                if(changed==0)throw new IllegalArgumentException("item not found");
+                insertManualStockMovement(d,id,clean,q-oldQty,unitCost);
+                d.setTransactionSuccessful();
+            }finally{if(d.inTransaction())d.endTransaction();}
         }
         boolean deleteItem(long id){
             if(id<=0)return false;
@@ -10005,7 +10044,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                     String type=c.getString(3)==null?"":c.getString(3);
                     long source=c.getLong(4);
                     String date=c.getString(5)==null?"":c.getString(5);
-                    String label="purchase".equals(type)?"شراء":("purchase_reversal".equals(type)?"عكس شراء":("sale".equals(type)?"بيع":("sale_reversal".equals(type)?"عكس بيع":type)));
+                    String label="purchase".equals(type)?"شراء":("purchase_reversal".equals(type)?"عكس شراء":("sale".equals(type)?"بيع":("sale_reversal".equals(type)?"عكس بيع":("manual_adjustment".equals(type)?"تعديل يدوي":type))));
                     if(!q.isEmpty()&&!(item+" "+label+" "+date+" "+source).toLowerCase(Locale.ROOT).contains(q))continue;
                     LinearLayout row=card();row.setOrientation(LinearLayout.VERTICAL);
                     row.setPadding(dp(10),dp(8),dp(10),dp(8));row.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
