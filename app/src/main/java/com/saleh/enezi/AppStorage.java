@@ -8,6 +8,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
+import androidx.core.content.FileProvider;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -52,127 +53,130 @@ public class AppStorage {
     }
 
     public static File getInternalInvoicesDir(Context context) {
-        File dir = new File(context.getExternalFilesDir(null), SUB_INVOICE_PHOTOS);
-        if (!dir.exists()) dir.mkdirs();
+        File base=context.getExternalFilesDir(null);
+        if(base==null)base=context.getFilesDir();
+        File dir=new File(base,SUB_INVOICE_PHOTOS);
+        if(!dir.exists())dir.mkdirs();
         return dir;
     }
 
     public static File getInternalAppImagesDir(Context context) {
-        File dir = new File(context.getExternalFilesDir(null), SUB_APP_IMAGES);
-        if (!dir.exists()) dir.mkdirs();
+        File base=context.getExternalFilesDir(null);
+        if(base==null)base=context.getFilesDir();
+        File dir=new File(base,SUB_APP_IMAGES);
+        if(!dir.exists())dir.mkdirs();
+        return dir;
+    }
+
+    public static File getInternalBackupsDir(Context context) {
+        File base=context.getExternalFilesDir(null);
+        if(base==null)base=context.getFilesDir();
+        File dir=new File(base,SUB_BACKUPS);
+        if(!dir.exists())dir.mkdirs();
         return dir;
     }
 
     public static void initializeAllDirectories(Context context) {
         try {
-            getInvoicesPhotosDir();
-            getAppImagesDir();
-            getBackupsDir();
+            if(Build.VERSION.SDK_INT<29){
+                getInvoicesPhotosDir();
+                getAppImagesDir();
+                getBackupsDir();
+            }
             getInternalInvoicesDir(context);
             getInternalAppImagesDir(context);
+            getInternalBackupsDir(context);
         } catch (Exception ignored) {}
     }
 
-    public static String saveInvoicePhoto(Context context, Bitmap bitmap, String fileName) {
-        if (bitmap == null) return null;
-        try {
-            // 1. Direct file in Download/بقالة العزي خاص/صور الفواتير
-            File publicDir = getInvoicesPhotosDir();
-            File destPublic = new File(publicDir, fileName);
-            try (FileOutputStream fos = new FileOutputStream(destPublic)) {
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 94, fos);
-                fos.flush();
+    private static boolean writeBitmap(File file,Bitmap bitmap,Bitmap.CompressFormat format,int quality) {
+        if(file==null||bitmap==null)return false;
+        File parent=file.getParentFile();
+        if(parent!=null&&!parent.exists()&&!parent.mkdirs())return false;
+        try(FileOutputStream out=new FileOutputStream(file)){
+            boolean ok=bitmap.compress(format,quality,out);
+            out.flush();
+            return ok&&file.exists()&&file.length()>0;
+        }catch(Exception e){return false;}
+    }
+
+    private static Uri saveBitmapToDownloads(Context context,Bitmap bitmap,String fileName,
+                                               String mime,String relativePath,
+                                               Bitmap.CompressFormat format,int quality) {
+        if(Build.VERSION.SDK_INT<29||bitmap==null)return null;
+        Uri uri=null;
+        try{
+            ContentValues values=new ContentValues();
+            values.put(MediaStore.MediaColumns.DISPLAY_NAME,fileName);
+            values.put(MediaStore.MediaColumns.MIME_TYPE,mime);
+            values.put(MediaStore.MediaColumns.RELATIVE_PATH,relativePath);
+            values.put(MediaStore.MediaColumns.IS_PENDING,1);
+            uri=context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
+            if(uri==null)return null;
+            try(OutputStream out=context.getContentResolver().openOutputStream(uri,"w")){
+                if(out==null||!bitmap.compress(format,quality,out))throw new IOException("تعذر كتابة الصورة");
+                out.flush();
             }
-
-            // 2. Also save to internal app storage as backup
-            File internalDir = getInternalInvoicesDir(context);
-            File destInternal = new File(internalDir, fileName);
-            try (FileOutputStream fos = new FileOutputStream(destInternal)) {
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 94, fos);
-                fos.flush();
-            }
-
-            // 3. Register with MediaStore / MediaScanner
-            try {
-                if (Build.VERSION.SDK_INT >= 29) {
-                    ContentValues v = new ContentValues();
-                    v.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
-                    v.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg");
-                    v.put(MediaStore.MediaColumns.RELATIVE_PATH, RELATIVE_INVOICE_PHOTOS);
-                    Uri u = context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
-                    if (u != null) {
-                        try (OutputStream out = context.getContentResolver().openOutputStream(u)) {
-                            bitmap.compress(Bitmap.CompressFormat.JPEG, 94, out);
-                        }
-                    }
-                }
-            } catch (Exception ignored) {}
-
-            try {
-                MediaScannerConnection.scanFile(context,
-                        new String[]{destPublic.getAbsolutePath(), destInternal.getAbsolutePath()},
-                        new String[]{"image/jpeg"}, null);
-            } catch (Exception ignored) {}
-
-            return destPublic.getAbsolutePath();
-        } catch (Exception e) {
-            // Fallback to internal storage
-            try {
-                File fallback = new File(getInternalInvoicesDir(context), fileName);
-                try (FileOutputStream fos = new FileOutputStream(fallback)) {
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos);
-                    fos.flush();
-                }
-                return fallback.getAbsolutePath();
-            } catch (Exception ex) {
-                return null;
-            }
+            ContentValues ready=new ContentValues();
+            ready.put(MediaStore.MediaColumns.IS_PENDING,0);
+            context.getContentResolver().update(uri,ready,null,null);
+            return uri;
+        }catch(Exception e){
+            if(uri!=null){try{context.getContentResolver().delete(uri,null,null);}catch(Exception ignored){}}
+            return null;
         }
     }
 
-    public static Uri saveAppImage(Context context, Bitmap bitmap, String fileName) {
-        if (bitmap == null) return null;
-        try {
-            if (Build.VERSION.SDK_INT >= 29) {
-                ContentValues v = new ContentValues();
-                v.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
-                v.put(MediaStore.MediaColumns.MIME_TYPE, "image/png");
-                v.put(MediaStore.MediaColumns.RELATIVE_PATH, RELATIVE_APP_IMAGES);
-                Uri u = context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
-                if (u != null) {
-                    try (OutputStream out = context.getContentResolver().openOutputStream(u)) {
-                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
-                    }
+    private static Uri internalFileUri(Context context,File file) {
+        if(context==null||file==null||!file.exists())return null;
+        try{return FileProvider.getUriForFile(context,context.getPackageName()+".fileprovider",file);}
+        catch(Exception e){return null;}
+    }
+
+    public static String saveInvoicePhoto(Context context, Bitmap bitmap, String fileName) {
+        if(context==null||bitmap==null||fileName==null||fileName.trim().isEmpty())return null;
+        File internal=new File(getInternalInvoicesDir(context),fileName);
+        boolean internalSaved=writeBitmap(internal,bitmap,Bitmap.CompressFormat.JPEG,94);
+
+        if(Build.VERSION.SDK_INT>=29){
+            // Scoped storage: publish through MediaStore rather than a direct public-path write.
+            saveBitmapToDownloads(context,bitmap,fileName,"image/jpeg",
+                    RELATIVE_INVOICE_PHOTOS,Bitmap.CompressFormat.JPEG,94);
+        }else{
+            try{
+                File publicFile=new File(getInvoicesPhotosDir(),fileName);
+                if(writeBitmap(publicFile,bitmap,Bitmap.CompressFormat.JPEG,94)){
+                    MediaScannerConnection.scanFile(context,new String[]{publicFile.getAbsolutePath()},new String[]{"image/jpeg"},null);
                 }
-                // Also write to public file path if possible
-                try {
-                    File dest = new File(getAppImagesDir(), fileName);
-                    try (FileOutputStream fos = new FileOutputStream(dest)) {
-                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
-                    }
-                    MediaScannerConnection.scanFile(context, new String[]{dest.getAbsolutePath()}, new String[]{"image/png"}, null);
-                } catch (Exception ignored) {}
-                return u;
-            } else {
-                File dir = getAppImagesDir();
-                File f = new File(dir, fileName);
-                try (FileOutputStream out = new FileOutputStream(f)) {
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
-                }
-                MediaScannerConnection.scanFile(context, new String[]{f.getAbsolutePath()}, new String[]{"image/png"}, null);
-                return Uri.fromFile(f);
-            }
-        } catch (Exception e) {
-            try {
-                File fallback = new File(getInternalAppImagesDir(context), fileName);
-                try (FileOutputStream fos = new FileOutputStream(fallback)) {
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
-                }
-                return Uri.fromFile(fallback);
-            } catch (Exception ex) {
-                return null;
-            }
+            }catch(Exception ignored){}
         }
+
+        if(internalSaved){
+            MediaScannerConnection.scanFile(context,new String[]{internal.getAbsolutePath()},new String[]{"image/jpeg"},null);
+            return internal.getAbsolutePath();
+        }
+        return null;
+    }
+
+    public static Uri saveAppImage(Context context, Bitmap bitmap, String fileName) {
+        if(context==null||bitmap==null||fileName==null||fileName.trim().isEmpty())return null;
+        File internal=new File(getInternalAppImagesDir(context),fileName);
+        boolean internalSaved=writeBitmap(internal,bitmap,Bitmap.CompressFormat.PNG,100);
+
+        Uri publicUri=null;
+        if(Build.VERSION.SDK_INT>=29){
+            publicUri=saveBitmapToDownloads(context,bitmap,fileName,"image/png",
+                    RELATIVE_APP_IMAGES,Bitmap.CompressFormat.PNG,100);
+        }else{
+            try{
+                File publicFile=new File(getAppImagesDir(),fileName);
+                if(writeBitmap(publicFile,bitmap,Bitmap.CompressFormat.PNG,100)){
+                    MediaScannerConnection.scanFile(context,new String[]{publicFile.getAbsolutePath()},new String[]{"image/png"},null);
+                }
+            }catch(Exception ignored){}
+        }
+        if(publicUri!=null)return publicUri;
+        return internalSaved?internalFileUri(context,internal):null;
     }
 
     public static boolean saveDatabaseBackup(Context context, File srcDb, String fileName) throws IOException {

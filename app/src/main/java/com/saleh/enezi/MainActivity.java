@@ -5701,7 +5701,13 @@ void operationActions(long customerId,String customerName,long tid,String detail
 
     String supplierStatement(String name,long supplierId){
         StringBuilder out=new StringBuilder("بقالة العزي للمواد الغذائية\nكشف حساب المورد\nالمورد: ").append(name).append("\nالتاريخ: ").append(db.now()).append("\n------------------------------\n");
-        Cursor c=db.getReadableDatabase().rawQuery("SELECT kind,ref,details,amount,date FROM (SELECT 1 kind,pi.no ref,'فاتورة شراء' details,pi.total amount,pi.date date FROM purchase_invoices pi WHERE lower(trim(pi.supplier))=lower(trim(?)) UNION ALL SELECT 2 kind,st.invoice_no ref,st.details,-st.amount,st.date FROM supplier_transactions st WHERE st.supplier_id=?) ORDER BY datetime(date),kind",new String[]{name,String.valueOf(supplierId)});
+        Cursor c=db.getReadableDatabase().rawQuery("SELECT kind,ref,details,amount,date FROM ("+
+                "SELECT 1 kind,pi.no ref,'فاتورة شراء' details,pi.total amount,pi.date date FROM purchase_invoices pi WHERE lower(trim(pi.supplier))=lower(trim(?)) "+
+                "UNION ALL SELECT 2 kind,st.invoice_no ref,st.details,-st.amount,st.date FROM supplier_transactions st WHERE st.supplier_id=? "+
+                "UNION ALL SELECT 2 kind,pi.no ref,'دفعة مسجلة على فاتورة شراء' details,-COALESCE(pi.paid,0) amount,pi.date date "+
+                "FROM purchase_invoices pi WHERE lower(trim(pi.supplier))=lower(trim(?)) AND COALESCE(pi.paid,0)>0 "+
+                "AND NOT EXISTS(SELECT 1 FROM supplier_transactions st WHERE st.supplier_id=? AND st.invoice_no=pi.no "+
+                "AND st.details LIKE 'دفعة فاتورة شراء رقم %')) ORDER BY datetime(date),kind",new String[]{name,String.valueOf(supplierId),name,String.valueOf(supplierId)});
         double run=0;while(c.moveToNext()){double a=c.getDouble(3);run+=a;out.append(c.getString(2)).append(" | ").append(c.getString(1)==null?"":c.getString(1)).append("\n").append(c.getString(4)).append(" | ").append(a>=0?"+":"").append(fmt(Math.abs(a))).append(" | الرصيد ").append(fmt(Math.abs(run))).append(" ").append(supplierBalanceLabel(run)).append("\n");}c.close();
         out.append("------------------------------\nالرصيد الحالي: ").append(fmt(Math.abs(supplierBalance(name)))).append(" ").append(supplierBalanceLabel(supplierBalance(name)));return out.toString();
     }
@@ -5735,7 +5741,13 @@ void operationActions(long customerId,String customerName,long tid,String detail
         String nowDate=db.now();
 
         ArrayList<String[]> txList=new ArrayList<>();
-        Cursor c=db.getReadableDatabase().rawQuery("SELECT kind,ref,details,amount,date FROM (SELECT 1 kind,pi.no ref,'فاتورة شراء' details,pi.total amount,pi.date date FROM purchase_invoices pi WHERE lower(trim(pi.supplier))=lower(trim(?)) UNION ALL SELECT 2 kind,st.invoice_no ref,st.details,-st.amount,st.date FROM supplier_transactions st WHERE st.supplier_id=?) ORDER BY datetime(date),kind",new String[]{name,String.valueOf(supplierId)});
+        Cursor c=db.getReadableDatabase().rawQuery("SELECT kind,ref,details,amount,date FROM ("+
+                "SELECT 1 kind,pi.no ref,'فاتورة شراء' details,pi.total amount,pi.date date FROM purchase_invoices pi WHERE lower(trim(pi.supplier))=lower(trim(?)) "+
+                "UNION ALL SELECT 2 kind,st.invoice_no ref,st.details,-st.amount,st.date FROM supplier_transactions st WHERE st.supplier_id=? "+
+                "UNION ALL SELECT 2 kind,pi.no ref,'دفعة مسجلة على فاتورة شراء' details,-COALESCE(pi.paid,0) amount,pi.date date "+
+                "FROM purchase_invoices pi WHERE lower(trim(pi.supplier))=lower(trim(?)) AND COALESCE(pi.paid,0)>0 "+
+                "AND NOT EXISTS(SELECT 1 FROM supplier_transactions st WHERE st.supplier_id=? AND st.invoice_no=pi.no "+
+                "AND st.details LIKE 'دفعة فاتورة شراء رقم %')) ORDER BY datetime(date),kind",new String[]{name,String.valueOf(supplierId),name,String.valueOf(supplierId)});
         double run=0;
         double totalPurchases=0;
         double totalPayments=0;
@@ -8264,7 +8276,11 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                 supplierTr=d.rawQuery(
                     "SELECT st.id,COALESCE(st.invoice_no,''),COALESCE(st.details,''),COALESCE(st.amount,0),"+
                     "COALESCE(st.date,''),COALESCE(s.name,'') FROM supplier_transactions st "+
-                    "LEFT JOIN suppliers s ON s.id=st.supplier_id",null);
+                    "LEFT JOIN suppliers s ON s.id=st.supplier_id "+
+                    "UNION ALL SELECT -pi.id,COALESCE(pi.no,''),'دفعة مسجلة على فاتورة شراء',COALESCE(pi.paid,0),"+
+                    "COALESCE(pi.date,''),COALESCE(pi.supplier,'') FROM purchase_invoices pi "+
+                    "WHERE COALESCE(pi.paid,0)>0 AND NOT EXISTS(SELECT 1 FROM supplier_transactions st "+
+                    "WHERE st.invoice_no=pi.no AND st.details LIKE 'دفعة فاتورة شراء رقم %')",null);
                 while(supplierTr.moveToNext()){
                     long id=supplierTr.getLong(0);
                     String ref=supplierTr.getString(1);
