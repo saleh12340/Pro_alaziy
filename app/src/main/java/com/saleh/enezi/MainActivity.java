@@ -6412,7 +6412,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
 
             final int PERIOD_ALL=0, PERIOD_TODAY=1, PERIOD_YESTERDAY=2, PERIOD_MONTH=3, PERIOD_CUSTOM=4;
             final int[] currentPeriod={PERIOD_ALL};
-            final String[] customFrom={todayDate},customTo={todayDate};
+            final String[] customFrom={todayDate},customTo={todayDate},customToExclusive={todayDate};
             final java.text.SimpleDateFormat isoDateFormat=new java.text.SimpleDateFormat("yyyy-MM-dd",Locale.US);
 
             final int FILTER_ALL=0, FILTER_SALES=1, FILTER_PURCHASES=2, FILTER_OPS=3;
@@ -6708,7 +6708,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                             (currentPeriod[0]==PERIOD_MONTH?monthPrefix+"%":"%"));
                     boolean customRange=currentPeriod[0]==PERIOD_CUSTOM;
                     String dateCondition=customRange?"date>=? AND date<?":"date LIKE ?";
-                    String[] dateArgs=customRange?new String[]{customFrom[0],customTo[0]+" 23:59:59"}:new String[]{reportDateLike};
+                    String[] dateArgs=customRange?new String[]{customFrom[0],customToExclusive[0]}:new String[]{reportDateLike};
                     SQLiteDatabase reportDb=db.getReadableDatabase();
                     Cursor totalCursor=reportDb.rawQuery("SELECT COALESCE(SUM(total),0) FROM invoices WHERE "+dateCondition,dateArgs);
                     if(totalCursor.moveToFirst())periodSalesTotal=totalCursor.getDouble(0);totalCursor.close();
@@ -6813,6 +6813,9 @@ void operationActions(long customerId,String customerName,long tid,String detail
                             Toast.makeText(this,"تاريخ النهاية يجب أن يكون بعد تاريخ البداية",Toast.LENGTH_LONG).show();return;
                         }
                         customFrom[0]=pickedStart[0];customTo[0]=pickedEnd[0];
+                        java.util.Calendar exclusive=java.util.Calendar.getInstance();
+                        exclusive.setTime(cal.getTime());exclusive.add(java.util.Calendar.DAY_OF_MONTH,1);
+                        customToExclusive[0]=isoDateFormat.format(exclusive.getTime());
                         currentPeriod[0]=PERIOD_CUSTOM;updatePeriodStyle[0].run();
                     },cal.get(java.util.Calendar.YEAR),cal.get(java.util.Calendar.MONTH),cal.get(java.util.Calendar.DAY_OF_MONTH)).show();
                 };
