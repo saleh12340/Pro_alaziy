@@ -782,7 +782,7 @@ public class MainActivity extends Activity {
             else if(i==1 && activeTitle!=null && (activeTitle.contains("فاتورة") || activeTitle.contains("الفواتير") || activeTitle.contains("بيع") || activeTitle.contains("شراء"))) active=true;
             else if(i==2 && activeTitle!=null && (activeTitle.contains("مورد") || activeTitle.contains("مشتريات"))) active=true;
             else if(i==3 && activeTitle!=null && (activeTitle.contains("تقرير") || activeTitle.contains("التقارير") || activeTitle.contains("لوحة") || activeTitle.contains("تحليلات"))) active=true;
-            else if(i==4 && activeTitle!=null && (activeTitle.contains("مورد") || activeTitle.contains("مخزون") || activeTitle.contains("حوالة") || activeTitle.contains("ملاحظ") || activeTitle.contains("إعداد"))) active=true;
+            else if(i==4 && activeTitle!=null && (activeTitle.contains("مخزون") || activeTitle.contains("حوالة") || activeTitle.contains("ملاحظ") || activeTitle.contains("إعداد") || activeTitle.contains("نسخ احتياطي"))) active=true;
 
             if(active){
                 GradientDrawable activePill=new GradientDrawable();
@@ -1598,15 +1598,9 @@ public class MainActivity extends Activity {
         transfer.setBackgroundColor(Color.TRANSPARENT);
         transfer.setMinWidth(dp(48));transfer.setOnClickListener(v->transfers());
         summary.addView(transfer,new LinearLayout.LayoutParams(dp(50),dp(48)));
-        Button floatingAdd=action("+",GREEN);
-        floatingAdd.setTextSize(30);floatingAdd.setTextColor(Color.WHITE);
-        floatingAdd.setBackground(rounded(GREEN,dp(28)));
-        floatingAdd.setElevation(dp(6));
-        floatingAdd.setMinWidth(dp(52));floatingAdd.setMinHeight(dp(52));
-        floatingAdd.setOnClickListener(v->showCustomerTransactionDialog(false));
-        // في حاوية RTL يكون أول عنصر على أقصى اليمين؛ ضع زر الإضافة أولاً.
-        summary.addView(floatingAdd,0,new LinearLayout.LayoutParams(dp(54),dp(52)));
         bottom.addView(summary,0,new LinearLayout.LayoutParams(-1,-2));
+        // زر الإضافة العائم العام يظهر مرة واحدة على يمين الرئيسية.
+        addHomeFab();
     }
 
     void showQuickAddFullScreenHub(){
@@ -4694,7 +4688,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 fab.setOnClickListener(v->newPurchaseInvoice());
 
                 FrameLayout.LayoutParams fp=new FrameLayout.LayoutParams(dp(54),dp(54));
-                fp.gravity=Gravity.BOTTOM|Gravity.LEFT;
+                fp.gravity=Gravity.BOTTOM|Gravity.RIGHT;
                 fp.setMargins(dp(16),0,dp(16),dp(14));
                 frame.addView(fab,fp);
 
