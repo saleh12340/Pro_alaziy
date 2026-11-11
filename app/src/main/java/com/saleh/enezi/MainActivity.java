@@ -2623,7 +2623,7 @@ public class MainActivity extends Activity {
                 double tvv=parseDoubleSafe(total.getText().toString(),-1);
                 if(!n.isEmpty()&&qv>0&&tvv>=0){l.name=n;l.qty=qv;l.total=tvv;unit.setText(fmt(tvv/qv));}
                 else Toast.makeText(this,"تحقق من اسم الصنف والكمية والإجمالي",Toast.LENGTH_SHORT).show();
-                redrawInvoiceRows(parent,all,baseBal);
+                // لا نعيد بناء صفوف الجدول عند الانتقال بين الخلايا حتى لا نفقد تركيز الحقل التالي.
             }
         };
         total.setOnFocusChangeListener(commitRow);qty.setOnFocusChangeListener(commitRow);item.setOnFocusChangeListener(commitRow);
