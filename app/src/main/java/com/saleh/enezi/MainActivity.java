@@ -2801,7 +2801,19 @@ public class MainActivity extends Activity {
         print.setOnClickListener(v->{dlg.dismiss();printOperation(customer,details,amount,type,invNo);});
         long cid=db.customerIdByName(customer);
         edit.setOnClickListener(v->{dlg.dismiss();if(invoice){long iid=db.invoiceIdByNo(invNo);if(iid>0)invoice(true,iid);}else editTransaction(cid,customer,tid,amount,details,type);});
-        del.setOnClickListener(v->{dlg.dismiss();new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("حذف العملية؟").setMessage("سيتم حذف العملية.").setPositiveButton("حذف",(d,w)->{db.deleteTransaction(tid);account(cid,customer);}).setNegativeButton("إلغاء",null).show();});
+        del.setOnClickListener(v->{
+            dlg.dismiss();
+            new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
+                .setTitle(invoice?"حذف الفاتورة المرتبطة؟":"حذف العملية؟")
+                .setMessage(invoice?"سيتم حذف الفاتورة وحركاتها المرتبطة وإرجاع أثرها على المخزون والحساب ضمن معاملة واحدة.":"سيتم حذف هذه الحركة من حساب العميل.")
+                .setPositiveButton("حذف",(d,w)->{
+                    if(invoice){
+                        long invoiceId=db.invoiceIdByNo(invNo);
+                        if(invoiceId>0)db.deleteInvoice(invoiceId);
+                    }else db.deleteTransaction(tid);
+                    account(cid,customer);
+                }).setNegativeButton("إلغاء",null).show();
+        });
         box.addView(actions,new LinearLayout.LayoutParams(-1,-2));
 
         showCompactDialog(dlg,box,380);
