@@ -10544,9 +10544,16 @@ File createPurchaseInvoicePdf(String no,String supplier,ArrayList<PurchaseLine> 
 
 
     Bitmap invoiceReceiptBitmap(String no,String customer,ArrayList<Line> lines,double total,double paid,double balanceAfter,String date){
-        final int width=384,margin=10,contentWidth=width-margin*2;
-        final float RECEIPT_TEXT_SP=13f,pxPerSp=203f/160f,bodyPx=RECEIPT_TEXT_SP*pxPerSp,smallPx=bodyPx*.88f;
-        final int colTotalWidth=84,colQtyWidth=60,colNameWidth=contentWidth-colTotalWidth-colQtyWidth;
+        return invoiceReceiptBitmap(no,customer,lines,total,paid,balanceAfter,date,384);
+    }
+
+    Bitmap invoiceReceiptBitmap(String no,String customer,ArrayList<Line> lines,double total,double paid,double balanceAfter,String date,int requestedWidth){
+        // صمّم الإيصال بالدقة الأصلية المناسبة للورق بدلاً من تكبير صورة 58mm منخفضة الدقة.
+        final int width=requestedWidth==576?576:384;
+        final float scale=width/384f;
+        final int margin=Math.max(10,Math.round(10*scale)),contentWidth=width-margin*2;
+        final float RECEIPT_TEXT_SP=13f,pxPerSp=203f/160f,bodyPx=RECEIPT_TEXT_SP*pxPerSp*scale,smallPx=bodyPx*.88f;
+        final int colTotalWidth=Math.round(84*scale),colQtyWidth=Math.round(60*scale),colNameWidth=contentWidth-colTotalWidth-colQtyWidth;
         final String safeNo=no==null?"":no.trim(),safeCustomer=(customer==null||customer.trim().isEmpty()||"نقدي".equals(customer.trim()))?"عميل نقدي":customer.trim(),safeDate=(date==null||date.trim().isEmpty())?db.now():date.trim();
         final ArrayList<Line> safeLines=lines==null?new ArrayList<Line>():lines;
         TextPaint tp=new TextPaint(Paint.ANTI_ALIAS_FLAG|Paint.SUBPIXEL_TEXT_FLAG);
@@ -10758,7 +10765,10 @@ Uri saveReceiptBitmap(Bitmap bitmap,String no)throws Exception{
     String pendingPrintNo="",pendingPrintCustomer="";ArrayList<Line> pendingPrintLines;double pendingPrintTotal;String pendingPrintText="";int pendingPrintWidth=384;
 
 
-    void printTextBluetooth(String text){printTextBluetooth(text,384);}
+    void printTextBluetooth(String text){
+        int paperWidth=getSharedPreferences("printer_settings",MODE_PRIVATE).getInt("paper_width",384)==576?576:384;
+        printTextBluetooth(text,paperWidth);
+    }
     void printTextBluetooth(String text,int requestedWidth){
         if(Build.VERSION.SDK_INT>=31&&checkSelfPermission("android.permission.BLUETOOTH_CONNECT")!=PackageManager.PERMISSION_GRANTED){pendingPrintText=text;pendingPrintWidth=requestedWidth>0?requestedWidth:384;requestPermissions(new String[]{"android.permission.BLUETOOTH_CONNECT"},5102);return;}
         BluetoothAdapter a=BluetoothAdapter.getDefaultAdapter();if(a==null){Toast.makeText(this,"هذا الجهاز لا يدعم البلوتوث",Toast.LENGTH_LONG).show();return;}if(!a.isEnabled()){Toast.makeText(this,"فعّل البلوتوث ثم أعد الضغط على الطباعة",Toast.LENGTH_LONG).show();return;}
@@ -10893,7 +10903,8 @@ Uri saveReceiptBitmap(Bitmap bitmap,String no)throws Exception{
                 if(cid>0) balanceAfter=db.balance(cid);
             }
         }catch(Throwable ignored){}
-        Bitmap bitmap=invoiceReceiptBitmap(no,customer,lines,total,paid,balanceAfter,date);
+        int paperWidth=getSharedPreferences("printer_settings",MODE_PRIVATE).getInt("paper_width",384)==576?576:384;
+        Bitmap bitmap=invoiceReceiptBitmap(no,customer,lines,total,paid,balanceAfter,date,paperWidth);
         new Thread(()->sendBitmapToBluetooth(device,bitmap)).start();
     }
 
