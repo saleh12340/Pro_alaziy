@@ -2585,25 +2585,48 @@ public class MainActivity extends Activity {
         LinearLayout r=new LinearLayout(this);r.setOrientation(LinearLayout.HORIZONTAL);r.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);r.setGravity(Gravity.CENTER_VERTICAL);r.setPadding(dp(2),dp(2),dp(2),dp(2));
         float[] w={1.0f,.82f,1.45f,.9f,.55f};
         // سعر الوحدة لا يُدخل يدوياً: يُحسب دائماً من إجمالي السطر ÷ الكمية.
-        TextView total=tv(fmt(l.total),13);total.setGravity(Gravity.CENTER);total.setSingleLine(false);
-        TextView qty=tv(fmt(l.qty),13);qty.setGravity(Gravity.CENTER);qty.setSingleLine(false);
-        TextView item=tv(l.name,12);item.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);item.setSingleLine(false);item.setMaxLines(Integer.MAX_VALUE);item.setEllipsize(null);
+        EditText total=numberField("الإجمالي");total.setText(fmt(l.total));total.setGravity(Gravity.CENTER);
+        EditText qty=numberField("الكمية");qty.setText(fmt(l.qty));qty.setGravity(Gravity.CENTER);
+        EditText item=field("اسم الصنف / التفاصيل");item.setText(l.name);item.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
         TextView unit=tv(l.qty==0?"0":fmt(l.total/l.qty),12);unit.setTextColor(MUTED);unit.setGravity(Gravity.CENTER);unit.setSingleLine(false);
-        for(TextView cell:new TextView[]{total,qty,item,unit}){
-            cell.setMaxLines(Integer.MAX_VALUE);
-            cell.setEllipsize(null);
-            cell.setHorizontallyScrolling(false);
-            cell.setMinHeight(dp(36));
-            cell.setPadding(dp(3),dp(4),dp(3),dp(4));
+        for(EditText cell:new EditText[]{total,qty,item}){
+            cell.setSingleLine(false);cell.setMaxLines(3);cell.setHorizontallyScrolling(false);
+            cell.setMinHeight(dp(42));cell.setPadding(dp(3),dp(4),dp(3),dp(4));
+            cell.setSelectAllOnFocus(true);
         }
+        total.setInputType(android.text.InputType.TYPE_CLASS_NUMBER|android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL|android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
+        qty.setInputType(android.text.InputType.TYPE_CLASS_NUMBER|android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        item.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);
         Button del=button("حذف");del.setTextSize(10);del.setTextColor(Color.RED);del.setBackgroundColor(Color.TRANSPARENT);
         total.setBackground(outline(Color.WHITE,6));qty.setBackground(outline(Color.WHITE,6));item.setBackground(outline(Color.WHITE,6));
-        total.setContentDescription("تعديل إجمالي الصنف");qty.setContentDescription("تعديل كمية الصنف");item.setContentDescription("تعديل اسم الصنف أو التفاصيل");
-        total.setMinHeight(dp(36)); qty.setMinHeight(dp(36)); item.setMinHeight(dp(36)); unit.setMinHeight(dp(36)); del.setMinHeight(dp(36));
+        total.setContentDescription("تحرير إجمالي الصنف مباشرة");qty.setContentDescription("تحرير كمية الصنف مباشرة");item.setContentDescription("تحرير اسم الصنف مباشرة");
+        total.setMinHeight(dp(42));qty.setMinHeight(dp(42));item.setMinHeight(dp(42));unit.setMinHeight(dp(42));del.setMinHeight(dp(42));
         View[] cells={total,qty,item,unit,del};for(int i=0;i<cells.length;i++)r.addView(cells[i],new LinearLayout.LayoutParams(0,-2,w[i]));
-        total.setOnClickListener(v->editLineTotal(l,parent,all,baseBal));
-        qty.setOnClickListener(v->editLineQuantity(l,parent,all,baseBal));
-        item.setOnClickListener(v->editLineName(l,parent,all,baseBal));
+        final boolean[] binding={true};
+        android.text.TextWatcher rowWatcher=new android.text.TextWatcher(){
+            public void beforeTextChanged(CharSequence c,int st,int count,int after){}
+            public void onTextChanged(CharSequence c,int st,int before,int count){
+                if(binding[0])return;
+                if(total.hasFocus()){double v=parseDoubleSafe(c.toString(),-1);if(v>=0)l.total=v;}
+                if(qty.hasFocus()){double v=parseDoubleSafe(c.toString(),-1);if(v>0)l.qty=v;}
+                if(item.hasFocus()){String v=c.toString().trim();if(!v.isEmpty())l.name=v;}
+                unit.setText(l.qty<=0?"0":fmt(l.total/l.qty));
+            }
+            public void afterTextChanged(android.text.Editable e){}
+        };
+        total.addTextChangedListener(rowWatcher);qty.addTextChangedListener(rowWatcher);item.addTextChangedListener(rowWatcher);
+        binding[0]=false;
+        android.view.View.OnFocusChangeListener commitRow=(v,hasFocus)->{
+            if(!hasFocus){
+                String n=item.getText().toString().trim();
+                double qv=parseDoubleSafe(qty.getText().toString(),-1);
+                double tvv=parseDoubleSafe(total.getText().toString(),-1);
+                if(!n.isEmpty()&&qv>0&&tvv>=0){l.name=n;l.qty=qv;l.total=tvv;unit.setText(fmt(tvv/qv));}
+                else Toast.makeText(this,"تحقق من اسم الصنف والكمية والإجمالي",Toast.LENGTH_SHORT).show();
+                redrawInvoiceRows(parent,all,baseBal);
+            }
+        };
+        total.setOnFocusChangeListener(commitRow);qty.setOnFocusChangeListener(commitRow);item.setOnFocusChangeListener(commitRow);
         del.setOnClickListener(v->{all.remove(l);redrawInvoiceRows(parent,all,baseBal);});
         parent.addView(r,new LinearLayout.LayoutParams(-1,-2));
     }
