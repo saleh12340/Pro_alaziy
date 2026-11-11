@@ -5196,7 +5196,11 @@ void operationActions(long customerId,String customerName,long tid,String detail
             }
         });
 
+        final boolean[] savingPurchase={false};
         pSaveBtn.setOnClickListener(v->{
+            if(savingPurchase[0])return;
+            savingPurchase[0]=true;
+            pSaveBtn.setEnabled(false);
             SQLiteDatabase ptx=null;
             long savedPurchaseId=0;
             boolean saved=false;
@@ -5228,7 +5232,9 @@ void operationActions(long customerId,String customerName,long tid,String detail
             }catch(Exception e){
                 Toast.makeText(this,"تعذر حفظ فاتورة الشراء.",Toast.LENGTH_LONG).show();
             }finally{
-                if(ptx!=null)ptx.endTransaction();
+                if(ptx!=null&&ptx.inTransaction())ptx.endTransaction();
+                savingPurchase[0]=false;
+                pSaveBtn.setEnabled(true);
             }
             if(saved){
                 Toast.makeText(this,edit?"تم حفظ التعديل وتحديث المخزون":"تم حفظ الفاتورة وتحديث المخزون",Toast.LENGTH_SHORT).show();
