@@ -47,6 +47,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MainActivity extends Activity {
     static final int REQ_CONTACTS=4101, PICK_CONTACT=4102, PICK_TRANSFER_RECEIVER=4110, PICK_TRANSFER_SENDER=4111, REQ_CAMERA_SCAN=4103, REQ_GALLERY_SCAN=4104, REQ_PERM_CAMERA=4105, REQ_AUDIO=5110, REQ_VOICE_SEARCH=5111, REQ_VOICE_DETAIL=5112, REQ_VOICE_FIELD=5113;
@@ -68,6 +69,7 @@ public class MainActivity extends Activity {
     volatile boolean startupFinished=false; DB db; LinearLayout root,content,bottom; boolean darkCardMode=false; PopupWindow learningPopup; TextView pageTitle; int textSize=16; String currentPage="الرئيسية"; ArrayDeque<String> pageStack=new ArrayDeque<>(); long activeCustomerId=-1; String activeCustomerName=""; long currentNotePageId=-1; int noteFontSize=14; boolean noteScrollMode=true; String noteSearchQuery="";
     Uri cameraScanTempUri; Bitmap scanRawBitmap; String scanFilterMode="magic"; float scanRotation=0; String scanCategoryFilter="الكل"; String scanSearchQuery="";
     EditText transferSenderName,transferSenderPhone,transferReceiverName,transferReceiverPhone,transferContactNameTarget,transferContactPhoneTarget;
+    private final AtomicBoolean thermalPrintBusy=new AtomicBoolean(false);
     boolean invoiceSaveInProgress=false;
     boolean invoiceNegativeStockConfirmed=false;
     Button invoiceSaveButton;
@@ -6286,11 +6288,20 @@ void operationActions(long customerId,String customerName,long tid,String detail
         setFullPageActions("✓ حفظ الرقم","رجوع",GREEN,()->{p.edit().putString("share_phone",e.getText().toString().trim()).apply();Toast.makeText(this,"تم حفظ رقم المشاركة",Toast.LENGTH_SHORT).show();settingsHub();},()->settingsHub());
     }
     void showPrintSettingsDialog(){
-        beginFullPage("إعدادات الطباعة الحرارية","الطباعة الحرارية الفعلية تستخدم طابعة Bluetooth بعرض 58mm. يمكنك تجربة معاينة إيصال.");
-        TextView info=tv("عرض الورق: 58mm\nنوع الاتصال: Bluetooth\nالمعاينة قبل الطباعة: مفعلة",15);
+        int paperWidth=getSharedPreferences("printer_settings",MODE_PRIVATE).getInt("paper_width",384);
+        beginFullPage("إعدادات الطباعة الحرارية","اختر عرض الورق المستخدم في طابعتك المقترنة. الطباعة تتم مباشرة بأوامر ESC/POS عبر Bluetooth.");
+        TextView info=tv("عرض الورق الحالي: "+(paperWidth==576?"80mm":"58mm")+"\nنوع الاتصال: Bluetooth Classic (SPP)\nالمعاينة قبل الطباعة: مفعلة",15);
         info.setTextColor(TEXT);info.setPadding(dp(14),dp(14),dp(14),dp(14));info.setBackground(outlined(Color.WHITE,dp(1),dp(10)));
         content.addView(info,new LinearLayout.LayoutParams(-1,-2));
-        setFullPageActions("معاينة إيصال تجريبي","رجوع",BLUE,()->previewTextForPrint("بقالة العزي للمواد الغذائية\nاختبار طباعة 58mm\n----------------\n123,456 ر.ي","اختبار"),()->settingsHub());
+        LinearLayout widths=new LinearLayout(this);widths.setOrientation(LinearLayout.HORIZONTAL);widths.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        Button mm58=button("58mm (384px)"),mm80=button("80mm (576px)");
+        for(Button b:new Button[]{mm58,mm80}){b.setTextColor(DARK);b.setBackground(outlined(Color.WHITE,dp(1),dp(10)));b.setMinHeight(dp(46));}
+        mm58.setOnClickListener(v->{getSharedPreferences("printer_settings",MODE_PRIVATE).edit().putInt("paper_width",384).apply();Toast.makeText(this,"تم اختيار ورق 58mm",Toast.LENGTH_SHORT).show();showPrintSettingsDialog();});
+        mm80.setOnClickListener(v->{getSharedPreferences("printer_settings",MODE_PRIVATE).edit().putInt("paper_width",576).apply();Toast.makeText(this,"تم اختيار ورق 80mm",Toast.LENGTH_SHORT).show();showPrintSettingsDialog();});
+        widths.addView(mm58,new LinearLayout.LayoutParams(0,dp(48),1));LinearLayout.LayoutParams w80=new LinearLayout.LayoutParams(0,dp(48),1);w80.setMargins(dp(6),0,0,0);widths.addView(mm80,w80);content.addView(widths,new LinearLayout.LayoutParams(-1,-2));
+        String savedPrinter=getSharedPreferences("printer_settings",MODE_PRIVATE).getString("printer_address","");
+        TextView printer=tv(savedPrinter.isEmpty()?"الطابعة: لم يتم اختيار طابعة بعد":"الطابعة المحفوظة: "+savedPrinter,13);printer.setTextColor(MUTED);content.addView(printer,new LinearLayout.LayoutParams(-1,-2));
+        setFullPageActions("معاينة إيصال تجريبي","رجوع",BLUE,()->previewTextForPrint("بقالة العزي للمواد الغذائية\nاختبار طباعة "+(paperWidth==576?"80":"58")+"mm\n----------------\n123,456 ر.ي","اختبار"),()->settingsHub());
     }
     void saleTypeReport(boolean cashOnly){
         final String reportTitle=cashOnly?"البيع النقدي":"البيع الآجل";
@@ -10749,19 +10760,24 @@ Uri saveReceiptBitmap(Bitmap bitmap,String no)throws Exception{
 
     void printTextBluetooth(String text){printTextBluetooth(text,384);}
     void printTextBluetooth(String text,int requestedWidth){
-        if(Build.VERSION.SDK_INT>=31&&checkSelfPermission("android.permission.BLUETOOTH_CONNECT")!=PackageManager.PERMISSION_GRANTED){pendingPrintText=text;pendingPrintWidth=384;requestPermissions(new String[]{"android.permission.BLUETOOTH_CONNECT"},5102);return;}
+        if(Build.VERSION.SDK_INT>=31&&checkSelfPermission("android.permission.BLUETOOTH_CONNECT")!=PackageManager.PERMISSION_GRANTED){pendingPrintText=text;pendingPrintWidth=requestedWidth>0?requestedWidth:384;requestPermissions(new String[]{"android.permission.BLUETOOTH_CONNECT"},5102);return;}
         BluetoothAdapter a=BluetoothAdapter.getDefaultAdapter();if(a==null){Toast.makeText(this,"هذا الجهاز لا يدعم البلوتوث",Toast.LENGTH_LONG).show();return;}if(!a.isEnabled()){Toast.makeText(this,"فعّل البلوتوث ثم أعد الضغط على الطباعة",Toast.LENGTH_LONG).show();return;}
         String addr=getSharedPreferences("printer_settings",MODE_PRIVATE).getString("printer_address","");BluetoothDevice saved=null;if(!addr.isEmpty()){try{saved=a.getRemoteDevice(addr);}catch(Exception ignored){}}
-        if(saved!=null){final BluetoothDevice d=saved;new Thread(()->sendBitmapToBluetooth(d,receiptBitmap(text,384))).start();return;}
+        if(saved!=null){final BluetoothDevice d=saved;new Thread(()->sendBitmapToBluetooth(d,receiptBitmap(text,requestedWidth>0?requestedWidth:384))).start();return;}
         Set<BluetoothDevice> paired=a.getBondedDevices();if(paired==null||paired.isEmpty()){Toast.makeText(this,"لا توجد طابعة مقترنة. اقترن بالطابعة من إعدادات البلوتوث أولاً.",Toast.LENGTH_LONG).show();return;}
         BluetoothDevice[] ds=paired.toArray(new BluetoothDevice[0]);String[] names=new String[ds.length];for(int i=0;i<ds.length;i++)names[i]=(ds[i].getName()==null?"طابعة 58mm":ds[i].getName())+"\n"+ds[i].getAddress();
-        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("اختيار طابعة 58mm — أول مرة فقط").setItems(names,(d,w)->{getSharedPreferences("printer_settings",MODE_PRIVATE).edit().putString("printer_address",ds[w].getAddress()).apply();new Thread(()->sendBitmapToBluetooth(ds[w],receiptBitmap(text,384))).start();}).setNegativeButton("إلغاء",null).show();
+        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("اختيار طابعة 58mm — أول مرة فقط").setItems(names,(d,w)->{getSharedPreferences("printer_settings",MODE_PRIVATE).edit().putString("printer_address",ds[w].getAddress()).apply();new Thread(()->sendBitmapToBluetooth(ds[w],receiptBitmap(text,requestedWidth>0?requestedWidth:384))).start();}).setNegativeButton("إلغاء",null).show();
     }
 
     void sendBitmapToBluetooth(BluetoothDevice device,Bitmap bitmap){
         BluetoothSocket socket=null;OutputStream out=null;
         try{
             if(device==null||bitmap==null) throw new IllegalArgumentException("printer or receipt is null");
+            if(!thermalPrintBusy.compareAndSet(false,true)){
+                runOnUiThread(()->Toast.makeText(this,"هناك مهمة طباعة قيد التنفيذ؛ انتظر اكتمالها.",Toast.LENGTH_SHORT).show());
+                return;
+            }
+            runOnUiThread(()->Toast.makeText(this,"جارٍ الاتصال بالطابعة وإرسال الإيصال…",Toast.LENGTH_SHORT).show());
             if(Build.VERSION.SDK_INT>=31&&checkSelfPermission("android.permission.BLUETOOTH_CONNECT")!=PackageManager.PERMISSION_GRANTED)
                 throw new SecurityException("BLUETOOTH_CONNECT permission is required");
             UUID spp=UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
@@ -10787,7 +10803,8 @@ Uri saveReceiptBitmap(Bitmap bitmap,String no)throws Exception{
             out.write(new byte[]{0x1B,0x61,0x00}); // محاذاة لليسار
 
             // ضمان أن عرض الصورة 384 بكسل (المقاس القياسي لطابعات 58mm)
-            final int targetWidth=384;
+            final int configuredWidth=getSharedPreferences("printer_settings",MODE_PRIVATE).getInt("paper_width",384);
+            final int targetWidth=configuredWidth==576?576:384;
             Bitmap prepared=bitmap;
             if(bitmap.getWidth()!=targetWidth){
                 float scale=(float)targetWidth/bitmap.getWidth();
@@ -10830,15 +10847,22 @@ Uri saveReceiptBitmap(Bitmap bitmap,String no)throws Exception{
             out.flush();
             try{Thread.sleep(120);}catch(InterruptedException ie){Thread.currentThread().interrupt();}
             try{out.write(new byte[]{0x1D,0x56,0x00});out.flush();}catch(Throwable ignored){}
-            runOnUiThread(()->Toast.makeText(this,"✓ تم إرسال الإيصال إلى الطابعة بنجاح",Toast.LENGTH_SHORT).show());
+            runOnUiThread(()->Toast.makeText(this,"✓ اكتمل إرسال بيانات الإيصال إلى الطابعة",Toast.LENGTH_SHORT).show());
         }catch(SecurityException e){
             runOnUiThread(()->Toast.makeText(this,"يلزم السماح باتصال Bluetooth للطباعة.",Toast.LENGTH_LONG).show());
         }catch(Exception e){
             android.util.Log.e("AlAzziBluetooth","Bluetooth printing failed",e);
-            runOnUiThread(()->Toast.makeText(this,"تعذر الاتصال بالطابعة أو إرسال الإيصال. تأكد من اقترانها وتشغيلها.",Toast.LENGTH_LONG).show());
+            final String reason=e.getMessage()==null?e.getClass().getSimpleName():e.getMessage();
+            runOnUiThread(()->new AlertDialog.Builder(this)
+                .setTitle("فشلت الطباعة")
+                .setMessage("تعذر إرسال الإيصال: "+reason+"\nتحقق من تشغيل الطابعة واتصالها ثم أعد المحاولة.")
+                .setNegativeButton("إغلاق",null)
+                .setPositiveButton("إعادة المحاولة",(d,w)->sendBitmapToBluetooth(device,bitmap))
+                .show());
         }finally{
             try{if(out!=null)out.close();}catch(Exception ignored){}
             try{if(socket!=null)socket.close();}catch(Exception ignored){}
+            thermalPrintBusy.set(false);
         }
     }
 
