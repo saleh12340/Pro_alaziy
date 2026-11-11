@@ -6355,7 +6355,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
             supplierPaymentsCard.addView(supplierPaymentsTitle,new LinearLayout.LayoutParams(-1,-2));
             supplierPaymentsCard.addView(supplierPaymentsValue,new LinearLayout.LayoutParams(-1,-2));
             cashFlowRow.addView(collectionsCard,new LinearLayout.LayoutParams(0,-2,1));
-            LinearLayout supplierPayLp=new LinearLayout.LayoutParams(0,-2,1);supplierPayLp.setMargins(dp(4),0,0,0);
+            LinearLayout.LayoutParams supplierPayLp=new LinearLayout.LayoutParams(0,-2,1);supplierPayLp.setMargins(dp(4),0,0,0);
             cashFlowRow.addView(supplierPaymentsCard,supplierPayLp);
             statGrid.addView(cashFlowRow,new LinearLayout.LayoutParams(-1,-2));
 
