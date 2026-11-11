@@ -8003,6 +8003,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                     d.execSQL("UPDATE transactions SET customer_id=? WHERE customer_id=?",new Object[]{k,id});
                     d.execSQL("UPDATE cash_receipts SET customer_id=? WHERE customer_id=?",new Object[]{k,id});
                     d.execSQL("UPDATE invoices SET customer=? WHERE customer=?",new Object[]{kn,raw});
+                    d.execSQL("UPDATE orders SET customer=? WHERE customer=?",new Object[]{kn,raw});
                     String phone=c.getString(2); if(phone!=null&&!phone.trim().isEmpty()){Cursor pc=d.rawQuery("SELECT COALESCE(phone,'') FROM customers WHERE id=?",new String[]{String.valueOf(k)});String kp=pc.moveToFirst()?pc.getString(0):"";pc.close();if(kp.trim().isEmpty()){ContentValues pv=new ContentValues();pv.put("phone",phone.trim());d.update("customers",pv,"id=?",new String[]{String.valueOf(k)});}}
                     del.add(id);
                 }
@@ -8023,14 +8024,22 @@ void operationActions(long customerId,String customerName,long tid,String detail
             while(c.moveToNext()){
                 long id=c.getLong(0);String raw=c.getString(1);String key=norm(raw);String cn=canon(raw);if(key.isEmpty())continue;
                 if(!keep.containsKey(key)){keep.put(key,id);names.put(key,cn);ContentValues v=new ContentValues();v.put("name",cn);v.put("normalized_name",key);d.update("items",v,"id=?",new String[]{String.valueOf(id)});}
-                else{long k=keep.get(key);String kn=names.get(key);Cursor kc=d.rawQuery("SELECT COALESCE(qty,0),COALESCE(cost,0),COALESCE(sale,0) FROM items WHERE id=?",new String[]{String.valueOf(k)});double q=0,cost=0,sale=0;if(kc.moveToFirst()){q=kc.getDouble(0);cost=kc.getDouble(1);sale=kc.getDouble(2);}kc.close();ContentValues v=new ContentValues();v.put("qty",q+c.getDouble(2));if(cost==0)cost=c.getDouble(3);if(sale==0)sale=c.getDouble(4);v.put("cost",cost);v.put("sale",sale);d.update("items",v,"id=?",new String[]{String.valueOf(k)});d.execSQL("UPDATE invoice_items SET name=? WHERE lower(trim(name))=?",new Object[]{kn,key});d.execSQL("UPDATE purchase_items SET name=? WHERE lower(trim(name))=?",new Object[]{kn,key});d.execSQL("UPDATE stock_movements SET item_id=?,item_name=? WHERE item_id=?",new Object[]{k,kn,id});del.add(id);}
+                else{long k=keep.get(key);String kn=names.get(key);Cursor kc=d.rawQuery("SELECT COALESCE(qty,0),COALESCE(cost,0),COALESCE(sale,0) FROM items WHERE id=?",new String[]{String.valueOf(k)});double q=0,cost=0,sale=0;if(kc.moveToFirst()){q=kc.getDouble(0);cost=kc.getDouble(1);sale=kc.getDouble(2);}kc.close();ContentValues v=new ContentValues();v.put("qty",q+c.getDouble(2));if(cost==0)cost=c.getDouble(3);if(sale==0)sale=c.getDouble(4);v.put("cost",cost);v.put("sale",sale);d.update("items",v,"id=?",new String[]{String.valueOf(k)});d.execSQL("UPDATE invoice_items SET name=? WHERE lower(trim(name))=?",new Object[]{kn,key});d.execSQL("UPDATE purchase_items SET name=? WHERE lower(trim(name))=?",new Object[]{kn,key});d.execSQL("UPDATE stock_movements SET item_id=?,item_name=? WHERE item_id=?",new Object[]{k,kn,id});d.execSQL("UPDATE warehouse_transfers SET item_id=? WHERE item_id=?",new Object[]{k,id});d.execSQL("UPDATE offers SET item_id=? WHERE item_id=?",new Object[]{k,id});d.execSQL("UPDATE product_prices SET item_id=? WHERE item_id=? AND NOT EXISTS (SELECT 1 FROM product_prices p2 WHERE p2.item_id=? AND p2.price_type=product_prices.price_type AND COALESCE(p2.unit,'')=COALESCE(product_prices.unit,''))",new Object[]{k,id,k});d.delete("product_prices","item_id=?",new String[]{String.valueOf(id)});del.add(id);}
             } c.close();for(Long id:del)d.delete("items","id=?",new String[]{String.valueOf(id)});
         }
         void normalizeInvoiceNumbers(SQLiteDatabase d,String table){
-            Cursor c=d.rawQuery("SELECT id,no FROM "+table+" ORDER BY id ASC",null);HashSet<String> used=new HashSet<>();int next=1;
-            ArrayList<long[]> fixes=new ArrayList<>();ArrayList<String> vals=new ArrayList<>();
-            while(c.moveToNext()){long id=c.getLong(0);String no=c.getString(1)==null?"":c.getString(1).trim();String digits=no.replaceAll("[^0-9]","");if(!digits.isEmpty()&&!used.contains(digits)){used.add(digits);try{next=Math.max(next,Integer.parseInt(digits)+1);}catch(Exception ignored){}continue;}while(used.contains(String.valueOf(next)))next++;fixes.add(new long[]{id});vals.add(String.valueOf(next));used.add(String.valueOf(next));next++;}
-            c.close();for(int i=0;i<fixes.size();i++){ContentValues v=new ContentValues();v.put("no",vals.get(i));d.update(table,v,"id=?",new String[]{String.valueOf(fixes.get(i)[0])});}
+            // Never rewrite historical invoice numbers: external references may depend on them.
+            // A collision is reported and the enclosing upgrade transaction is rolled back.
+            Cursor c=null;
+            try{
+                c=d.rawQuery("SELECT no,COUNT(*) FROM "+table+" WHERE no IS NOT NULL AND trim(no)<>'' GROUP BY no HAVING COUNT(*)>1 LIMIT 1",null);
+                if(c.moveToFirst()) throw new IllegalStateException("رقم فاتورة مكرر في "+table+": "+c.getString(0)+"؛ يلزم تسوية المرجع قبل الترقية");
+            }finally{if(c!=null)c.close();}
+            c=null;
+            try{
+                c=d.rawQuery("SELECT id FROM "+table+" WHERE no IS NULL OR trim(no)=''",null);
+                if(c.moveToFirst()) throw new IllegalStateException("توجد فاتورة بلا رقم في "+table+"؛ لم يتم تغيير الأرقام التاريخية");
+            }finally{if(c!=null)c.close();}
         }
         Cursor scannedInvoices(String q,String category){
             String sel="";
