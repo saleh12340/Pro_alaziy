@@ -1466,7 +1466,7 @@ public class MainActivity extends Activity {
         homeStatsBottom.setOrientation(LinearLayout.HORIZONTAL);
         homeStatsBottom.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         addHomeSummaryCell(homeStatsBottom,"عليك",fmt(db.totalDebts())+" ر.ي",RED);
-        addHomeSummaryCell(homeStatsBottom,"لك",fmt(db.totalCredits())+" ر.ي",BLUE_PRIMARY);
+        addHomeSummaryCell(homeStatsBottom,"لك",fmt(db.totalCredits())+" ر.ي",GREEN);
         homeStats.addView(homeStatsTop,new LinearLayout.LayoutParams(-1,-2));
         homeStats.addView(homeStatsBottom,new LinearLayout.LayoutParams(-1,-2));
         content.addView(homeStats,new LinearLayout.LayoutParams(-1,-2));
@@ -1645,11 +1645,13 @@ public class MainActivity extends Activity {
         LinearLayout cell=new LinearLayout(this);
         cell.setOrientation(LinearLayout.VERTICAL);
         cell.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
-        cell.setPadding(dp(9),dp(4),dp(9),dp(4));
-        cell.setBackground(outlined(DARK,dp(1),dp(12)));
+        cell.setPadding(dp(10),dp(6),dp(10),dp(6));
+        GradientDrawable homeCellBackground=rounded(DARK,dp(12));
+        homeCellBackground.setStroke(dp(2),accent);
+        cell.setBackground(homeCellBackground);
 
         TextView v=tv(value,15);
-        v.setTextColor(Color.WHITE);
+        v.setTextColor(accent);
         v.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         v.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
         v.setSingleLine(true);
@@ -1661,10 +1663,10 @@ public class MainActivity extends Activity {
         l.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
         l.setSingleLine(true);
 
-        cell.addView(v,new LinearLayout.LayoutParams(-1,dp(28)));
+        cell.addView(v,new LinearLayout.LayoutParams(-1,dp(30)));
         cell.addView(l,new LinearLayout.LayoutParams(-1,dp(22)));
 
-        LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,dp(58),1);
+        LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,dp(64),1);
         cp.setMargins(dp(3),dp(2),dp(3),dp(2));
         parent.addView(cell,cp);
     }
