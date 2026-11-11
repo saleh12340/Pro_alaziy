@@ -1802,6 +1802,9 @@ public class MainActivity extends Activity {
 
     void invoice(){unifiedInvoiceForm(InvoiceType.SALE);}
     void invoice(boolean edit,long invoiceId){
+        invoice(edit,invoiceId,null);
+    }
+    void invoice(boolean edit,long invoiceId,String presetCustomer){
         final String origCustomer = edit ? db.invoiceCustomer(invoiceId) : "";
         final double origTotal = edit ? db.invoiceTotal(invoiceId) : 0;
         final double origPaid = edit ? db.invoicePaid(invoiceId) : 0;
@@ -1930,6 +1933,8 @@ public class MainActivity extends Activity {
 
         if(edit){
             customer.setText(db.invoiceCustomer(invoiceId));
+        }else if(presetCustomer!=null&&!presetCustomer.trim().isEmpty()){
+            customer.setText(presetCustomer.trim());
         }
 
         // قسم إدخال الصنف: الحفاظ التام على ترتيب مربعات الإدخال (الإجمالي، الكمية، اسم الصنف)
@@ -11285,7 +11290,7 @@ void account(long id,String name){
         Button statement=button("كشف الحساب");
         statement.setTextColor(DARK);
         statement.setBackground(outlined(Color.WHITE,dp(1),dp(8)));
-        quickInvoice.setOnClickListener(v->unifiedInvoiceForm(InvoiceType.SALE,name));
+        quickInvoice.setOnClickListener(v->invoice(false,-1,name));
         quickOperation.setOnClickListener(v->new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
             .setTitle("إضافة عملية للعميل")
             .setItems(new String[]{"قيد سحب — عليه","دفعة سداد — له"},(dialog,which)->
