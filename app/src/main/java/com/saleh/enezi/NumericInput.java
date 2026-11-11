@@ -37,7 +37,7 @@ public final class NumericInput {
                 int occurrences = 0;
                 for (int i = 0; i < rawNumber.length(); i++) if (rawNumber.charAt(i) == sep) occurrences++;
                 // A single three-digit group (or repeated groups of three) is thousands grouping.
-                boolean grouped = after == 3;
+                boolean grouped = sep == ',' && after == 3;
                 if (occurrences > 1) {
                     String[] groups = rawNumber.split(sep == '.' ? "\\." : ",", -1);
                     grouped = groups.length > 1;
