@@ -9175,7 +9175,37 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
     }
 
 
-    File createPurchaseInvoicePdf(String no,String supplier,ArrayList<PurchaseLine> lines,double total,String date){
+        // يرسم النصوص داخل PDF باتجاه RTL حقيقي مع الحفاظ على محاذاة Paint الحالية.
+    void drawRtlPdfText(Canvas canvas,String value,Paint sourcePaint,float anchorX,float baseline){
+        if(canvas==null||sourcePaint==null||value==null||value.isEmpty())return;
+        TextPaint paint=new TextPaint(sourcePaint);
+        int width=Math.max(1,(int)Math.ceil(Layout.getDesiredWidth(value,paint)+8f));
+        Layout.Alignment alignment;
+        float left;
+        Paint.Align textAlign=sourcePaint.getTextAlign();
+        if(textAlign==Paint.Align.RIGHT){
+            alignment=Layout.Alignment.ALIGN_NORMAL;
+            left=anchorX-width;
+        }else if(textAlign==Paint.Align.CENTER){
+            alignment=Layout.Alignment.ALIGN_CENTER;
+            left=anchorX-width/2f;
+        }else{
+            alignment=Layout.Alignment.ALIGN_OPPOSITE;
+            left=anchorX;
+        }
+        StaticLayout layout=StaticLayout.Builder.obtain(value,0,value.length(),paint,width)
+                .setAlignment(alignment)
+                .setIncludePad(false)
+                .setLineSpacing(0f,1f)
+                .setTextDirection(android.text.TextDirectionHeuristics.RTL)
+                .build();
+        canvas.save();
+        canvas.translate(left,baseline-layout.getLineBaseline(0));
+        layout.draw(canvas);
+        canvas.restore();
+    }
+
+File createPurchaseInvoicePdf(String no,String supplier,ArrayList<PurchaseLine> lines,double total,String date){
         File dir=new File(getCacheDir(),"pdf");if(!dir.exists())dir.mkdirs();
         File file=new File(dir,"فاتورة_شراء_"+no+"_"+System.currentTimeMillis()+".pdf");
         android.graphics.pdf.PdfDocument pdf=new android.graphics.pdf.PdfDocument();
@@ -9201,9 +9231,9 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         canvas.drawRoundRect(margin,y,pageW-margin,y+52,8,8,strokePaint);
 
         titleP.setTextAlign(Paint.Align.RIGHT);
-        canvas.drawText("بقالة العزي للمواد الغذائية",pageW-margin-12,y+24,titleP);
+        drawRtlPdfText(canvas,"بقالة العزي للمواد الغذائية",pageW-margin-12,y+24,titleP);
         subP.setTextAlign(Paint.Align.RIGHT);
-        canvas.drawText("فاتورة شراء #"+no+"  •  "+(date==null||date.isEmpty()?db.now():date),pageW-margin-12,y+42,subP);
+        drawRtlPdfText(canvas,"فاتورة شراء #"+no+"  •  "+(date==null||date.isEmpty()?db.now():date),pageW-margin-12,y+42,subP);
         y+=60;
 
         String suppName=supplier==null||supplier.trim().isEmpty()?"مورد عام":supplier.trim();
@@ -9213,18 +9243,18 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         canvas.drawRoundRect(margin,y,pageW-margin,y+34,6,6,strokePaint);
 
         boldCellP.setTextAlign(Paint.Align.RIGHT);
-        canvas.drawText("المورد: "+suppName+(phone.isEmpty()?"":" ("+phone+")"),pageW-margin-10,y+22,boldCellP);
+        drawRtlPdfText(canvas,"المورد: "+suppName+(phone.isEmpty()?"":" ("+phone+")"),pageW-margin-10,y+22,boldCellP);
         y+=40;
 
         int[] colW={180,80,112};
         fillPaint.setColor(GOLD);
         canvas.drawRoundRect(margin,y,pageW-margin,y+24,4,4,fillPaint);
         headerP.setTextAlign(Paint.Align.RIGHT);
-        canvas.drawText("الصنف",pageW-margin-10,y+16,headerP);
+        drawRtlPdfText(canvas,"الصنف",pageW-margin-10,y+16,headerP);
         headerP.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText("الكمية",pageW-margin-colW[0]-colW[1]/2,y+16,headerP);
+        drawRtlPdfText(canvas,"الكمية",pageW-margin-colW[0]-colW[1]/2,y+16,headerP);
         headerP.setTextAlign(Paint.Align.LEFT);
-        canvas.drawText("الإجمالي",margin+10,y+16,headerP);
+        drawRtlPdfText(canvas,"الإجمالي",margin+10,y+16,headerP);
         y+=26;
 
         int rowH=22;
@@ -9240,14 +9270,14 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                 cellP.setTextAlign(Paint.Align.RIGHT);
                 String iname=l.name==null?"":l.name.trim();
                 if(iname.length()>22) iname=iname.substring(0,22)+"…";
-                canvas.drawText(iname,pageW-margin-10,y+15,cellP);
+                drawRtlPdfText(canvas,iname,pageW-margin-10,y+15,cellP);
 
                 cellP.setTextAlign(Paint.Align.CENTER);
-                canvas.drawText(fmt(l.qty),pageW-margin-colW[0]-colW[1]/2,y+15,cellP);
+                drawRtlPdfText(canvas,fmt(l.qty),pageW-margin-colW[0]-colW[1]/2,y+15,cellP);
 
                 boldCellP.setTextAlign(Paint.Align.LEFT);
                 boldCellP.setColor(GOLD);
-                canvas.drawText(fmt(l.total)+" ر.ي",margin+10,y+15,boldCellP);
+                drawRtlPdfText(canvas,fmt(l.total)+" ر.ي",margin+10,y+15,boldCellP);
                 boldCellP.setColor(TEXT);
                 y+=rowH;
             }
@@ -9262,14 +9292,14 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         boldCellP.setTextSize(12);
         boldCellP.setColor(GOLD);
         boldCellP.setTextAlign(Paint.Align.RIGHT);
-        canvas.drawText("إجمالي فاتورة الشراء:",pageW-margin-12,y+23,boldCellP);
+        drawRtlPdfText(canvas,"إجمالي فاتورة الشراء:",pageW-margin-12,y+23,boldCellP);
         boldCellP.setTextAlign(Paint.Align.LEFT);
-        canvas.drawText(fmt(total)+" ريال",margin+12,y+23,boldCellP);
+        drawRtlPdfText(canvas,fmt(total)+" ريال",margin+12,y+23,boldCellP);
         y+=42;
 
         subP.setTextAlign(Paint.Align.CENTER);
         subP.setColor(MUTED);
-        canvas.drawText("بقالة العزي للمواد الغذائية",pageW/2,y+16,subP);
+        drawRtlPdfText(canvas,"بقالة العزي للمواد الغذائية",pageW/2,y+16,subP);
 
         pdf.finishPage(page);
         try(FileOutputStream out=new FileOutputStream(file)){pdf.writeTo(out);}
@@ -9420,9 +9450,9 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         canvas.drawRoundRect(margin,y,pageW-margin,y+50,8,8,strokePaint);
 
         titlePaint.setTextAlign(Paint.Align.RIGHT);
-        canvas.drawText("كشف حساب",pageW-margin-14,y+24,titlePaint);
+        drawRtlPdfText(canvas,"كشف حساب",pageW-margin-14,y+24,titlePaint);
         subPaint.setTextAlign(Paint.Align.RIGHT);
-        canvas.drawText("تاريخ الاستخراج: "+nowDate+"  |  العميل: "+name+(phone.isEmpty()?"":"  |  الهاتف: "+phone),pageW-margin-14,y+42,subPaint);
+        drawRtlPdfText(canvas,"تاريخ الاستخراج: "+nowDate+"  |  العميل: "+name+(phone.isEmpty()?"":"  |  الهاتف: "+phone),pageW-margin-14,y+42,subPaint);
         y+=60;
 
         // 3 KPI Cards
@@ -9431,25 +9461,25 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         fillPaint.setColor(Color.WHITE);
         canvas.drawRoundRect(margin,y,margin+kpiW,y+42,6,6,fillPaint);
         cellPaint.setTextAlign(Paint.Align.CENTER);cellPaint.setColor(RED);
-        canvas.drawText("إجمالي ما عليه (مسحوبات)",margin+kpiW/2,y+16,cellPaint);
+        drawRtlPdfText(canvas,"إجمالي ما عليه (مسحوبات)",margin+kpiW/2,y+16,cellPaint);
         boldCellPaint.setTextAlign(Paint.Align.CENTER);boldCellPaint.setColor(RED);boldCellPaint.setTextSize(11);
-        canvas.drawText(fmt(totalDebit)+" ريال",margin+kpiW/2,y+33,boldCellPaint);
+        drawRtlPdfText(canvas,fmt(totalDebit)+" ريال",margin+kpiW/2,y+33,boldCellPaint);
 
         // 2. Credits (له)
         fillPaint.setColor(Color.WHITE);
         canvas.drawRoundRect(margin+kpiW+8,y,margin+kpiW*2+8,y+42,6,6,fillPaint);
         cellPaint.setColor(BLUE);
-        canvas.drawText("إجمالي ما له (مدفوعات)",margin+kpiW+8+kpiW/2,y+16,cellPaint);
+        drawRtlPdfText(canvas,"إجمالي ما له (مدفوعات)",margin+kpiW+8+kpiW/2,y+16,cellPaint);
         boldCellPaint.setColor(BLUE);
-        canvas.drawText(fmt(totalCredit)+" ريال",margin+kpiW+8+kpiW/2,y+33,boldCellPaint);
+        drawRtlPdfText(canvas,fmt(totalCredit)+" ريال",margin+kpiW+8+kpiW/2,y+33,boldCellPaint);
 
         // 3. Final Balance
         fillPaint.setColor(currentBalance>0.005?Color.WHITE:Color.WHITE);
         canvas.drawRoundRect(margin+kpiW*2+16,y,pageW-margin,y+42,6,6,fillPaint);
         cellPaint.setColor(balanceColor(currentBalance));
-        canvas.drawText(currentBalance>0.005?"الرصيد المتبقي عليه":(currentBalance<-0.005?"الرصيد الفائض له":"الحساب خالص"),margin+kpiW*2+16+kpiW/2,y+16,cellPaint);
+        drawRtlPdfText(canvas,currentBalance>0.005?"الرصيد المتبقي عليه":(currentBalance<-0.005?"الرصيد الفائض له":"الحساب خالص"),margin+kpiW*2+16+kpiW/2,y+16,cellPaint);
         boldCellPaint.setColor(balanceColor(currentBalance));
-        canvas.drawText(fmt(Math.abs(currentBalance))+" ريال",margin+kpiW*2+16+kpiW/2,y+33,boldCellPaint);
+        drawRtlPdfText(canvas,fmt(Math.abs(currentBalance))+" ريال",margin+kpiW*2+16+kpiW/2,y+33,boldCellPaint);
         y+=52;
 
         // Table Header
@@ -9459,12 +9489,12 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         headerPaint.setTextAlign(Paint.Align.CENTER);
         
         int hx=pageW-margin;
-        canvas.drawText("التاريخ",hx-colW[0]/2,y+16,headerPaint); hx-=colW[0];
-        canvas.drawText("البيان والتفاصيل",hx-colW[1]/2,y+16,headerPaint); hx-=colW[1];
-        canvas.drawText("المرجع",hx-colW[2]/2,y+16,headerPaint); hx-=colW[2];
-        canvas.drawText("عليه (مدين)",hx-colW[3]/2,y+16,headerPaint); hx-=colW[3];
-        canvas.drawText("له (دائن)",hx-colW[4]/2,y+16,headerPaint); hx-=colW[4];
-        canvas.drawText("الرصيد بعده",hx-colW[5]/2,y+16,headerPaint);
+        drawRtlPdfText(canvas,"التاريخ",hx-colW[0]/2,y+16,headerPaint); hx-=colW[0];
+        drawRtlPdfText(canvas,"البيان والتفاصيل",hx-colW[1]/2,y+16,headerPaint); hx-=colW[1];
+        drawRtlPdfText(canvas,"المرجع",hx-colW[2]/2,y+16,headerPaint); hx-=colW[2];
+        drawRtlPdfText(canvas,"عليه (مدين)",hx-colW[3]/2,y+16,headerPaint); hx-=colW[3];
+        drawRtlPdfText(canvas,"له (دائن)",hx-colW[4]/2,y+16,headerPaint); hx-=colW[4];
+        drawRtlPdfText(canvas,"الرصيد بعده",hx-colW[5]/2,y+16,headerPaint);
         y+=26;
 
         // Rows
@@ -9476,7 +9506,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
             if(y+rowH>pageH-margin-30){
                 // Footer of page
                 cellPaint.setColor(MUTED);cellPaint.setTextAlign(Paint.Align.CENTER);
-                canvas.drawText("صفحة "+pageNo+"  •  بقالة العزي للمواد الغذائية",pageW/2,pageH-margin+10,cellPaint);
+                drawRtlPdfText(canvas,"صفحة "+pageNo+"  •  بقالة العزي للمواد الغذائية",pageW/2,pageH-margin+10,cellPaint);
                 pdf.finishPage(page);
                 pageNo++;
                 page=pdf.startPage(new android.graphics.pdf.PdfDocument.PageInfo.Builder(pageW,pageH,pageNo).create());
@@ -9486,12 +9516,12 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                 fillPaint.setColor(GREEN);
                 canvas.drawRoundRect(margin,y,pageW-margin,y+24,4,4,fillPaint);
                 hx=pageW-margin;
-                canvas.drawText("التاريخ",hx-colW[0]/2,y+16,headerPaint); hx-=colW[0];
-                canvas.drawText("البيان والتفاصيل",hx-colW[1]/2,y+16,headerPaint); hx-=colW[1];
-                canvas.drawText("المرجع",hx-colW[2]/2,y+16,headerPaint); hx-=colW[2];
-                canvas.drawText("عليه (مدين)",hx-colW[3]/2,y+16,headerPaint); hx-=colW[3];
-                canvas.drawText("له (دائن)",hx-colW[4]/2,y+16,headerPaint); hx-=colW[4];
-                canvas.drawText("الرصيد بعده",hx-colW[5]/2,y+16,headerPaint);
+                drawRtlPdfText(canvas,"التاريخ",hx-colW[0]/2,y+16,headerPaint); hx-=colW[0];
+                drawRtlPdfText(canvas,"البيان والتفاصيل",hx-colW[1]/2,y+16,headerPaint); hx-=colW[1];
+                drawRtlPdfText(canvas,"المرجع",hx-colW[2]/2,y+16,headerPaint); hx-=colW[2];
+                drawRtlPdfText(canvas,"عليه (مدين)",hx-colW[3]/2,y+16,headerPaint); hx-=colW[3];
+                drawRtlPdfText(canvas,"له (دائن)",hx-colW[4]/2,y+16,headerPaint); hx-=colW[4];
+                drawRtlPdfText(canvas,"الرصيد بعده",hx-colW[5]/2,y+16,headerPaint);
                 y+=26;
             }
 
@@ -9502,24 +9532,24 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
 
             int rx=pageW-margin;
             cellPaint.setColor(TEXT);cellPaint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText(r[0],rx-colW[0]/2,y+15,cellPaint); rx-=colW[0];
+            drawRtlPdfText(canvas,r[0],rx-colW[0]/2,y+15,cellPaint); rx-=colW[0];
 
             cellPaint.setTextAlign(Paint.Align.RIGHT);
             String rowDet=r[1].length()>30?r[1].substring(0,30)+"…":r[1];
-            canvas.drawText(rowDet,rx-8,y+15,cellPaint); rx-=colW[1];
+            drawRtlPdfText(canvas,rowDet,rx-8,y+15,cellPaint); rx-=colW[1];
 
             cellPaint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText(r[2],rx-colW[2]/2,y+15,cellPaint); rx-=colW[2];
+            drawRtlPdfText(canvas,r[2],rx-colW[2]/2,y+15,cellPaint); rx-=colW[2];
 
             boldCellPaint.setColor(!r[3].equals("-")?RED:MUTED);
             boldCellPaint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText(r[3],rx-colW[3]/2,y+15,boldCellPaint); rx-=colW[3];
+            drawRtlPdfText(canvas,r[3],rx-colW[3]/2,y+15,boldCellPaint); rx-=colW[3];
 
             boldCellPaint.setColor(!r[4].equals("-")?BLUE:MUTED);
-            canvas.drawText(r[4],rx-colW[4]/2,y+15,boldCellPaint); rx-=colW[4];
+            drawRtlPdfText(canvas,r[4],rx-colW[4]/2,y+15,boldCellPaint); rx-=colW[4];
 
             cellPaint.setColor(TEXT);
-            canvas.drawText(r[5].replace("رصيدكم ",""),rx-colW[5]/2,y+15,cellPaint);
+            drawRtlPdfText(canvas,r[5].replace("رصيدكم ",""),rx-colW[5]/2,y+15,cellPaint);
 
             y+=rowH;
         }
@@ -9530,11 +9560,11 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
             fillPaint.setColor(Color.WHITE);
             canvas.drawRoundRect(margin,y,pageW-margin,y+32,6,6,fillPaint);
             boldCellPaint.setColor(GREEN);boldCellPaint.setTextSize(11);boldCellPaint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText("شكراً لتعاملكم مع بقالة العزي للمواد الغذائية  •  الرصيد النهائي: "+balanceText(currentBalance),pageW/2,y+20,boldCellPaint);
+            drawRtlPdfText(canvas,"شكراً لتعاملكم مع بقالة العزي للمواد الغذائية  •  الرصيد النهائي: "+balanceText(currentBalance),pageW/2,y+20,boldCellPaint);
         }
 
         cellPaint.setColor(MUTED);cellPaint.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText("صفحة "+pageNo+" • كشف آلي",pageW/2,pageH-margin+10,cellPaint);
+        drawRtlPdfText(canvas,"صفحة "+pageNo+" • كشف آلي",pageW/2,pageH-margin+10,cellPaint);
         pdf.finishPage(page);
 
         try(FileOutputStream out=new FileOutputStream(file)){pdf.writeTo(out);}catch(Exception e){throw new RuntimeException(e);}
@@ -9601,9 +9631,9 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         canvas.drawRoundRect(margin,y,pageW-margin,y+52,8,8,strokePaint);
 
         titleP.setTextAlign(Paint.Align.RIGHT);
-        canvas.drawText("بقالة العزي للمواد الغذائية",pageW-margin-12,y+24,titleP);
+        drawRtlPdfText(canvas,"بقالة العزي للمواد الغذائية",pageW-margin-12,y+24,titleP);
         subP.setTextAlign(Paint.Align.RIGHT);
-        canvas.drawText("فاتورة مبيعات #"+no+"  •  "+(date==null||date.isEmpty()?db.now():date),pageW-margin-12,y+42,subP);
+        drawRtlPdfText(canvas,"فاتورة مبيعات #"+no+"  •  "+(date==null||date.isEmpty()?db.now():date),pageW-margin-12,y+42,subP);
         y+=60;
 
         // Customer Info
@@ -9613,7 +9643,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         canvas.drawRoundRect(margin,y,pageW-margin,y+34,6,6,fillPaint);        canvas.drawRoundRect(margin,y,pageW-margin,y+34,6,6,strokePaint);
 
         boldCellP.setTextAlign(Paint.Align.RIGHT);
-        canvas.drawText("العميل: "+custName+(phone.isEmpty()?"":" ("+phone+")"),pageW-margin-10,y+22,boldCellP);
+        drawRtlPdfText(canvas,"العميل: "+custName+(phone.isEmpty()?"":" ("+phone+")"),pageW-margin-10,y+22,boldCellP);
         y+=40;
 
         // Current Operation / Amount Bar
@@ -9628,7 +9658,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         boldCellP.setTextSize(12.5f);
         boldCellP.setColor(isCash?GREEN:(remaining>0?RED:BLUE));
         String opText=isCash?"مسدد نقداً: "+fmt(total)+" يمني":(paid>0?"عليك: "+fmt(remaining)+" يمني (مدفوع: "+fmt(paid)+")":"عليك: "+fmt(total)+" يمني");
-        canvas.drawText(opText,pageW/2,y+23,boldCellP);
+        drawRtlPdfText(canvas,opText,pageW/2,y+23,boldCellP);
         y+=42;
 
         // Table Header
@@ -9636,11 +9666,11 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         fillPaint.setColor(GREEN);
         canvas.drawRoundRect(margin,y,pageW-margin,y+24,4,4,fillPaint);
         headerP.setTextAlign(Paint.Align.RIGHT);
-        canvas.drawText("الصنف (حق)",pageW-margin-10,y+16,headerP);
+        drawRtlPdfText(canvas,"الصنف (حق)",pageW-margin-10,y+16,headerP);
         headerP.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText("الكمية",pageW-margin-colW[0]-colW[1]/2,y+16,headerP);
+        drawRtlPdfText(canvas,"الكمية",pageW-margin-colW[0]-colW[1]/2,y+16,headerP);
         headerP.setTextAlign(Paint.Align.LEFT);
-        canvas.drawText("الإجمالي",margin+10,y+16,headerP);
+        drawRtlPdfText(canvas,"الإجمالي",margin+10,y+16,headerP);
         y+=26;
 
         // Table Rows
@@ -9656,14 +9686,14 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                 cellP.setTextAlign(Paint.Align.RIGHT);
                 String iname=l.name==null?"":l.name.trim();
                 if(iname.length()>22) iname=iname.substring(0,22)+"…";
-                canvas.drawText(iname,pageW-margin-10,y+15,cellP);
+                drawRtlPdfText(canvas,iname,pageW-margin-10,y+15,cellP);
 
                 cellP.setTextAlign(Paint.Align.CENTER);
-                canvas.drawText(fmt(l.qty),pageW-margin-colW[0]-colW[1]/2,y+15,cellP);
+                drawRtlPdfText(canvas,fmt(l.qty),pageW-margin-colW[0]-colW[1]/2,y+15,cellP);
 
                 boldCellP.setTextAlign(Paint.Align.LEFT);
                 boldCellP.setColor(GREEN);
-                canvas.drawText(fmt(l.total)+" ر.ي",margin+10,y+15,boldCellP);
+                drawRtlPdfText(canvas,fmt(l.total)+" ر.ي",margin+10,y+15,boldCellP);
                 boldCellP.setColor(TEXT);
                 y+=rowH;
             }
@@ -9679,9 +9709,9 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         boldCellP.setTextSize(12);
         boldCellP.setColor(GREEN);
         boldCellP.setTextAlign(Paint.Align.RIGHT);
-        canvas.drawText("إجمالي الفاتورة:",pageW-margin-12,y+23,boldCellP);
+        drawRtlPdfText(canvas,"إجمالي الفاتورة:",pageW-margin-12,y+23,boldCellP);
         boldCellP.setTextAlign(Paint.Align.LEFT);
-        canvas.drawText(fmt(total)+" ريال",margin+12,y+23,boldCellP);
+        drawRtlPdfText(canvas,fmt(total)+" ريال",margin+12,y+23,boldCellP);
         y+=42;
 
         // Final Balance Box
@@ -9694,13 +9724,13 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
             boldCellP.setColor(balanceColor(balanceAfter));
             boldCellP.setTextAlign(Paint.Align.CENTER);
             String bTxt=balanceAfter>0?"الإجمالي - عليك "+fmt(balanceAfter)+" يمني":"الإجمالي - له "+fmt(Math.abs(balanceAfter))+" يمني";
-            canvas.drawText(bTxt,pageW/2,y+20,boldCellP);
+            drawRtlPdfText(canvas,bTxt,pageW/2,y+20,boldCellP);
             y+=38;
         }
 
         subP.setTextAlign(Paint.Align.CENTER);
         subP.setColor(MUTED);
-        canvas.drawText("شكراً لتعاملكم مع بقالة العزي",pageW/2,y+16,subP);
+        drawRtlPdfText(canvas,"شكراً لتعاملكم مع بقالة العزي",pageW/2,y+16,subP);
 
         pdf.finishPage(page);
         try(FileOutputStream out=new FileOutputStream(file)){pdf.writeTo(out);}
