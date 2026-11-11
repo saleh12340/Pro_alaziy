@@ -247,54 +247,57 @@ public class AppStorage {
     }
 
     public static boolean saveDatabaseBackup(Context context, File srcDb, String fileName) throws IOException {
-        if (!srcDb.exists()) return false;
-        File tmp = new File(context.getCacheDir(), "backup_tmp.db");
-        try {
-            try (InputStream in = new FileInputStream(srcDb); OutputStream out = new FileOutputStream(tmp)) {
-                byte[] buf = new byte[16384];
-                int n;
-                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+        if(context==null||srcDb==null||!srcDb.isFile()||srcDb.length()<=0)return false;
+        File tmp=new File(context.getCacheDir(),"backup_tmp.db");
+        try{
+            try(InputStream in=new FileInputStream(srcDb);OutputStream out=new FileOutputStream(tmp,false)){
+                byte[] buffer=new byte[16384];int count;
+                while((count=in.read(buffer))!=-1)out.write(buffer,0,count);
                 out.flush();
             }
-            if (!tmp.exists() || tmp.length() == 0) throw new IOException("empty backup");
+            if(!tmp.isFile()||tmp.length()!=srcDb.length()||tmp.length()==0)throw new IOException("empty or incomplete backup");
 
-            boolean saved = false;
-            // 1. MediaStore relative path for Android 10+
-            if (Build.VERSION.SDK_INT >= 29) {
-                try {
-                    ContentValues v = new ContentValues();
-                    v.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
-                    v.put(MediaStore.MediaColumns.MIME_TYPE, "application/octet-stream");
-                    v.put(MediaStore.MediaColumns.RELATIVE_PATH, RELATIVE_BACKUPS);
-                    Uri u = context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
-                    if (u != null) {
-                        try (InputStream in = new FileInputStream(tmp); OutputStream out = context.getContentResolver().openOutputStream(u)) {
-                            if (out != null) {
-                                byte[] buf = new byte[16384];
-                                int n;
-                                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
-                                saved = true;
-                            }
-                        }
+            if(Build.VERSION.SDK_INT>=29){
+                Uri uri=null;
+                try{
+                    ContentValues values=new ContentValues();
+                    values.put(MediaStore.MediaColumns.DISPLAY_NAME,fileName);
+                    values.put(MediaStore.MediaColumns.MIME_TYPE,"application/octet-stream");
+                    values.put(MediaStore.MediaColumns.RELATIVE_PATH,RELATIVE_BACKUPS);
+                    values.put(MediaStore.MediaColumns.IS_PENDING,1);
+                    uri=context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
+                    if(uri==null)throw new IOException("تعذر إنشاء ملف النسخة الاحتياطية");
+                    long copied=0;
+                    try(InputStream in=new FileInputStream(tmp);OutputStream out=context.getContentResolver().openOutputStream(uri,"w")){
+                        if(out==null)throw new IOException("تعذر فتح ملف النسخة الاحتياطية");
+                        byte[] buffer=new byte[16384];int count;
+                        while((count=in.read(buffer))!=-1){out.write(buffer,0,count);copied+=count;}
+                        out.flush();
                     }
-                } catch (Exception ignored) {}
+                    if(copied!=tmp.length())throw new IOException("نسخة احتياطية غير مكتملة");
+                    ContentValues ready=new ContentValues();
+                    ready.put(MediaStore.MediaColumns.IS_PENDING,0);
+                    int published=context.getContentResolver().update(uri,ready,null,null);
+                    if(published<=0)throw new IOException("تعذر إتاحة النسخة الاحتياطية");
+                    return true;
+                }catch(Exception e){
+                    if(uri!=null){try{context.getContentResolver().delete(uri,null,null);}catch(Exception ignored){}}
+                    if(e instanceof IOException)throw (IOException)e;
+                    throw new IOException("تعذر حفظ النسخة الاحتياطية في التنزيلات",e);
+                }
             }
 
-            // 2. Direct folder file in Download/بقالة العزي خاص/النسخ الاحتياطية
-            try {
-                File dest = new File(getBackupsDir(), fileName);
-                try (InputStream in = new FileInputStream(tmp); OutputStream out = new FileOutputStream(dest)) {
-                    byte[] buf = new byte[16384];
-                    int n;
-                    while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
-                    saved = true;
-                }
-                MediaScannerConnection.scanFile(context, new String[]{dest.getAbsolutePath()}, null, null);
-            } catch (Exception ignored) {}
-
-            return saved;
-        } finally {
-            try { tmp.delete(); } catch (Exception ignored) {}
+            File dest=new File(getBackupsDir(),fileName);
+            try(InputStream in=new FileInputStream(tmp);OutputStream out=new FileOutputStream(dest,false)){
+                byte[] buffer=new byte[16384];int count;
+                while((count=in.read(buffer))!=-1)out.write(buffer,0,count);
+                out.flush();
+            }
+            if(!dest.isFile()||dest.length()!=tmp.length())throw new IOException("نسخة احتياطية غير مكتملة");
+            MediaScannerConnection.scanFile(context,new String[]{dest.getAbsolutePath()},null,null);
+            return true;
+        }finally{
+            try{if(tmp.exists())tmp.delete();}catch(Exception ignored){}
         }
     }
 }
