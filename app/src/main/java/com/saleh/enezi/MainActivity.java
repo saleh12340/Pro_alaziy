@@ -6131,7 +6131,35 @@ void operationActions(long customerId,String customerName,long tid,String detail
         }
         share.setTextColor(GREEN); print.setTextColor(GREEN); edit.setTextColor(BLUE); delOrClose.setTextColor(MUTED);
 
-        delOrClose.setOnClickListener(v->dlg.dismiss());
+        if(isInvoice){
+            delOrClose.setText("حذف");
+            delOrClose.setTextColor(RED);
+            delOrClose.setOnClickListener(v->{
+                dlg.dismiss();
+                new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
+                    .setTitle("حذف فاتورة الشراء؟")
+                    .setMessage("سيتم عكس كميات الفاتورة على المخزون وحذف الدفعة التلقائية المرتبطة بها ضمن معاملة واحدة. ستبقى الدفعات المستقلة محفوظة.")
+                    .setPositiveButton("حذف",(x,y)->{
+                        db.deletePurchase(id);
+                        supplierAccount(supplierId,name,phone);
+                        Toast.makeText(this,"تم حذف فاتورة الشراء وعكس أثرها",Toast.LENGTH_SHORT).show();
+                    }).setNegativeButton("إلغاء",null).show();
+            });
+        }else{
+            delOrClose.setText("حذف السداد");
+            delOrClose.setTextColor(RED);
+            delOrClose.setOnClickListener(v->{
+                dlg.dismiss();
+                new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
+                    .setTitle("حذف سداد المورد؟")
+                    .setMessage("سيتم حذف حركة السداد وتحديث رصيد المورد.")
+                    .setPositiveButton("حذف",(x,y)->{
+                        db.deleteSupplierPayment(id);
+                        supplierAccount(supplierId,name,phone);
+                        Toast.makeText(this,"تم حذف السداد وتحديث الرصيد",Toast.LENGTH_SHORT).show();
+                    }).setNegativeButton("إلغاء",null).show();
+            });
+        }
         share.setOnClickListener(v->{dlg.dismiss();shareSupplierStatement(name,phone,supplierStatement(name,supplierId));});
         print.setOnClickListener(v->{dlg.dismiss();previewTextForPrint(supplierStatement(name,supplierId),name);});
         edit.setOnClickListener(v->{
@@ -8394,7 +8422,11 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
             SQLiteDatabase d=getWritableDatabase();
             d.beginTransaction();
             try{
+                String no=purchaseNo(id);
                 revertStockFromPurchase(id);
+                if(no!=null&&!no.trim().isEmpty()){
+                    d.delete("supplier_transactions","invoice_no=? AND details LIKE ?",new String[]{no,"دفعة فاتورة شراء رقم %"});
+                }
                 d.delete("purchase_invoices","id=?",new String[]{String.valueOf(id)});
                 d.setTransactionSuccessful();
             }finally{
