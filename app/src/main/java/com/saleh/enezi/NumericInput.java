@@ -11,6 +11,7 @@ public final class NumericInput {
         if (raw == null) return "";
         StringBuilder mapped = new StringBuilder();
         boolean negative = false;
+        boolean invalid = false;
         String value = raw.trim();
         for (int i = 0; i < value.length(); i++) {
             char c = value.charAt(i);
