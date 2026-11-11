@@ -7959,7 +7959,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
             d.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS ux_items_barcode ON items(barcode) WHERE barcode IS NOT NULL AND trim(barcode)<>''");
         }
         public void onUpgrade(SQLiteDatabase d,int o,int n){ create(d); normalizeAndConstrain(d); }
-        @Override public void onOpen(SQLiteDatabase d){ super.onOpen(d); normalizeAndConstrain(d); }
+        // Data normalization/merging is intentionally NOT run from onOpen.
+        // It remains in onUpgrade only, inside a single SQLite transaction.
         String norm(String s){ return s==null?"":s.trim().replaceAll("\\s+"," ").toLowerCase(Locale.ROOT); }
         String canon(String s){ return s==null?"":s.trim().replaceAll("\\s+"," "); }
 
