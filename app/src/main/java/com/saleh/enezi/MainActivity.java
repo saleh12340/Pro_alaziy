@@ -1469,24 +1469,8 @@ public class MainActivity extends Activity {
         pageStack.clear();
         base("الرئيسية",true);
 
-        // ملخص مختصر وثابت أعلى الرئيسية، مرتب من اليمين إلى اليسار.
-        LinearLayout homeStats=new LinearLayout(this);
-        homeStats.setOrientation(LinearLayout.VERTICAL);
-        homeStats.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        LinearLayout homeStatsTop=new LinearLayout(this);
-        homeStatsTop.setOrientation(LinearLayout.HORIZONTAL);
-        homeStatsTop.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        addHomeSummaryCell(homeStatsTop,"مبيعات اليوم",fmt(safeTodaySales())+" ر.ي",GREEN);
-        addHomeSummaryCell(homeStatsTop,"مشتريات اليوم",fmt(safeTodayPurchases())+" ر.ي",GOLD);
-        LinearLayout homeStatsBottom=new LinearLayout(this);
-        homeStatsBottom.setOrientation(LinearLayout.HORIZONTAL);
-        homeStatsBottom.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        addHomeSummaryCell(homeStatsBottom,"عليك",fmt(db.totalDebts())+" ر.ي",RED);
-        addHomeSummaryCell(homeStatsBottom,"لك",fmt(db.totalCredits())+" ر.ي",GREEN);
-        homeStats.addView(homeStatsTop,new LinearLayout.LayoutParams(-1,-2));
-        homeStats.addView(homeStatsBottom,new LinearLayout.LayoutParams(-1,-2));
-        content.addView(homeStats,new LinearLayout.LayoutParams(-1,-2));
-        addSpace(5);
+        // واجهة رئيسية عملية بلا بطاقات إحصائية؛ يبدأ المحتوى مباشرة بالبحث والعملاء.
+        addSpace(2);
 
         LinearLayout searchRow=new LinearLayout(this);
         searchRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -1966,7 +1950,15 @@ public class MainActivity extends Activity {
         Cursor itemCursor=db.items(); while(itemCursor.moveToNext()) itemSuggestions.add(itemCursor.getString(1)); itemCursor.close();
         item.setThreshold(1); item.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,itemSuggestions));
 
-        total.setInputType(2|8192); qty.setInputType(2|8192); qty.setText("1"); total.setSingleLine(true); qty.setSingleLine(true); item.setSingleLine(true);
+        total.setInputType(2|8192); qty.setInputType(2|8192); qty.setText("1");
+        // السماح بتمدد خلايا الإدخال واحتواء الأرقام والنص كاملاً دون قص أثناء الكتابة.
+        total.setSingleLine(false); qty.setSingleLine(false); item.setSingleLine(false);
+        total.setMinLines(1); qty.setMinLines(1); item.setMinLines(1);
+        total.setMaxLines(2); qty.setMaxLines(2); item.setMaxLines(2);
+        total.setHorizontallyScrolling(false); qty.setHorizontallyScrolling(false); item.setHorizontallyScrolling(false);
+        total.setEllipsize(null); qty.setEllipsize(null); item.setEllipsize(null);
+        total.setGravity(Gravity.CENTER); qty.setGravity(Gravity.CENTER); item.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+        total.setMinHeight(dp(42)); qty.setMinHeight(dp(42)); item.setMinHeight(dp(42));
 
         item.setOnItemClickListener((parent,view,pos,id)->{
             String selectedName=(String)parent.getItemAtPosition(pos);
@@ -1980,10 +1972,10 @@ public class MainActivity extends Activity {
         });
 
         // الترتيب: الإجمالي -> الكمية -> اسم الصنف
-        line.addView(total,new LinearLayout.LayoutParams(0,dp(36),1.0f));
-        LinearLayout.LayoutParams qlp=new LinearLayout.LayoutParams(0,dp(36),0.72f); qlp.setMargins(dp(4),0,dp(4),0);
+        line.addView(total,new LinearLayout.LayoutParams(0,-2,1.0f));
+        LinearLayout.LayoutParams qlp=new LinearLayout.LayoutParams(0,-2,0.82f); qlp.setMargins(dp(4),0,dp(4),0);
         line.addView(qty,qlp);
-        line.addView(item,new LinearLayout.LayoutParams(0,dp(36),1.35f));
+        line.addView(item,new LinearLayout.LayoutParams(0,-2,1.45f));
         entry.addView(line,new LinearLayout.LayoutParams(-1,-2));
         spaceTo(entry,4);
 
@@ -2007,14 +1999,16 @@ public class MainActivity extends Activity {
         head.setGravity(Gravity.CENTER_VERTICAL);
         head.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         head.setBackground(outlined(Color.WHITE,1,8));
-        String[] heads={"الإجمالي","الكمية","اسم الصنف","سعر الوحدة","حذف"};
-        float[] weights={1.0f,.72f,1.35f,.9f,.55f};
+        String[] heads={"الإجمالي","الكمية","اسم الصنف","سعر الوحدة (محسوب)","حذف"};
+        float[] weights={1.0f,.82f,1.45f,.9f,.55f};
         for(int i=0;i<heads.length;i++){
             TextView hv=tv(heads[i],9.5f);
             hv.setTextColor(GREEN); hv.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-            hv.setGravity(Gravity.CENTER); hv.setSingleLine(true);
+            hv.setGravity(Gravity.CENTER); hv.setSingleLine(false); hv.setMaxLines(2);
+            hv.setEllipsize(null); hv.setHorizontallyScrolling(false);
             hv.setBackgroundColor(Color.TRANSPARENT);
-            head.addView(hv,new LinearLayout.LayoutParams(0,dp(24),weights[i]));
+            hv.setMinHeight(dp(32));
+            head.addView(hv,new LinearLayout.LayoutParams(0,-2,weights[i]));
         }
         table.addView(head,new LinearLayout.LayoutParams(-1,-2));
         spaceTo(table,4);
@@ -2582,15 +2576,23 @@ public class MainActivity extends Activity {
     static class Line{String name;double qty,total;Line(String n,double q,double t){name=n;qty=q;total=t;}}
     void addRow(LinearLayout parent,Line l,double running,double baseBal,ArrayList<Line> all){
         LinearLayout r=new LinearLayout(this);r.setOrientation(LinearLayout.HORIZONTAL);r.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);r.setGravity(Gravity.CENTER_VERTICAL);r.setPadding(dp(2),dp(2),dp(2),dp(2));
-        float[] w={1.0f,.72f,1.35f,.9f,.55f};
-        TextView total=tv(fmt(l.total),13);total.setGravity(Gravity.CENTER);total.setSingleLine(true);
-        TextView qty=tv(fmt(l.qty),13);qty.setGravity(Gravity.CENTER);qty.setSingleLine(true);
-        TextView item=tv(l.name,12);item.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);item.setMaxLines(Integer.MAX_VALUE);item.setEllipsize(null);
-        TextView unit=tv(l.qty==0?"0":fmt(l.total/l.qty),12);unit.setTextColor(MUTED);unit.setGravity(Gravity.CENTER);unit.setSingleLine(true);
+        float[] w={1.0f,.82f,1.45f,.9f,.55f};
+        // سعر الوحدة لا يُدخل يدوياً: يُحسب دائماً من إجمالي السطر ÷ الكمية.
+        TextView total=tv(fmt(l.total),13);total.setGravity(Gravity.CENTER);total.setSingleLine(false);
+        TextView qty=tv(fmt(l.qty),13);qty.setGravity(Gravity.CENTER);qty.setSingleLine(false);
+        TextView item=tv(l.name,12);item.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);item.setSingleLine(false);item.setMaxLines(Integer.MAX_VALUE);item.setEllipsize(null);
+        TextView unit=tv(l.qty==0?"0":fmt(l.total/l.qty),12);unit.setTextColor(MUTED);unit.setGravity(Gravity.CENTER);unit.setSingleLine(false);
+        for(TextView cell:new TextView[]{total,qty,item,unit}){
+            cell.setMaxLines(Integer.MAX_VALUE);
+            cell.setEllipsize(null);
+            cell.setHorizontallyScrolling(false);
+            cell.setMinHeight(dp(36));
+            cell.setPadding(dp(3),dp(4),dp(3),dp(4));
+        }
         Button del=button("حذف");del.setTextSize(10);del.setTextColor(Color.RED);del.setBackgroundColor(Color.TRANSPARENT);
         total.setBackground(outline(Color.WHITE,6));qty.setBackground(outline(Color.WHITE,6));item.setBackground(outline(Color.WHITE,6));
         total.setContentDescription("تعديل إجمالي الصنف");qty.setContentDescription("تعديل كمية الصنف");item.setContentDescription("تعديل اسم الصنف أو التفاصيل");
-        total.setMinHeight(dp(32)); qty.setMinHeight(dp(32)); item.setMinHeight(dp(32)); unit.setMinHeight(dp(32)); del.setMinHeight(dp(32));
+        total.setMinHeight(dp(36)); qty.setMinHeight(dp(36)); item.setMinHeight(dp(36)); unit.setMinHeight(dp(36)); del.setMinHeight(dp(36));
         View[] cells={total,qty,item,unit,del};for(int i=0;i<cells.length;i++)r.addView(cells[i],new LinearLayout.LayoutParams(0,-2,w[i]));
         total.setOnClickListener(v->editLineTotal(l,parent,all,baseBal));
         qty.setOnClickListener(v->editLineQuantity(l,parent,all,baseBal));
