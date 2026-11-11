@@ -25,6 +25,12 @@ public class DatabaseMigrationTest {
         if (databaseFile.exists()) databaseFile.delete();
         database = SQLiteDatabase.openOrCreateDatabase(databaseFile, null);
         helper = new MainActivity().new DB(context);
+        database.execSQL("CREATE TABLE customers(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,phone TEXT)");
+        database.execSQL("CREATE TABLE invoices(id INTEGER PRIMARY KEY AUTOINCREMENT,no TEXT,customer TEXT,total REAL,paid REAL DEFAULT 0,date TEXT)");
+        database.execSQL("CREATE TABLE transactions(id INTEGER PRIMARY KEY AUTOINCREMENT,customer_id INTEGER,amount REAL,details TEXT,type INTEGER,date TEXT)");
+        database.execSQL("CREATE TABLE items(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT,qty REAL,min_qty REAL,cost REAL DEFAULT 0,sale REAL DEFAULT 0)");
+        database.execSQL("CREATE TABLE suppliers(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,phone TEXT)");
+        database.execSQL("CREATE TABLE purchase_invoices(id INTEGER PRIMARY KEY AUTOINCREMENT,no TEXT,supplier TEXT,total REAL,paid REAL DEFAULT 0,date TEXT)");
         helper.create(database);
     }
 
@@ -54,7 +60,7 @@ public class DatabaseMigrationTest {
         database.execSQL("INSERT INTO offers(name,item_id) VALUES('عرض',2)");
         database.execSQL("INSERT INTO product_prices(item_id,price_type,price,unit) VALUES(2,'sale',15,'piece')");
 
-        helper.normalizeAndConstrain(database);
+        helper.onUpgrade(database, 4, 5);
 
         assertEquals(1, scalar("SELECT COUNT(*) FROM customers"));
         assertEquals(1, scalar("SELECT customer_id FROM transactions LIMIT 1"));
