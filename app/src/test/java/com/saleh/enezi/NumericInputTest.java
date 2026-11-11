@@ -22,5 +22,8 @@ public class NumericInputTest {
         assertEquals(-1d, NumericInput.parseDouble("", -1), 0d);
         assertEquals(-1d, NumericInput.parseDouble("abc", -1), 0d);
         assertEquals(-1d, NumericInput.parseDouble("-", -1), 0d);
+        assertEquals(-1d, NumericInput.parseDouble("12abc", -1), 0d);
+        assertEquals(-1d, NumericInput.parseDouble("12-3", -1), 0d);
+        assertEquals(-12.5d, NumericInput.parseDouble("-12,5", -1), 0.000001d);
     }
 }
