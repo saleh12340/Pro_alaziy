@@ -362,9 +362,17 @@ public class MainActivity extends Activity {
     // يفرض اتجاه RTL على عناصر الواجهة التي ترث الاتجاه من الحاوية،
     // مع الإبقاء على العناصر التي حُدد لها LTR صراحةً (مثل بعض صفوف الأرقام).
     void applyRtlLayoutDirection(View view){
+        applyRtlLayoutDirection(view,false);
+    }
+    void applyRtlLayoutDirection(View view,boolean insideExplicitLtr){
         if(view==null) return;
         int rawDirection=view.getRawLayoutDirection();
-        if(rawDirection==View.LAYOUT_DIRECTION_INHERIT || rawDirection==View.LAYOUT_DIRECTION_LOCALE){
+        boolean preserveLtr=insideExplicitLtr;
+        if(rawDirection==View.LAYOUT_DIRECTION_LTR){
+            preserveLtr=true;
+        }else if(rawDirection==View.LAYOUT_DIRECTION_RTL){
+            preserveLtr=false;
+        }else if(!preserveLtr && (rawDirection==View.LAYOUT_DIRECTION_INHERIT || rawDirection==View.LAYOUT_DIRECTION_LOCALE)){
             view.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         }
         if(view instanceof TextView && !(view instanceof EditText)){
@@ -372,10 +380,8 @@ public class MainActivity extends Activity {
         }
         if(view instanceof ViewGroup){
             ViewGroup group=(ViewGroup)view;
-            group.setClipChildren(false);
-            group.setClipToPadding(false);
             for(int i=0;i<group.getChildCount();i++){
-                applyRtlLayoutDirection(group.getChildAt(i));
+                applyRtlLayoutDirection(group.getChildAt(i),preserveLtr);
             }
         }
     }
