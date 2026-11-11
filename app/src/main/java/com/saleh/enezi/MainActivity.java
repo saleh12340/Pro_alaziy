@@ -2117,7 +2117,7 @@ public class MainActivity extends Activity {
             String cn=customer.getText().toString().trim();
             double cb=getCustomerPriorBalance(cn,edit,origCustomer,origNetImpact);
             customerBalance.setText("رصيد العميل: "+balanceText(cb));
-            double paidPreview=0;try{paidPreview=Double.parseDouble(paid.getText().toString().trim());}catch(Exception ignored){}
+            double paidPreview=parseDoubleSafe(paid.getText().toString(),0);
             double invPreview=0;for(Line lx:lines)invPreview+=lx.total;
             double net=cb+invPreview-paidPreview;
             if(Math.abs(net)<0.005) net=0;
@@ -2134,7 +2134,7 @@ public class MainActivity extends Activity {
             double run=0;
             for(Line l:lines){run+=l.total;addRow(rows,l,run,priorBal,lines);}
             boxTotal.setText("الإجمالي: "+fmt(run)+" ريال");
-            double paidNow=0; try{paidNow=Double.parseDouble(paid.getText().toString().trim());}catch(Exception ignored){}
+            double paidNow=parseDoubleSafe(paid.getText().toString(),0);
             if(paidNow<0)paidNow=0;
             double remaining=priorBal+run-paidNow;if(Math.abs(remaining)<0.005)remaining=0;
             remainingLabel.setText("المتبقي: "+fmt(remaining)+" ريال");
@@ -2157,8 +2157,8 @@ public class MainActivity extends Activity {
 
         add.setOnClickListener(v->{
             try{
-                double t=Double.parseDouble(total.getText().toString().trim());
-                double q=Double.parseDouble(qty.getText().toString().trim());
+                double t=parseDoubleSafe(total.getText().toString(),-1);
+                double q=parseDoubleSafe(qty.getText().toString(),-1);
                 String n=item.getText().toString().trim();
                 if(n.isEmpty()||q<=0||t<0)throw new Exception();
                 lines.add(new Line(n,q,t));
@@ -2203,7 +2203,7 @@ public class MainActivity extends Activity {
     }
 
     double totalOf(ArrayList<Line> ls){double x=0;for(Line l:ls)x+=l.total;return x;}
-    double parsePaid(EditText e){try{return Math.max(0,Double.parseDouble(e.getText().toString().trim()));}catch(Exception ex){return 0;}}
+    double parsePaid(EditText e){return Math.max(0,parseDoubleSafe(e==null?"":e.getText().toString(),0));}
     void showPhoneDialog(String name,String no,ArrayList<Line> lines,double total,double paid,boolean edit,long oldId){
         EditText phone=phoneField("رقم هاتف العميل");
         phone.setText(db.phoneByName(name));
@@ -2611,7 +2611,7 @@ public class MainActivity extends Activity {
         EditText e=numberField("الإجمالي");e.setText(fmt(line.total));e.setSelectAllOnFocus(true);
         LinearLayout box=new LinearLayout(this);box.setPadding(dp(8),dp(4),dp(8),dp(2));box.addView(e,new LinearLayout.LayoutParams(-1,dp(42)));
         new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("تعديل إجمالي الصنف").setMessage(line.name+" — الإجمالي الحالي: "+fmt(line.total)+" ريال").setView(box)
-            .setNegativeButton("إلغاء",null).setPositiveButton("حفظ",(d,w)->{try{double value=Double.parseDouble(e.getText().toString().trim());if(value<0)throw new Exception();line.total=value;redrawInvoiceRows(parent,all,baseBal);}catch(Exception ex){Toast.makeText(this,"أدخل إجماليًا صحيحًا",Toast.LENGTH_SHORT).show();}}).show();
+            .setNegativeButton("إلغاء",null).setPositiveButton("حفظ",(d,w)->{try{double value=parseDoubleSafe(e.getText().toString(),-1);if(value<0)throw new Exception();line.total=value;redrawInvoiceRows(parent,all,baseBal);}catch(Exception ex){Toast.makeText(this,"أدخل إجماليًا صحيحًا",Toast.LENGTH_SHORT).show();}}).show();
     }
     void editLineName(Line line,LinearLayout parent,ArrayList<Line> all,double baseBal){
         EditText e=field("اسم الصنف / التفاصيل");e.setText(line.name);e.setSelectAllOnFocus(true);
@@ -2623,7 +2623,7 @@ public class MainActivity extends Activity {
         EditText q=numberField("الكمية");q.setText(fmt(line.qty));q.setSelectAllOnFocus(true);
         LinearLayout box=new LinearLayout(this);box.setPadding(dp(8),dp(4),dp(8),dp(2));box.addView(q,new LinearLayout.LayoutParams(-1,dp(42)));
         new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("تعديل كمية الصنف").setMessage(line.name+" — الكمية الحالية: "+fmt(line.qty)).setView(box)
-            .setNegativeButton("إلغاء",null).setPositiveButton("حفظ",(d,w)->{try{double value=Double.parseDouble(q.getText().toString().trim());if(value<=0)throw new Exception();line.qty=value;redrawInvoiceRows(parent,all,baseBal);}catch(Exception e){Toast.makeText(this,"أدخل كمية صحيحة",Toast.LENGTH_SHORT).show();}}).show();
+            .setNegativeButton("إلغاء",null).setPositiveButton("حفظ",(d,w)->{try{double value=parseDoubleSafe(q.getText().toString(),-1);if(value<=0)throw new Exception();line.qty=value;redrawInvoiceRows(parent,all,baseBal);}catch(Exception e){Toast.makeText(this,"أدخل كمية صحيحة",Toast.LENGTH_SHORT).show();}}).show();
     }
     void redrawInvoiceRows(LinearLayout parent,ArrayList<Line> all,double baseBal){parent.removeAllViews();double run=0;for(Line x:all){run+=x.total;addRow(parent,x,run,baseBal,all);}}
     void spaceTo(LinearLayout p,int h){Space x=new Space(this);p.addView(x,new LinearLayout.LayoutParams(1,dp(h)));}
@@ -5093,8 +5093,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
             if(updatingUnit[0]) return;
             updatingTotal[0]=true;
             try{
-                double t=Double.parseDouble(total.getText().toString().trim());
-                double q=Double.parseDouble(qty.getText().toString().trim());
+                double t=parseDoubleSafe(total.getText().toString(),-1);
+                double q=parseDoubleSafe(qty.getText().toString(),-1);
                 if(q>0) unit.setText(fmt(t/q));
             }catch(Exception e){unit.setText("");}
             updatingTotal[0]=false;
@@ -5530,10 +5530,37 @@ void operationActions(long customerId,String customerName,long tid,String detail
         redraw[0].run();
     }
 
+    String normalizeNumericInput(String raw){
+        if(raw==null)return "";
+        StringBuilder out=new StringBuilder();
+        String value=raw.trim();
+        for(int i=0;i<value.length();i++){
+            char ch=value.charAt(i);
+            if(ch>='٠'&&ch<='٩') ch=(char)('0'+(ch-'٠'));
+            else if(ch>='۰'&&ch<='۹') ch=(char)('0'+(ch-'۰'));
+            if(ch=='٫') ch='.';
+            if(ch=='٬'||ch==' '||ch==' ') continue;
+            if(ch==','||ch=='،'){
+                int digitsAfter=0;
+                for(int j=i+1;j<value.length();j++){
+                    char next=value.charAt(j);
+                    if(next>='٠'&&next<='٩'||next>='۰'&&next<='۹'||next>='0'&&next<='9')digitsAfter++;
+                    else if(next==','||next=='،'||next=='٫'||next=='.')break;
+                    else if(!Character.isWhitespace(next))break;
+                }
+                if(digitsAfter>0&&digitsAfter<=2&&value.indexOf(',')==i&&value.indexOf('،')<0)out.append('.');
+                else if(digitsAfter>0&&digitsAfter<=2&&value.indexOf('،')==i&&value.indexOf(',')<0)out.append('.');
+                continue;
+            }
+            if(ch=='.'||ch=='-'||ch>='0'&&ch<='9')out.append(ch);
+        }
+        return out.toString();
+    }
     double parseDoubleSafe(String value,double fallback){
         try{
-            if(value==null||value.trim().isEmpty())return fallback;
-            return Double.parseDouble(value.replace(",","").trim());
+            String normalized=normalizeNumericInput(value);
+            if(normalized.isEmpty()||".".equals(normalized)||"-".equals(normalized))return fallback;
+            return Double.parseDouble(normalized);
         }catch(Exception e){return fallback;}
     }
 
