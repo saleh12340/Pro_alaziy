@@ -6596,7 +6596,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                         if(currentPeriod[0]==PERIOD_TODAY && !fd.startsWith(todayDate)) continue;
                         if(currentPeriod[0]==PERIOD_YESTERDAY && !fd.startsWith(yesterdayDate)) continue;
                         if(currentPeriod[0]==PERIOD_MONTH && !fd.startsWith(monthPrefix)) continue;
-                        if(currentPeriod[0]==PERIOD_CUSTOM && (fd.compareTo(customFrom[0])<0 || fd.compareTo(customTo[0]+" 23:59:59")>0)) continue;
+                        if(currentPeriod[0]==PERIOD_CUSTOM && (fd.length()<10 || fd.substring(0,10).compareTo(customFrom[0])<0 || fd.substring(0,10).compareTo(customTo[0])>0)) continue;
 
                         // Search text query check
                         if(!q.isEmpty()){
