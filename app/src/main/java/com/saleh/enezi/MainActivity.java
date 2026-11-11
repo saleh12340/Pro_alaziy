@@ -896,6 +896,21 @@ public class MainActivity extends Activity {
     }
     @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] grantResults){
         super.onRequestPermissionsResult(requestCode,permissions,grantResults);
+        if(requestCode==7202){
+            android.content.SharedPreferences pending=getSharedPreferences("saved_file_notification",MODE_PRIVATE);
+            if(grantResults.length>0&&grantResults[0]==PackageManager.PERMISSION_GRANTED){
+                String savedUri=pending.getString("uri","");
+                String savedTitle=pending.getString("title","تم حفظ الملف");
+                String savedName=pending.getString("name","");
+                String savedMime=pending.getString("mime","application/octet-stream");
+                pending.edit().clear().apply();
+                if(!savedUri.isEmpty())notifySavedFile(savedTitle,savedName,Uri.parse(savedUri),savedMime);
+            }else{
+                pending.edit().clear().apply();
+                Toast.makeText(this,"يمكن فتح الملفات المحفوظة من مجلد التنزيلات حتى دون الإشعارات",Toast.LENGTH_LONG).show();
+            }
+            return;
+        }
         if(requestCode==REQ_CONTACTS && grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED){
             boolean receiver=transferContactNameTarget==transferReceiverName;
             importTransferContact(receiver);
@@ -2228,7 +2243,7 @@ public class MainActivity extends Activity {
                 final long confirmedOldId=oldId;
                 new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
                     .setTitle("المخزون غير كافٍ")
-                    .setMessage(stockWarning+"\\n\\nهل تريد متابعة حفظ الفاتورة مع تسجيل العجز في المخزون بالسالب؟")
+                    .setMessage(stockWarning+((char)10)+((char)10)+"هل تريد متابعة حفظ الفاتورة مع تسجيل العجز في المخزون بالسالب؟")
                     .setPositiveButton("متابعة وتسجيل العجز",(dialog,which)->{
                         invoiceNegativeStockConfirmed=true;
                         saveInvoice(confirmedName,confirmedNo,confirmedLines,confirmedTotal,confirmedPaid,confirmedPhone,confirmedEdit,confirmedOldId);
@@ -2469,6 +2484,9 @@ public class MainActivity extends Activity {
         if(uri==null)return;
         try{
             if(android.os.Build.VERSION.SDK_INT>=33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS")!=android.content.pm.PackageManager.PERMISSION_GRANTED){
+                getSharedPreferences("saved_file_notification",MODE_PRIVATE).edit()
+                        .putString("uri",uri.toString()).putString("title",title==null?"تم حفظ الملف":title)
+                        .putString("name",fileName==null?"":fileName).putString("mime",mimeType==null?"application/octet-stream":mimeType).apply();
                 requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"},7202);
                 return;
             }
@@ -3851,6 +3869,9 @@ void operationActions(long customerId,String customerName,long tid,String detail
                         }else if(w==3){
                             try{
                                 Bitmap b=transferReceiptBitmap(a,sn,sp,rn,rp,dt);
+                                String savedName="إيصال_حوالة_"+id+"_"+System.currentTimeMillis()+".png";
+                                Uri savedImage=AppStorage.saveAppImage(this,b,savedName);
+                                if(savedImage!=null)notifySavedFile("تم حفظ صورة الحوالة",savedName,savedImage,"image/png");
                                 Uri u=saveReceiptBitmap(b,"transfer_"+id);
                                 DocumentCenter.shareImageUri(this,u,txt,"مشاركة صورة الإيصال");
                             }catch(Exception ex){Toast.makeText(this,"تعذر إنشاء صورة الإيصال",Toast.LENGTH_SHORT).show();}
@@ -4511,6 +4532,14 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 }
                 savedUri=Uri.fromFile(file);
                 sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,savedUri));
+            }
+            if(savedUri!=null){
+                Uri openUri=savedUri;
+                if("file".equalsIgnoreCase(savedUri.getScheme())){
+                    File legacyFile=new File(savedUri.getPath());
+                    openUri=FileProvider.getUriForFile(this,getPackageName()+".fileprovider",legacyFile);
+                }
+                notifySavedFile("تم حفظ صورة الملاحظة",name,openUri,"image/png");
             }
             Toast.makeText(this,"تم حفظ صورة الملاحظة في الصور",Toast.LENGTH_LONG).show();
         }catch(Exception e){
@@ -5781,7 +5810,11 @@ void operationActions(long customerId,String customerName,long tid,String detail
     }
     void shareSupplierStatement(String name,String phone,String statement){
         try{
-            Bitmap b=supplierStatementBitmap(statement);Uri uri=saveReceiptBitmap(b,"حساب_مورد_"+System.currentTimeMillis());
+            Bitmap b=supplierStatementBitmap(statement);
+            String savedName="كشف_مورد_"+name.replaceAll("[\\/:*?\"<>|]","_")+"_"+System.currentTimeMillis()+".png";
+            Uri savedImage=AppStorage.saveAppImage(this,b,savedName);
+            if(savedImage!=null)notifySavedFile("تم حفظ صورة كشف المورد",savedName,savedImage,"image/png");
+            Uri uri=saveReceiptBitmap(b,"حساب_مورد_"+System.currentTimeMillis());
             shareWhatsAppToCustomer(phone,statement,uri);
         }catch(Exception e){
             Toast.makeText(this,"تعذر مشاركة كشف المورد",Toast.LENGTH_SHORT).show();
@@ -7411,7 +7444,14 @@ void operationActions(long customerId,String customerName,long tid,String detail
         if(bitmap==null) return null;
         String timeStamp=new SimpleDateFormat("yyyyMMdd_HHmmss",Locale.US).format(new Date());
         String fileName="فاتورة_"+timeStamp+".jpg";
-        return AppStorage.saveInvoicePhoto(this, bitmap, fileName);
+        String path=AppStorage.saveInvoicePhoto(this,bitmap,fileName);
+        if(path!=null){
+            try{
+                Uri savedUri=FileProvider.getUriForFile(this,getPackageName()+".fileprovider",new File(path));
+                notifySavedFile("تم حفظ صورة الفاتورة الممسوحة",fileName,savedUri,"image/jpeg");
+            }catch(Exception ignored){}
+        }
+        return path;
     }
 
     void shareScannedInvoice(String filePath,String title){
@@ -7430,7 +7470,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
             intent.setType("image/jpeg");
             intent.putExtra(Intent.EXTRA_STREAM,uri);
             intent.putExtra(Intent.EXTRA_SUBJECT,title);
-            intent.putExtra(Intent.EXTRA_TEXT,"فاتورة: "+title+"\nبقالة العزي للمواد الغذائية للمواد الغذائية");
+            intent.putExtra(Intent.EXTRA_TEXT,"فاتورة: "+title+"\nبقالة العزي للمواد الغذائية");
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             startActivity(Intent.createChooser(intent,"مشاركة الفاتورة عبر"));
         }catch(Exception e){
@@ -9400,6 +9440,9 @@ File createPurchaseInvoicePdf(String no,String supplier,ArrayList<PurchaseLine> 
             ArrayList<PurchaseLine> lines=loadPurchaseLines(id);
             String text=purchaseReceiptText(no,supplier,lines,total,date);
             Bitmap b=purchaseReceiptBitmap(no,supplier,lines,total,date);
+            String savedName="فاتورة_شراء_"+no+"_"+System.currentTimeMillis()+".png";
+            Uri savedImage=AppStorage.saveAppImage(this,b,savedName);
+            if(savedImage!=null)notifySavedFile("تم حفظ صورة فاتورة الشراء",savedName,savedImage,"image/png");
             Uri uri=saveReceiptBitmap(b,"purchase_"+no);
             if(uri==null||!"content".equalsIgnoreCase(uri.getScheme())) throw new IllegalStateException("invalid purchase receipt URI");
             shareWhatsAppToCustomer(db.supplierPhoneByName(supplier),text,uri);
@@ -9427,6 +9470,9 @@ File createPurchaseInvoicePdf(String no,String supplier,ArrayList<PurchaseLine> 
         try{
             ArrayList<PurchaseLine> lines=loadPurchaseLines(id);
             Bitmap b=purchaseReceiptBitmap(no,supplier,lines,total,date);
+            String savedName="فاتورة_شراء_"+no+"_"+System.currentTimeMillis()+".png";
+            Uri savedImage=AppStorage.saveAppImage(this,b,savedName);
+            if(savedImage!=null)notifySavedFile("تم حفظ صورة فاتورة الشراء",savedName,savedImage,"image/png");
             Uri uri=saveReceiptBitmap(b,"purchase_"+no);
             Intent i=new Intent(Intent.ACTION_SEND);
             i.setType("image/png");
