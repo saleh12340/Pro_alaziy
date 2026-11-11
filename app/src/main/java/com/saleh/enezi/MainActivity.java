@@ -1163,9 +1163,19 @@ public class MainActivity extends Activity {
         LinearLayout row2 = new LinearLayout(this);
         row2.setOrientation(LinearLayout.HORIZONTAL);
         row2.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        addDashboardKPICard(row2, "قيمة البضاعة", fmt(kpis.stockValuation) + " ر.ي", DARK, kpis.totalItemsCount + " صنف");
-        addDashboardKPICard(row2, "تقدير الأرباح", fmt(kpis.estimatedProfit) + " ر.ي", kpis.estimatedProfit >= 0 ? GREEN : RED, "إجمالي الهامش");
+        addDashboardKPICard(row2, "قيمة البضاعة بالتكلفة", fmt(kpis.stockValuation) + " ر.ي", DARK,
+                kpis.uncostedStockItems > 0 ? "بلا تكلفة: " + kpis.uncostedStockItems + " صنف" : kpis.totalItemsCount + " صنف");
+        addDashboardKPICard(row2, "هامش الأصناف معلومة التكلفة", fmt(kpis.estimatedProfit) + " ر.ي",
+                kpis.estimatedProfit >= 0 ? GREEN : RED,
+                kpis.missingCostLines > 0 ? "غير مكتمل: " + kpis.missingCostLines + " بند بلا تكلفة" : "التكلفة مسجلة");
         kpiContainer.addView(row2, new LinearLayout.LayoutParams(-1, -2));
+
+        LinearLayout row4 = new LinearLayout(this);
+        row4.setOrientation(LinearLayout.HORIZONTAL);
+        row4.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        addDashboardKPICard(row4, "تحصيلات العملاء", fmt(kpis.customerCollections) + " ر.ي", BLUE_PRIMARY, "مبالغ مقبوضة");
+        addDashboardKPICard(row4, "مدفوعات الموردين", fmt(kpis.supplierPayments) + " ر.ي", GOLD, "مبالغ مسددة");
+        kpiContainer.addView(row4, new LinearLayout.LayoutParams(-1, -2));
 
         LinearLayout row3 = new LinearLayout(this);
         row3.setOrientation(LinearLayout.HORIZONTAL);
@@ -6302,9 +6312,11 @@ void operationActions(long customerId,String customerName,long tid,String detail
 
             // Card 3: Estimated Net Profit
             LinearLayout cProfit=card(); cProfit.setOrientation(LinearLayout.VERTICAL); cProfit.setGravity(Gravity.CENTER); cProfit.setPadding(dp(6),dp(6),dp(6),dp(6));
-            TextView cProftT=tv("📈 الربح الإجمالي التقديري",10f); cProftT.setTextColor(MUTED); cProftT.setGravity(Gravity.CENTER);
+            TextView cProftT=tv("📈 هامش الأصناف معلومة التكلفة",10f); cProftT.setTextColor(MUTED); cProftT.setGravity(Gravity.CENTER);
             TextView cProftV=tv("0 ر.ي",12.5f); cProftV.setTextColor(BLUE); cProftV.setTypeface(Typeface.DEFAULT,Typeface.BOLD); cProftV.setGravity(Gravity.CENTER);
+            TextView cProfitNote=tv("يحسب من التكلفة المسجلة فقط",9f); cProfitNote.setTextColor(MUTED); cProfitNote.setGravity(Gravity.CENTER);
             cProfit.addView(cProftT,new LinearLayout.LayoutParams(-1,-2)); cProfit.addView(cProftV,new LinearLayout.LayoutParams(-1,-2));
+            cProfit.addView(cProfitNote,new LinearLayout.LayoutParams(-1,-2));
             statRow1.addView(cSales,new LinearLayout.LayoutParams(0,-2,1));
             LinearLayout.LayoutParams slp1=new LinearLayout.LayoutParams(0,-2,1); slp1.setMargins(dp(4),0,0,0);
             statRow1.addView(cPurch,slp1);
@@ -6314,6 +6326,27 @@ void operationActions(long customerId,String customerName,long tid,String detail
             statGrid.addView(statRow1,new LinearLayout.LayoutParams(-1,-2));
 
             // Snapshot metrics: current positive stock value at recorded cost and negative-stock item count.
+            LinearLayout cashFlowRow=new LinearLayout(this);
+            cashFlowRow.setOrientation(LinearLayout.HORIZONTAL);
+            cashFlowRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+            cashFlowRow.setPadding(0,dp(5),0,0);
+            LinearLayout collectionsCard=card();collectionsCard.setOrientation(LinearLayout.VERTICAL);
+            collectionsCard.setGravity(Gravity.CENTER);collectionsCard.setPadding(dp(6),dp(6),dp(6),dp(6));
+            TextView collectionsTitle=tv("💵 تحصيلات العملاء",10f);collectionsTitle.setTextColor(MUTED);collectionsTitle.setGravity(Gravity.CENTER);
+            TextView collectionsValue=tv("0 ر.ي",12.5f);collectionsValue.setTextColor(GREEN);collectionsValue.setTypeface(Typeface.DEFAULT,Typeface.BOLD);collectionsValue.setGravity(Gravity.CENTER);
+            collectionsCard.addView(collectionsTitle,new LinearLayout.LayoutParams(-1,-2));
+            collectionsCard.addView(collectionsValue,new LinearLayout.LayoutParams(-1,-2));
+            LinearLayout supplierPaymentsCard=card();supplierPaymentsCard.setOrientation(LinearLayout.VERTICAL);
+            supplierPaymentsCard.setGravity(Gravity.CENTER);supplierPaymentsCard.setPadding(dp(6),dp(6),dp(6),dp(6));
+            TextView supplierPaymentsTitle=tv("🏪 مدفوعات الموردين",10f);supplierPaymentsTitle.setTextColor(MUTED);supplierPaymentsTitle.setGravity(Gravity.CENTER);
+            TextView supplierPaymentsValue=tv("0 ر.ي",12.5f);supplierPaymentsValue.setTextColor(GOLD);supplierPaymentsValue.setTypeface(Typeface.DEFAULT,Typeface.BOLD);supplierPaymentsValue.setGravity(Gravity.CENTER);
+            supplierPaymentsCard.addView(supplierPaymentsTitle,new LinearLayout.LayoutParams(-1,-2));
+            supplierPaymentsCard.addView(supplierPaymentsValue,new LinearLayout.LayoutParams(-1,-2));
+            cashFlowRow.addView(collectionsCard,new LinearLayout.LayoutParams(0,-2,1));
+            LinearLayout supplierPayLp=new LinearLayout.LayoutParams(0,-2,1);supplierPayLp.setMargins(dp(4),0,0,0);
+            cashFlowRow.addView(supplierPaymentsCard,supplierPayLp);
+            statGrid.addView(cashFlowRow,new LinearLayout.LayoutParams(-1,-2));
+
             LinearLayout stockStatsRow=new LinearLayout(this);
             stockStatsRow.setOrientation(LinearLayout.HORIZONTAL);
             stockStatsRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
@@ -6381,7 +6414,11 @@ void operationActions(long customerId,String customerName,long tid,String detail
 
                     double periodSalesTotal=0;
                     double periodPurchasesTotal=0;
+                    double periodKnownCostSales=0;
                     double periodCogsTotal=0;
+                    int periodMissingCostLines=0;
+                    double periodCustomerCollections=0;
+                    double periodSupplierPayments=0;
 
                     while(c.moveToNext()){
                         int kind=c.getInt(0); // 1: sales invoice, 2: transaction, 3: purchase invoice
@@ -6411,18 +6448,12 @@ void operationActions(long customerId,String customerName,long tid,String detail
                         // Category filter check
                         if(currentFilter[0]==FILTER_SALES && kind!=1) continue;
                         if(currentFilter[0]==FILTER_PURCHASES && kind!=3) continue;
-                        if(currentFilter[0]==FILTER_OPS && kind!=2) continue;
+                        if(currentFilter[0]==FILTER_OPS && kind!=2 && kind!=4) continue;
 
-                        if(kind==1){
-                            periodSalesTotal+=amount;
-                            long reportInvoiceId=db.invoiceIdByNo(fr);
-                            if(reportInvoiceId>0){
-                                Cursor costCursor=db.getReadableDatabase().rawQuery("SELECT COALESCE(qty,0),COALESCE(unit_cost,0) FROM invoice_items WHERE invoice_id=?",new String[]{String.valueOf(reportInvoiceId)});
-                                while(costCursor.moveToNext()) periodCogsTotal += costCursor.getDouble(0)*costCursor.getDouble(1);
-                                costCursor.close();
-                            }
-                        }
+                        if(kind==1) periodSalesTotal+=amount;
                         if(kind==3) periodPurchasesTotal+=amount;
+                        if(kind==2 && operationType==0) periodCustomerCollections+=amount;
+                        if(kind==4) periodSupplierPayments+=amount;
 
                         actCount++;
 
@@ -6433,7 +6464,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                         final String ffd=fd;
                         final long fid=sortId;
 
-                        int activityColor=(kind==3)?GOLD:((kind==2 && operationType==1)?RED:BLUE);
+                        int activityColor=(kind==3 || kind==4)?GOLD:((kind==2 && operationType==1)?RED:BLUE);
 
                         LinearLayout row=card();
                         row.setPadding(dp(10),dp(8),dp(10),dp(8));
@@ -6445,7 +6476,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                         rBg.setStroke(dp(1),kind==1?Color.rgb(220,220,220):(kind==3?Color.rgb(220,220,220):(operationType==1?Color.rgb(220,220,220):Color.rgb(220,220,220))));
                         row.setBackground(rBg);
 
-                        String label=kind==1?"🧾 فاتورة مبيعات":(kind==3?"🛒 فاتورة شراء":(operationType==1?"🔴 عليه (مدين)":"🔵 له (دائن)"));
+                        String label=kind==1?"🧾 فاتورة مبيعات":(kind==3?"🛒 فاتورة شراء":(kind==4?"🏪 سداد مورد":(operationType==1?"🔴 عليه (مدين)":"🔵 له (دائن)")));
                         
                         String paymentBadge="";
                         String lineItemsPreview="";
@@ -6496,6 +6527,11 @@ void operationActions(long customerId,String customerName,long tid,String detail
                         row.setOnClickListener(v->{
                             if(fk==3){
                                 showPurchaseInvoiceDialog(fid,ffr,db.purchaseSupplier(fid),fa,ffd);
+                            }else if(fk==4){
+                                new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
+                                    .setTitle("سداد مورد")
+                                    .setMessage(fft+"\\nرقم المرجع: "+ffr+"\\nالتاريخ: "+ffd+"\\nالمبلغ: "+fmt(fa)+" ر.ي")
+                                    .setPositiveButton("إغلاق",null).show();
                             }else showReportActivityDetails(fk,ffr,fft,fa,ffd,fid);
                         });
 
@@ -6505,12 +6541,47 @@ void operationActions(long customerId,String customerName,long tid,String detail
                     }
                     c.close();
 
-                    // Update summary stat values
+                    // Totals are queried across the complete selected period, not just the
+                    // 200 most recent rows displayed in the activity list.
+                    String reportDateLike=currentPeriod[0]==PERIOD_TODAY?todayDate+"%":
+                            (currentPeriod[0]==PERIOD_YESTERDAY?yesterdayDate+"%":
+                            (currentPeriod[0]==PERIOD_MONTH?monthPrefix+"%":"%"));
+                    SQLiteDatabase reportDb=db.getReadableDatabase();
+                    Cursor totalCursor=reportDb.rawQuery("SELECT COALESCE(SUM(total),0) FROM invoices WHERE date LIKE ?",new String[]{reportDateLike});
+                    if(totalCursor.moveToFirst())periodSalesTotal=totalCursor.getDouble(0);totalCursor.close();
+                    totalCursor=reportDb.rawQuery("SELECT COALESCE(SUM(total),0) FROM purchase_invoices WHERE date LIKE ?",new String[]{reportDateLike});
+                    if(totalCursor.moveToFirst())periodPurchasesTotal=totalCursor.getDouble(0);totalCursor.close();
+                    totalCursor=reportDb.rawQuery(
+                            "SELECT COALESCE(SUM(CASE WHEN COALESCE(ii.unit_cost,0)>0 THEN COALESCE(ii.total,0) ELSE 0 END),0),"+
+                            "COALESCE(SUM(CASE WHEN COALESCE(ii.unit_cost,0)>0 THEN COALESCE(ii.qty,0)*ii.unit_cost ELSE 0 END),0),"+
+                            "COALESCE(SUM(CASE WHEN COALESCE(ii.unit_cost,0)<=0 THEN 1 ELSE 0 END),0) "+
+                            "FROM invoice_items ii INNER JOIN invoices i ON i.id=ii.invoice_id WHERE i.date LIKE ?",
+                            new String[]{reportDateLike});
+                    if(totalCursor.moveToFirst()){
+                        periodKnownCostSales=totalCursor.getDouble(0);
+                        periodCogsTotal=totalCursor.getDouble(1);
+                        periodMissingCostLines=totalCursor.getInt(2);
+                    }
+                    totalCursor.close();
+                    totalCursor=reportDb.rawQuery("SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type=0 AND date LIKE ?",new String[]{reportDateLike});
+                    if(totalCursor.moveToFirst())periodCustomerCollections=totalCursor.getDouble(0);totalCursor.close();
+                    totalCursor=reportDb.rawQuery(
+                            "SELECT COALESCE((SELECT SUM(st.amount) FROM supplier_transactions st WHERE st.date LIKE ?),0)+"+
+                            "COALESCE((SELECT SUM(COALESCE(pi.paid,0)) FROM purchase_invoices pi WHERE pi.date LIKE ? AND "+
+                            "NOT EXISTS(SELECT 1 FROM supplier_transactions st WHERE st.invoice_no=pi.no "+
+                            "AND st.details LIKE 'دفعة فاتورة شراء رقم %')),0)",
+                            new String[]{reportDateLike,reportDateLike});
+                    if(totalCursor.moveToFirst())periodSupplierPayments=totalCursor.getDouble(0);totalCursor.close();
+
                     cSv.setText(fmt(periodSalesTotal)+" ر.ي");
                     cPv.setText(fmt(periodPurchasesTotal)+" ر.ي");
-                    double estProfit=periodSalesTotal-periodCogsTotal;
+                    double estProfit=periodKnownCostSales-periodCogsTotal;
                     cProftV.setText(fmt(estProfit)+" ر.ي");
                     cProftV.setTextColor(estProfit>=0?BLUE:RED);
+                    cProfitNote.setText(periodMissingCostLines>0?"غير مكتمل: "+periodMissingCostLines+" بند بلا تكلفة":"التكلفة مسجلة لكل البنود");
+                    cProfitNote.setTextColor(periodMissingCostLines>0?RED:MUTED);
+                    collectionsValue.setText(fmt(periodCustomerCollections)+" ر.ي");
+                    supplierPaymentsValue.setText(fmt(periodSupplierPayments)+" ر.ي");
 
                     if(actCount==0){
                         LinearLayout emptyBox=card();
