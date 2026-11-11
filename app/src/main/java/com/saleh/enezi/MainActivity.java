@@ -681,6 +681,18 @@ public class MainActivity extends Activity {
         pt.setSingleLine(false); pt.setMaxLines(3); pt.setEllipsize(null); pt.setHorizontallyScrolling(false); pt.setIncludeFontPadding(true); pt.setMinHeight(dp(42)); fitInside(pt,18f,14f);
         titleBox.addView(pt,new LinearLayout.LayoutParams(-1,-2));
         bar.addView(titleBox,new LinearLayout.LayoutParams(0,-2,1));
+        // زر المزيد ثابت في أعلى يسار كل شاشة، مع بقاء اتجاه التطبيق RTL.
+        Button more=button("⋮");
+        more.setTextColor(Color.WHITE);
+        more.setTextSize(25f);
+        more.setGravity(Gravity.CENTER);
+        more.setContentDescription("المزيد");
+        more.setBackgroundColor(Color.TRANSPARENT);
+        more.setElevation(0);
+        more.setMinWidth(dp(42));
+        more.setMinHeight(dp(42));
+        more.setOnClickListener(v->showMoreMenu());
+        bar.addView(more,new LinearLayout.LayoutParams(dp(42),dp(42)));
         root.addView(bar,new LinearLayout.LayoutParams(-1,-2));
 
         ScrollView sv=new ScrollView(this);
@@ -772,8 +784,9 @@ public class MainActivity extends Activity {
         navBg.setStroke(dp(1),BORDER);
         nav.setBackground(navBg);
         nav.setElevation(dp(8));
-        String[] labels={"الرئيسية","فاتورة","الموردون","التقارير","المزيد"};
-        String[] icons={"🏠","🧾","🏪","📊","•••"};
+        // تبويبات العمل الأساسية فقط؛ قائمة المزيد أصبحت متاحة دائماً أعلى يسار الشاشة.
+        String[] labels={"الرئيسية","فاتورة","الموردون","التقارير"};
+        String[] icons={"🏠","🧾","🏪","📊"};
         for(int i=0;i<labels.length;i++){
             final int idx=i;
             LinearLayout tab=new LinearLayout(this); tab.setOrientation(LinearLayout.VERTICAL); tab.setGravity(Gravity.CENTER); tab.setPadding(dp(2),dp(3),dp(2),dp(3));
@@ -782,7 +795,7 @@ public class MainActivity extends Activity {
             else if(i==1 && activeTitle!=null && (activeTitle.contains("فاتورة") || activeTitle.contains("الفواتير") || activeTitle.contains("بيع") || activeTitle.contains("شراء"))) active=true;
             else if(i==2 && activeTitle!=null && (activeTitle.contains("مورد") || activeTitle.contains("مشتريات"))) active=true;
             else if(i==3 && activeTitle!=null && (activeTitle.contains("تقرير") || activeTitle.contains("التقارير") || activeTitle.contains("لوحة") || activeTitle.contains("تحليلات"))) active=true;
-            else if(i==4 && activeTitle!=null && (activeTitle.contains("مخزون") || activeTitle.contains("حوالة") || activeTitle.contains("ملاحظ") || activeTitle.contains("إعداد") || activeTitle.contains("نسخ احتياطي"))) active=true;
+
 
             if(active){
                 GradientDrawable activePill=new GradientDrawable();
@@ -805,7 +818,6 @@ public class MainActivity extends Activity {
                 else if(idx==1)invoicesHub();
                 else if(idx==2)suppliers();
                 else if(idx==3)reports();
-                else showMoreMenu();
             });
             LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(50),1);
             lp.setMargins(dp(2),0,dp(2),0);
@@ -816,6 +828,8 @@ public class MainActivity extends Activity {
 
     void showMoreMenu(){
         String[] choices={
+            "👥 العملاء والحسابات",
+            "🧾 سجل الفواتير",
             "📦 المخزون والأصناف",
             "🏪 الموردون والمشتريات",
             "📈 لوحة التحكم والتحليلات",
@@ -825,13 +839,15 @@ public class MainActivity extends Activity {
             "💾 النسخ الاحتياطي والاستعادة"
         };
         new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("المزيد").setItems(choices,(d,w)->{
-            if(w==0)inventory();
-            else if(w==1)suppliers();
-            else if(w==2)dashboard();
-            else if(w==3)transfers();
-            else if(w==4)notes();
-            else if(w==5)settingsHub();
-            else if(w==6)showBackupRestore();
+            if(w==0)customers();
+            else if(w==1)invoiceHistory();
+            else if(w==2)inventory();
+            else if(w==3)suppliers();
+            else if(w==4)dashboard();
+            else if(w==5)transfers();
+            else if(w==6)notes();
+            else if(w==7)settingsHub();
+            else if(w==8)showBackupRestore();
         }).setNegativeButton("إغلاق",null).show();
     }
     void navigate(String n){hideKeyboard(); if(n.equals("الرئيسية"))home();else if(n.equals("العملاء")||n.equals("الحسابات"))home();else if(n.equals("الفواتير")||n.equals("فواتير الشراء"))invoicesHub();else if(n.equals("المخزون"))inventory();else if(n.equals("لوحة التحكم")||n.equals("التحليلات"))dashboard();else if(n.equals("ماسح الفواتير")||n.equals("الماسح الضوئي"))scanner();else if(n.equals("الحوالات"))transfers();else if(n.equals("الملاحظات"))notes();else reports();}
