@@ -1619,7 +1619,7 @@ public class MainActivity extends Activity {
             "📦 إضافة صنف للمخزون"
         };
         View.OnClickListener[] optionActions={
-            v->unifiedInvoiceForm(InvoiceType.SALE),
+            v->invoice(false,-1),
             v->unifiedInvoiceForm(InvoiceType.PURCHASE),
             v->showCustomerTransactionDialog(false),
             v->showCustomerTransactionDialog(true),
@@ -1776,7 +1776,7 @@ public class MainActivity extends Activity {
     void showGeneralActions(){
         beginFullPage("الإجراءات السريعة","اختر المهمة. ستفتح كل عملية في صفحة كاملة مستقلة.");
         String[] labels={"🧾 فاتورة مبيعات","🛒 فاتورة شراء","💰 عملية على عميل","💵 دفعة سداد عميل","🏪 الموردون","💸 الحوالات","👤 إضافة عميل","📦 المخزون والأصناف"};
-        Runnable[] actions={()->unifiedInvoiceForm(InvoiceType.SALE),()->unifiedInvoiceForm(InvoiceType.PURCHASE),()->showCustomerTransactionDialog(false),()->showCustomerTransactionDialog(true),()->suppliers(),()->transfers(),()->showCustomerCreatePopup(),()->inventory()};
+        Runnable[] actions={()->invoice(false,-1),()->unifiedInvoiceForm(InvoiceType.PURCHASE),()->showCustomerTransactionDialog(false),()->showCustomerTransactionDialog(true),()->suppliers(),()->transfers(),()->showCustomerCreatePopup(),()->inventory()};
         for(int i=0;i<labels.length;i++){
             final Runnable run=actions[i];
             Button b=button(labels[i]);b.setTextSize(15);b.setTextColor(DARK);
