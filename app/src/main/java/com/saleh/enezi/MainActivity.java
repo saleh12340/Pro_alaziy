@@ -7986,7 +7986,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 d.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS ux_purchase_invoices_no ON purchase_invoices(no)");
                 d.setTransactionSuccessful();
             }catch(Exception e){
-                android.util.Log.e("AlAzziDB","Integrity migration failed",e);
+                android.util.Log.e("AlAzziDB","Integrity migration failed; database upgrade must roll back",e);
+                throw new IllegalStateException("تعذر ترحيل قاعدة البيانات بأمان؛ تم إلغاء الترقية للحفاظ على البيانات",e);
             }finally{ if(d.inTransaction()) d.endTransaction(); }
         }
         void mergeCustomers(SQLiteDatabase d){
