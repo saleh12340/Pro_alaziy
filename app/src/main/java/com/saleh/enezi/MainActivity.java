@@ -10605,18 +10605,18 @@ File createPurchaseInvoicePdf(String no,String supplier,ArrayList<PurchaseLine> 
         p.setTextSize(bodyPx);
         p.setTextAlign(Paint.Align.CENTER);
         p.setColor(DARK);
-        c.drawText("بقالة العزي للمواد الغذائية",width/2,y+bodyPx,p);
+        drawRtlPdfText(c,"بقالة العزي للمواد الغذائية",width/2,y+bodyPx,p);
         y+=Math.round(bodyPx+5);
         p.setTextSize(smallPx);
         p.setColor(ORANGE);
-        c.drawText("فاتورة مبيعات",width/2,y+smallPx,p);
+        drawRtlPdfText(c,"فاتورة مبيعات",width/2,y+smallPx,p);
         y+=Math.round(smallPx+4);
         p.setTypeface(Typeface.create("sans",Typeface.NORMAL));
         p.setTextAlign(Paint.Align.RIGHT);
         p.setColor(TEXT);
-        c.drawText("رقم الفاتورة: "+safeNo,width-margin,y+smallPx,p);
+        drawRtlPdfText(c,"رقم الفاتورة: "+safeNo,width-margin,y+smallPx,p);
         y+=Math.round(smallPx+2);
-        c.drawText("التاريخ: "+safeDate,width-margin,y+smallPx,p);
+        drawRtlPdfText(c,"التاريخ: "+safeDate,width-margin,y+smallPx,p);
         y+=Math.round(smallPx+5);
         c.save();
         c.translate(margin,y);
@@ -10629,10 +10629,10 @@ File createPurchaseInvoicePdf(String no,String supplier,ArrayList<PurchaseLine> 
         p.setTypeface(Typeface.create("sans",Typeface.BOLD));
         p.setTextSize(smallPx);
         p.setTextAlign(Paint.Align.RIGHT);
-        c.drawText("اسم الصنف",width-margin-4,y+smallPx,p);
+        drawRtlPdfText(c,"اسم الصنف",width-margin-4,y+smallPx,p);
         p.setTextAlign(Paint.Align.CENTER);
-        c.drawText("الكمية",margin+colTotalWidth+colQtyWidth/2,y+smallPx,p);
-        c.drawText("الإجمالي",margin+colTotalWidth/2,y+smallPx,p);
+        drawRtlPdfText(c,"الكمية",margin+colTotalWidth+colQtyWidth/2,y+smallPx,p);
+        drawRtlPdfText(c,"الإجمالي",margin+colTotalWidth/2,y+smallPx,p);
         y+=Math.round(smallPx*1.7f);
         for(int i=0;i<safeLines.size();i++){
             Line l=safeLines.get(i);
@@ -10651,9 +10651,9 @@ File createPurchaseInvoicePdf(String no,String supplier,ArrayList<PurchaseLine> 
             p.setColor(TEXT);
             p.setTextAlign(Paint.Align.CENTER);
             float base=y+rh/2f-(p.ascent()+p.descent())/2f;
-            c.drawText(fmt(l.qty),margin+colTotalWidth+colQtyWidth/2,base,p);
+            drawRtlPdfText(c,fmt(l.qty),margin+colTotalWidth+colQtyWidth/2,base,p);
             p.setTypeface(Typeface.create("sans",Typeface.BOLD));
-            c.drawText(fmt(l.total),margin+colTotalWidth/2,base,p);
+            drawRtlPdfText(c,fmt(l.total),margin+colTotalWidth/2,base,p);
             y+=rh+5;
         }
         y+=5;
@@ -10661,24 +10661,24 @@ File createPurchaseInvoicePdf(String no,String supplier,ArrayList<PurchaseLine> 
         p.setTextSize(bodyPx);
         p.setColor(ORANGE);
         p.setTextAlign(Paint.Align.RIGHT);
-        c.drawText("الإجمالي: "+fmt(total)+" ريال",width-margin,y+bodyPx,p);
+        drawRtlPdfText(c,"الإجمالي: "+fmt(total)+" ريال",width-margin,y+bodyPx,p);
         y+=Math.round(bodyPx+5);
         p.setTypeface(Typeface.create("sans",Typeface.NORMAL));
         p.setTextSize(smallPx);
         p.setColor(TEXT);
-        c.drawText("المدفوع: "+fmt(paid)+" ريال",width-margin,y+smallPx,p);
+        drawRtlPdfText(c,"المدفوع: "+fmt(paid)+" ريال",width-margin,y+smallPx,p);
         y+=Math.round(smallPx+3);
-        c.drawText("المتبقي: "+fmt(Math.max(0,total-paid))+" ريال",width-margin,y+smallPx,p);
+        drawRtlPdfText(c,"المتبقي: "+fmt(Math.max(0,total-paid))+" ريال",width-margin,y+smallPx,p);
         y+=Math.round(smallPx+4);
         p.setTypeface(Typeface.create("sans",Typeface.BOLD));
         p.setColor(balanceAfter>0.005?RED:(balanceAfter<-0.005?BLUE:DARK));
         String bal=balanceAfter>0.005?"الرصيد التراكمي: "+fmt(balanceAfter)+" ريال عليكم":(balanceAfter<-0.005?"الرصيد التراكمي: "+fmt(Math.abs(balanceAfter))+" ريال لكم":"الرصيد التراكمي: 0 ريال");
-        c.drawText(bal,width-margin,y+smallPx,p);
+        drawRtlPdfText(c,bal,width-margin,y+smallPx,p);
         y+=Math.round(smallPx+5);
         p.setTypeface(Typeface.create("sans",Typeface.NORMAL));
         p.setTextAlign(Paint.Align.CENTER);
         p.setColor(MUTED);
-        c.drawText("شكراً لتعاملكم معنا",width/2,y+smallPx,p);
+        drawRtlPdfText(c,"شكراً لتعاملكم معنا",width/2,y+smallPx,p);
         y+=Math.round(smallPx+6);
         return Bitmap.createBitmap(bmp,0,0,width,Math.min(y+5,bmp.getHeight()));
     }
