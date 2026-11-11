@@ -1759,12 +1759,12 @@ public class MainActivity extends Activity {
             if(id<=0){Toast.makeText(this,"تعذر فتح حساب العميل",Toast.LENGTH_SHORT).show();return;}
             ArrayList<Integer> valid=new ArrayList<>();
             for(int i=0;i<amounts.size();i++){
-                double value=parseDoubleSafe(amounts.get(i).getText().toString().replace(",","").trim(),0);
+                double value=parseDoubleSafe(amounts.get(i).getText().toString(),0);
                 if(value>0)valid.add(i);
             }
             if(valid.isEmpty()){Toast.makeText(this,"أدخل مبلغاً صحيحاً لعملية واحدة على الأقل",Toast.LENGTH_SHORT).show();return;}
             for(int i:valid){
-                double value=parseDoubleSafe(amounts.get(i).getText().toString().replace(",","").trim(),0);
+                double value=parseDoubleSafe(amounts.get(i).getText().toString(),0);
                 db.addTransaction(id,value,details.get(i).getText().toString().trim(),payment?0:1,db.now());
             }
             Toast.makeText(this,"تم حفظ "+valid.size()+" عملية بنجاح",Toast.LENGTH_SHORT).show();
@@ -1972,7 +1972,7 @@ public class MainActivity extends Activity {
             double saleP=db.itemSalePrice(selectedName);
             if(saleP>0){
                 double q=1;
-                try{q=Double.parseDouble(qty.getText().toString().trim());}catch(Exception ignored){}
+                try{q=parseDoubleSafe(qty.getText().toString(),-1);}catch(Exception ignored){}
                 if(q<=0)q=1;
                 total.setText(fmt(saleP*q));
             }
@@ -2908,7 +2908,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         details.setSingleLine(false);details.setMinLines(2);details.setGravity(Gravity.RIGHT|Gravity.TOP);
         addFullPageField("المبلغ بالريال اليمني",amount);addFullPageField("البيان",details);
         setFullPageActions("✓ حفظ التعديل","إلغاء",BLUE,()->{
-            try{double a=Double.parseDouble(amount.getText().toString().replace(",","").trim());if(a<=0)throw new Exception();
+            try{double a=parseDoubleSafe(amount.getText().toString(),-1);if(a<=0)throw new Exception();
                 db.updateTransaction(tid,a,details.getText().toString().trim(),oldType,db.now());account(id,name);
                 Toast.makeText(this,"تم تعديل العملية بنجاح",Toast.LENGTH_SHORT).show();
             }catch(Exception e){amount.setError("تحقق من المبلغ");amount.requestFocus();}
@@ -3808,7 +3808,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         amount.addTextChangedListener(new TextWatcher(){
             public void beforeTextChanged(CharSequence s,int st,int c,int a){}
             public void onTextChanged(CharSequence s,int st,int b,int c){
-                double a=parseDoubleSafe(amount.getText().toString().replace(",","").trim(),0);
+                double a=parseDoubleSafe(amount.getText().toString(),0);
                 netBadge.setText(a>0?fmt(a)+" صافي\n"+amountInWords(a):"0 صافي");
                 updatePreview.run();
             }
@@ -3818,7 +3818,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         sn.addTextChangedListener(liveWatcher); transferSenderPhone.addTextChangedListener(liveWatcher);
 
         Runnable build=()->{
-            double a=parseDoubleSafe(amount.getText().toString().replace(",","").trim(),0);
+            double a=parseDoubleSafe(amount.getText().toString(),0);
             String r=rn.getText().toString().trim(),rp=transferReceiverPhone.getText().toString().trim(),sName=sn.getText().toString().trim(),sp=transferSenderPhone.getText().toString().trim();
             if(a<=0||r.isEmpty()||sName.isEmpty()){
                 Toast.makeText(this,"أكمل المبلغ واسم المستلم واسم المرسل",Toast.LENGTH_SHORT).show();
@@ -4221,7 +4221,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
 
         showCompactDialog(dlg,box,360);
     }
-    void addNoteItem(long pid,EditText name,EditText qty,int side){String n=name.getText().toString().trim();double q=0; try { q=Double.parseDouble(qty.getText().toString().trim().replace(",", ".")); } catch(Exception ignored) {}if(n.isEmpty()){Toast.makeText(this,"اكتب اسم الصنف أولاً",Toast.LENGTH_SHORT).show();return;}if(q<=0){Toast.makeText(this,"العدد يجب أن يكون أكبر من صفر",Toast.LENGTH_SHORT).show();return;}db.addNoteItem(pid,n,q,side);name.setText("");qty.setText("1");notes();}
+    void addNoteItem(long pid,EditText name,EditText qty,int side){String n=name.getText().toString().trim();double q=0; try { q=parseDoubleSafe(qty.getText().toString(),-1); } catch(Exception ignored) {}if(n.isEmpty()){Toast.makeText(this,"اكتب اسم الصنف أولاً",Toast.LENGTH_SHORT).show();return;}if(q<=0){Toast.makeText(this,"العدد يجب أن يكون أكبر من صفر",Toast.LENGTH_SHORT).show();return;}db.addNoteItem(pid,n,q,side);name.setText("");qty.setText("1");notes();}
     void clearNotesPage(){if(currentNotePageId<1)return;new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("تفريغ الصفحة").setMessage("سيتم حذف عناصر الصفحة الحالية فقط. هل تريد المتابعة؟").setNegativeButton("إلغاء",null).setPositiveButton("تفريغ",(d,w)->{db.clearNoteItems(currentNotePageId);notes();}).show();}
     void newNotesPage(){if(currentNotePageId>0)db.touchNotePage(currentNotePageId);currentNotePageId=db.createNotePage("ملاحظة جديدة",db.now());notes();}
     void showNotesHistoryFiltered(String q){
@@ -5015,7 +5015,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
             if(costP>0 && unit.getText().toString().trim().isEmpty()){
                 unit.setText(fmt(costP));
                 double q=1;
-                try{q=Double.parseDouble(qty.getText().toString().trim());}catch(Exception ignored){}
+                try{q=parseDoubleSafe(qty.getText().toString(),-1);}catch(Exception ignored){}
                 if(q<=0)q=1;
                 total.setText(fmt(costP*q));
             }
@@ -5142,8 +5142,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
             if(updatingTotal[0]) return;
             updatingUnit[0]=true;
             try{
-                double u=Double.parseDouble(unit.getText().toString().trim());
-                double q=Double.parseDouble(qty.getText().toString().trim());
+                double u=parseDoubleSafe(unit.getText().toString(),-1);
+                double q=parseDoubleSafe(qty.getText().toString(),-1);
                 if(q>0) total.setText(fmt(u*q));
             }catch(Exception e){total.setText("");}
             updatingUnit[0]=false;
@@ -5174,15 +5174,15 @@ void operationActions(long customerId,String customerName,long tid,String detail
         add.setOnClickListener(v->{
             try{
                 double t=0;
-                double q=Double.parseDouble(qty.getText().toString().trim());
-                double s=Double.parseDouble(sale.getText().toString().trim());
+                double q=parseDoubleSafe(qty.getText().toString(),-1);
+                double s=parseDoubleSafe(sale.getText().toString(),-1);
                 String n=item.getText().toString().trim();
                 if(n.isEmpty()||q<=0||s<0)throw new Exception();
 
                 if(!total.getText().toString().trim().isEmpty()){
-                    t=Double.parseDouble(total.getText().toString().trim());
+                    t=parseDoubleSafe(total.getText().toString(),-1);
                 }else if(!unit.getText().toString().trim().isEmpty()){
-                    double u=Double.parseDouble(unit.getText().toString().trim());
+                    double u=parseDoubleSafe(unit.getText().toString(),-1);
                     t=u*q;
                 }else throw new Exception();
 
@@ -6111,7 +6111,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         EditText inv=fullPageField("رقم الفاتورة المرتبطة (اختياري)",false);
         addFullPageField("المبلغ",amount);addFullPageField("التفاصيل",details);addFullPageField("رقم الفاتورة",inv);
         setFullPageActions("✓ حفظ السداد","رجوع",RED,()->{
-            try{double a=Double.parseDouble(amount.getText().toString().replace(",","").trim());if(a<=0)throw new Exception();
+            try{double a=parseDoubleSafe(amount.getText().toString(),-1);if(a<=0)throw new Exception();
                 db.addSupplierPayment(supplierId,a,details.getText().toString().trim(),inv.getText().toString().trim());
                 refresh.run();showCompactSaveSnackbar("✓ تم تسجيل السداد بنجاح","مشاركة",()->shareSupplierStatement(name,db.supplierPhoneByName(name),supplierStatement(name,supplierId)));
             }catch(Exception e){amount.setError("أدخل مبلغ سداد صحيح");amount.requestFocus();}
@@ -6299,7 +6299,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
 
                 sv.setOnClickListener(v2->{
                     try{
-                        double na=Double.parseDouble(a.getText().toString().replace(",","").trim());
+                        double na=parseDoubleSafe(a.getText().toString(),-1);
                         if(na<=0) throw new Exception();
                         db.updateSupplierPayment(id,na,d.getText().toString().trim(),inv.getText().toString().trim());
                         ed.dismiss();
@@ -10375,8 +10375,8 @@ File createPurchaseInvoicePdf(String no,String supplier,ArrayList<PurchaseLine> 
 
         Runnable calcChange=()->{
             double r=0, p=0;
-            try{r=Double.parseDouble(reqEt.getText().toString().trim());}catch(Exception ignored){}
-            try{p=Double.parseDouble(paidEt.getText().toString().trim());}catch(Exception ignored){}
+            try{r=parseDoubleSafe(reqEt.getText().toString(),0);}catch(Exception ignored){}
+            try{p=parseDoubleSafe(paidEt.getText().toString(),0);}catch(Exception ignored){}
             double change=p-r;
             if(p<=0){
                 chVal.setText("0.00 ريال");
@@ -11325,7 +11325,7 @@ void account(long id,String name){
         Runnable save=( )->{};
         View.OnClickListener addTx=v->{
             try{
-                double a=Double.parseDouble(amount.getText().toString().trim());if(a<=0)throw new Exception();
+                double a=parseDoubleSafe(amount.getText().toString(),-1);if(a<=0)throw new Exception();
                 String d=detail.getText().toString().trim();int type=v==debit?1:0;
                 db.addTransaction(id,a,d,type,db.now());
                 // حدّث سجل العميل في الصفحة الحالية دون إعادة بنائها؛ تبقى خانات الإدخال جاهزة للعملية التالية.
