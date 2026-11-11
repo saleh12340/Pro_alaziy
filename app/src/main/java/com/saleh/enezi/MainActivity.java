@@ -3554,7 +3554,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
             String matched = mAmount.group(0);
             String val = mAmount.group(1).replace(",", "");
             try{
-                double d = Double.parseDouble(val);
+                double d = parseDoubleSafe(val,Double.NaN);
                 if(d > 0){
                     foundAmount = val;
                     if(matched.contains("صافي") || matched.contains("المبلغ")) break;
@@ -4208,7 +4208,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         saveBtn.setOnClickListener(v->{
             String newName=nameEd.getText().toString().trim();
             double newQty=0;
-            try{ newQty=Double.parseDouble(qtyEd.getText().toString().trim().replace(",", ".")); }catch(Exception ignored){}
+            try{ newQty=parseDoubleSafe(qtyEd.getText().toString(),-1); }catch(Exception ignored){}
             if(newName.isEmpty()||newQty<=0){
                 Toast.makeText(this,"أدخل اسماً ورسماً صحيحاً",Toast.LENGTH_SHORT).show();
                 return;
@@ -5857,7 +5857,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
             if(saving[0])return;
             try{
                 String raw=amount.getText().toString().replace(",","").trim();
-                double value=Double.parseDouble(raw);
+                double value=parseDoubleSafe(raw,-1);
                 if(!Double.isFinite(value)||value<=0)throw new IllegalArgumentException("invalid amount");
                 saving[0]=true;savePayment.setEnabled(false);
                 long paymentId=db.addSupplierPayment(supplierId,value,details.getText().toString().trim(),invoiceRef.getText().toString().trim());
@@ -11308,7 +11308,7 @@ void account(long id,String name){
                 row.addView(bal,new LinearLayout.LayoutParams(dp(96),-2));
 
                 row.setOnClickListener(v->showOperationDetails(name,tid,d,a,type));
-                row.setOnLongClickListener(v->{operationActions(id,name,tid,d,a,type);return true;});
+                row.setOnLongClickListener(v->{v.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);operationActions(id,name,tid,d,a,type);return true;});
                 LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);
                 rp.setMargins(0,0,0,dp(4));
                 list.addView(row,rp);
@@ -11392,7 +11392,7 @@ void customers(){
             list.removeAllViews(); String q=search.getText().toString().trim(); Cursor cur=db.customers(q); int count=0;
             while(cur.moveToNext()){
                 long id=cur.getLong(0);String name=cur.getString(1);double bal=db.balance(id);count++;
-                LinearLayout row=card();row.setPadding(dp(10),dp(7),dp(10),dp(7));row.setOnClickListener(v->account(id,name));row.setOnLongClickListener(v->{customerActions(id,name);return true;});
+                LinearLayout row=card();row.setPadding(dp(10),dp(7),dp(10),dp(7));row.setOnClickListener(v->account(id,name));row.setOnLongClickListener(v->{v.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);customerActions(id,name);return true;});
                 LinearLayout top=new LinearLayout(this);top.setOrientation(LinearLayout.HORIZONTAL);top.setGravity(Gravity.CENTER_VERTICAL);top.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
                 TextView avatar=tv(name==null||name.isEmpty()?"ب":name.substring(0,1),16);avatar.setGravity(Gravity.CENTER);avatar.setTextColor(Color.WHITE);avatar.setTypeface(Typeface.DEFAULT,Typeface.BOLD);avatar.setBackground(rounded(GREEN,dp(18)));
                 top.addView(avatar,new LinearLayout.LayoutParams(dp(38),dp(38)));
