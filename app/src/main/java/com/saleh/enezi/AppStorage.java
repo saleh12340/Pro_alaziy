@@ -21,11 +21,13 @@ public class AppStorage {
     public static final String SUB_INVOICE_PHOTOS = "صور الفواتير";
     public static final String SUB_APP_IMAGES = "الصور التي ينتجها التطبيق";
     public static final String SUB_BACKUPS = "النسخ الاحتياطية";
+    public static final String SUB_PDFS = "ملفات PDF";
 
     public static final String RELATIVE_ROOT = "Download/" + ROOT_FOLDER;
     public static final String RELATIVE_INVOICE_PHOTOS = RELATIVE_ROOT + "/" + SUB_INVOICE_PHOTOS;
     public static final String RELATIVE_APP_IMAGES = RELATIVE_ROOT + "/" + SUB_APP_IMAGES;
     public static final String RELATIVE_BACKUPS = RELATIVE_ROOT + "/" + SUB_BACKUPS;
+    public static final String RELATIVE_PDFS = RELATIVE_ROOT + "/" + SUB_PDFS;
 
     public static File getPublicRootFolder() {
         File downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
@@ -76,6 +78,14 @@ public class AppStorage {
         return dir;
     }
 
+    public static File getInternalPdfsDir(Context context) {
+        File base=context.getExternalFilesDir(null);
+        if(base==null)base=context.getFilesDir();
+        File dir=new File(base,SUB_PDFS);
+        if(!dir.exists())dir.mkdirs();
+        return dir;
+    }
+
     public static void initializeAllDirectories(Context context) {
         try {
             if(Build.VERSION.SDK_INT<29){
@@ -86,6 +96,7 @@ public class AppStorage {
             getInternalInvoicesDir(context);
             getInternalAppImagesDir(context);
             getInternalBackupsDir(context);
+            getInternalPdfsDir(context);
         } catch (Exception ignored) {}
     }
 
@@ -177,6 +188,62 @@ public class AppStorage {
         }
         if(publicUri!=null)return publicUri;
         return internalSaved?internalFileUri(context,internal):null;
+    }
+
+    public static Uri savePdf(Context context,File source,String fileName) {
+        if(context==null||source==null||!source.isFile()||source.length()<=0)return null;
+        String safeName=(fileName==null||fileName.trim().isEmpty())?source.getName():fileName.trim();
+        File internal=new File(getInternalPdfsDir(context),safeName);
+        boolean internalSaved=false;
+        try(InputStream in=new FileInputStream(source);OutputStream out=new FileOutputStream(internal,false)){
+            byte[] buffer=new byte[16384];int count;
+            while((count=in.read(buffer))!=-1)out.write(buffer,0,count);
+            out.flush();
+            internalSaved=internal.isFile()&&internal.length()==source.length();
+        }catch(Exception ignored){}
+
+        if(Build.VERSION.SDK_INT>=29){
+            Uri uri=null;
+            try{
+                ContentValues values=new ContentValues();
+                values.put(MediaStore.MediaColumns.DISPLAY_NAME,safeName);
+                values.put(MediaStore.MediaColumns.MIME_TYPE,"application/pdf");
+                values.put(MediaStore.MediaColumns.RELATIVE_PATH,RELATIVE_PDFS);
+                values.put(MediaStore.MediaColumns.IS_PENDING,1);
+                uri=context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
+                if(uri!=null){
+                    try(InputStream in=new FileInputStream(source);OutputStream out=context.getContentResolver().openOutputStream(uri,"w")){
+                        if(out==null)throw new IOException("تعذر فتح ملف PDF");
+                        byte[] buffer=new byte[16384];int count;
+                        while((count=in.read(buffer))!=-1)out.write(buffer,0,count);
+                        out.flush();
+                    }
+                    ContentValues ready=new ContentValues();ready.put(MediaStore.MediaColumns.IS_PENDING,0);
+                    context.getContentResolver().update(uri,ready,null,null);
+                    return uri;
+                }
+            }catch(Exception e){
+                if(uri!=null){try{context.getContentResolver().delete(uri,null,null);}catch(Exception ignored){}}
+            }
+        }else{
+            try{
+                File dir=new File(getPublicRootFolder(),SUB_PDFS);
+                if(!dir.exists())dir.mkdirs();
+                File dest=new File(dir,safeName);
+                try(InputStream in=new FileInputStream(source);OutputStream out=new FileOutputStream(dest,false)){
+                    byte[] buffer=new byte[16384];int count;
+                    while((count=in.read(buffer))!=-1)out.write(buffer,0,count);
+                    out.flush();
+                }
+                if(dest.isFile()&&dest.length()==source.length()){
+                    MediaScannerConnection.scanFile(context,new String[]{dest.getAbsolutePath()},new String[]{"application/pdf"},null);
+                    Uri publicUri=internalFileUri(context,dest);
+                    if(publicUri!=null)return publicUri;
+                }
+            }catch(Exception ignored){}
+        }
+        if(internalSaved)return internalFileUri(context,internal);
+        return internalFileUri(context,source);
     }
 
     public static boolean saveDatabaseBackup(Context context, File srcDb, String fileName) throws IOException {

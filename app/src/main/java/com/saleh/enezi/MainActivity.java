@@ -2339,7 +2339,9 @@ public class MainActivity extends Activity {
                 ic.close();
                 Bitmap b=invoiceReceiptBitmap(no,cst,savedLines,t,p,cid>0?db.balance(cid):0,d);
                 String fn="فاتورة_"+no+"_"+new SimpleDateFormat("yyyyMMdd_HHmmss",Locale.US).format(new Date())+".png";
-                return AppStorage.saveAppImage(this,b,fn);
+                Uri savedUri=AppStorage.saveAppImage(this,b,fn);
+                if(savedUri!=null)notifySavedFile("تم حفظ صورة الفاتورة",fn,savedUri,"image/png");
+                return savedUri;
             }
             return null;
         }catch(Exception e){Toast.makeText(this,"تعذر حفظ صورة الفاتورة",Toast.LENGTH_SHORT).show();return null;}
@@ -2348,8 +2350,10 @@ public class MainActivity extends Activity {
         try{
             String s=statement(id,name);Bitmap b=receiptBitmap(s);
             String fn="كشف_"+name.replaceAll("[\\/:*?\"<>|]","_")+"_"+new SimpleDateFormat("yyyyMMdd_HHmmss",Locale.US).format(new Date())+".png";
-            AppStorage.saveAppImage(this, b, fn);
-            Toast.makeText(this,"تم حفظ صورة كشف الحساب في:\nDownload/بقالة العزي خاص/الصور التي ينتجها التطبيق",Toast.LENGTH_LONG).show();
+            Uri savedUri=AppStorage.saveAppImage(this,b,fn);
+            if(savedUri==null)throw new IllegalStateException("تعذر حفظ الصورة");
+            notifySavedFile("تم حفظ صورة كشف الحساب",fn,savedUri,"image/png");
+            Toast.makeText(this,"تم حفظ صورة كشف الحساب. اضغط الإشعار لفتحها.",Toast.LENGTH_LONG).show();
         }catch(Exception e){Toast.makeText(this,"تعذر حفظ صورة كشف الحساب",Toast.LENGTH_SHORT).show();}
     }
     static void copyFileChecked(File source,File destination) throws java.io.IOException{
@@ -2452,6 +2456,46 @@ public class MainActivity extends Activity {
             })
             .setNeutralButton("استرجاع نسخة",(d,w)->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("*/*");i.addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(i,8801);})
             .setNegativeButton("إغلاق",null).show();
+    }
+
+    void saveAndNotifyPdf(File pdfFile,String title){
+        if(pdfFile==null||!pdfFile.isFile()||pdfFile.length()<=0)return;
+        Uri savedUri=AppStorage.savePdf(this,pdfFile,pdfFile.getName());
+        if(savedUri!=null)notifySavedFile(title,pdfFile.getName(),savedUri,"application/pdf");
+        else Toast.makeText(this,"تم إنشاء PDF لكن تعذر حفظ نسخة قابلة للفتح",Toast.LENGTH_LONG).show();
+    }
+
+    void notifySavedFile(String title,String fileName,Uri uri,String mimeType){
+        if(uri==null)return;
+        try{
+            if(android.os.Build.VERSION.SDK_INT>=33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS")!=android.content.pm.PackageManager.PERMISSION_GRANTED){
+                requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"},7202);
+                return;
+            }
+            String channelId="saved_files";
+            android.app.NotificationManager manager=(android.app.NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+            if(android.os.Build.VERSION.SDK_INT>=26){
+                android.app.NotificationChannel channel=new android.app.NotificationChannel(channelId,"الملفات المحفوظة",android.app.NotificationManager.IMPORTANCE_DEFAULT);
+                channel.setDescription("فتح الصور وملفات PDF التي أنشأها التطبيق");
+                manager.createNotificationChannel(channel);
+            }
+            Intent open=new Intent(Intent.ACTION_VIEW);
+            open.setDataAndType(uri,mimeType);
+            open.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_ACTIVITY_NEW_TASK);
+            int notificationId=(int)(System.currentTimeMillis()&0x7fffffff);
+            android.app.PendingIntent pending=android.app.PendingIntent.getActivity(this,notificationId,open,
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT|android.app.PendingIntent.FLAG_IMMUTABLE);
+            android.app.Notification.Builder notification=android.os.Build.VERSION.SDK_INT>=26
+                    ?new android.app.Notification.Builder(this,channelId):new android.app.Notification.Builder(this);
+            notification.setSmallIcon(com.saleh.enezi.R.drawable.ic_store)
+                    .setContentTitle(title)
+                    .setContentText((fileName==null?"":fileName)+" — اضغط لفتح الملف")
+                    .setContentIntent(pending)
+                    .setAutoCancel(true);
+            manager.notify(notificationId,notification.build());
+        }catch(Exception e){
+            android.util.Log.w("AlAzziFiles","Could not notify saved file",e);
+        }
     }
 
     void notifyNewOperation(String title,String text){
@@ -4360,6 +4404,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         }
         try{
             File pdf=createNotesPrintPdf(currentNotePageId);
+            saveAndNotifyPdf(pdf,"تم تجهيز ملف PDF للملاحظات");
             printPdfWithSpooler("ملاحظات_"+currentNotePageId,pdf);
         }catch(Exception e){
             android.util.Log.e("AlAzziPrint","Print spooler error",e);
@@ -5909,6 +5954,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
     void shareSupplierStatementPdf(long supplierId,String name,String phone){
         try{
             File f=createSupplierStatementPdf(supplierId,name,phone);
+            saveAndNotifyPdf(f,"تم تجهيز كشف حساب المورد PDF");
             String caption="كشف حساب المورد: "+name+" ("+db.now()+")";
             DocumentCenter.sharePdf(this,f,caption,"مشاركة كشف حساب المورد PDF");
         }catch(Exception e){
@@ -9368,6 +9414,7 @@ File createPurchaseInvoicePdf(String no,String supplier,ArrayList<PurchaseLine> 
         try{
             ArrayList<PurchaseLine> lines=loadPurchaseLines(id);
             File file=createPurchaseInvoicePdf(no,supplier,lines,total,date);
+            saveAndNotifyPdf(file,"تم تجهيز فاتورة الشراء PDF");
             String text=purchaseReceiptText(no,supplier,lines,total,date);
             DocumentCenter.sharePdf(this,file,text,"مشاركة فاتورة شراء PDF");
         }catch(Exception e){
@@ -9636,6 +9683,7 @@ File createPurchaseInvoicePdf(String no,String supplier,ArrayList<PurchaseLine> 
     void shareAccountPdfToWhatsApp(long id,String name){
         try{
             File file=createCustomerStatementPdf(id,name);
+            saveAndNotifyPdf(file,"تم تجهيز كشف حساب العميل PDF");
             String caption="كشف حساب تفصيلي\nبقالة العزي للمواد الغذائية\nالرصيد الحالي: "+balanceText(db.balance(id));
             DocumentCenter.sharePdf(this,file,caption,"مشاركة كشف الحساب PDF");
         }catch(Exception e){
@@ -9782,6 +9830,7 @@ File createPurchaseInvoicePdf(String no,String supplier,ArrayList<PurchaseLine> 
     void shareInvoicePdf(String no,String customer,ArrayList<Line> lines,double total,double paid,double balanceAfter,String date){
         try{
             File file=createInvoicePdf(no,customer,lines,total,paid,balanceAfter,date);
+            saveAndNotifyPdf(file,"تم تجهيز فاتورة المبيعات PDF");
             String text=invoiceWhatsAppText(no,customer,lines,total,paid,balanceAfter,date);
             DocumentCenter.sharePdf(this,file,text,"مشاركة فاتورة PDF");
         }catch(Exception e){
