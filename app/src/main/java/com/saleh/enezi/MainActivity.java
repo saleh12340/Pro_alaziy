@@ -10770,13 +10770,14 @@ Uri saveReceiptBitmap(Bitmap bitmap,String no)throws Exception{
     }
 
     void sendBitmapToBluetooth(BluetoothDevice device,Bitmap bitmap){
-        BluetoothSocket socket=null;OutputStream out=null;
+        BluetoothSocket socket=null;OutputStream out=null;boolean ownsPrintLock=false;
         try{
             if(device==null||bitmap==null) throw new IllegalArgumentException("printer or receipt is null");
             if(!thermalPrintBusy.compareAndSet(false,true)){
                 runOnUiThread(()->Toast.makeText(this,"هناك مهمة طباعة قيد التنفيذ؛ انتظر اكتمالها.",Toast.LENGTH_SHORT).show());
                 return;
             }
+            ownsPrintLock=true;
             runOnUiThread(()->Toast.makeText(this,"جارٍ الاتصال بالطابعة وإرسال الإيصال…",Toast.LENGTH_SHORT).show());
             if(Build.VERSION.SDK_INT>=31&&checkSelfPermission("android.permission.BLUETOOTH_CONNECT")!=PackageManager.PERMISSION_GRANTED)
                 throw new SecurityException("BLUETOOTH_CONNECT permission is required");
@@ -10862,7 +10863,7 @@ Uri saveReceiptBitmap(Bitmap bitmap,String no)throws Exception{
         }finally{
             try{if(out!=null)out.close();}catch(Exception ignored){}
             try{if(socket!=null)socket.close();}catch(Exception ignored){}
-            thermalPrintBusy.set(false);
+            if(ownsPrintLock)thermalPrintBusy.set(false);
         }
     }
 
