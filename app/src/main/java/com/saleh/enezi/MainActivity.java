@@ -3164,7 +3164,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         BluetoothDevice[] ds=paired.toArray(new BluetoothDevice[0]);
         String[] names=new String[ds.length];
         for(int i=0;i<ds.length;i++)names[i]=(ds[i].getName()==null?"طابعة 58mm":ds[i].getName())+"\n"+ds[i].getAddress();
-        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("اختيار طابعة 58mm — أول مرة فقط").setItems(names,(d,w)->{
+        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("اختيار طابعة "+(getSharedPreferences("printer_settings",MODE_PRIVATE).getInt("paper_width",384)==576?"80mm":"58mm")+" — أول مرة فقط").setItems(names,(d,w)->{
             getSharedPreferences("printer_settings",MODE_PRIVATE).edit().putString("printer_address",ds[w].getAddress()).apply();
             new Thread(()->sendBitmapToBluetooth(ds[w],bitmap)).start();
         }).setNegativeButton("إلغاء",null).show();
@@ -10803,7 +10803,7 @@ Uri saveReceiptBitmap(Bitmap bitmap,String no)throws Exception{
         if(saved!=null){final BluetoothDevice d=saved;new Thread(()->sendBitmapToBluetooth(d,receiptBitmap(text,requestedWidth>0?requestedWidth:384))).start();return;}
         Set<BluetoothDevice> paired=a.getBondedDevices();if(paired==null||paired.isEmpty()){Toast.makeText(this,"لا توجد طابعة مقترنة. اقترن بالطابعة من إعدادات البلوتوث أولاً.",Toast.LENGTH_LONG).show();return;}
         BluetoothDevice[] ds=paired.toArray(new BluetoothDevice[0]);String[] names=new String[ds.length];for(int i=0;i<ds.length;i++)names[i]=(ds[i].getName()==null?"طابعة 58mm":ds[i].getName())+"\n"+ds[i].getAddress();
-        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("اختيار طابعة 58mm — أول مرة فقط").setItems(names,(d,w)->{getSharedPreferences("printer_settings",MODE_PRIVATE).edit().putString("printer_address",ds[w].getAddress()).apply();new Thread(()->sendBitmapToBluetooth(ds[w],receiptBitmap(text,requestedWidth>0?requestedWidth:384))).start();}).setNegativeButton("إلغاء",null).show();
+        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("اختيار طابعة "+(getSharedPreferences("printer_settings",MODE_PRIVATE).getInt("paper_width",384)==576?"80mm":"58mm")+" — أول مرة فقط").setItems(names,(d,w)->{getSharedPreferences("printer_settings",MODE_PRIVATE).edit().putString("printer_address",ds[w].getAddress()).apply();new Thread(()->sendBitmapToBluetooth(ds[w],receiptBitmap(text,requestedWidth>0?requestedWidth:384))).start();}).setNegativeButton("إلغاء",null).show();
     }
 
     void sendBitmapToBluetooth(BluetoothDevice device,Bitmap bitmap){
@@ -10911,7 +10911,7 @@ Uri saveReceiptBitmap(Bitmap bitmap,String no)throws Exception{
         if(saved!=null){printToBluetooth(saved,no,customer,lines,total);return;}
         Set<BluetoothDevice> paired=a.getBondedDevices();if(paired==null||paired.isEmpty()){Toast.makeText(this,"لا توجد طابعة مقترنة. اقترن بالطابعة من إعدادات البلوتوث أولاً.",Toast.LENGTH_LONG).show();return;}
         BluetoothDevice[] ds=paired.toArray(new BluetoothDevice[0]);String[] names=new String[ds.length];for(int i=0;i<ds.length;i++)names[i]=(ds[i].getName()==null?"طابعة 58mm":ds[i].getName())+"\n"+ds[i].getAddress();
-        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("اختيار طابعة 58mm — أول مرة فقط").setItems(names,(d,w)->{getSharedPreferences("printer_settings",MODE_PRIVATE).edit().putString("printer_address",ds[w].getAddress()).apply();printToBluetooth(ds[w],no,customer,lines,total);}).setNegativeButton("إلغاء",null).show();
+        new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen).setTitle("اختيار طابعة "+(getSharedPreferences("printer_settings",MODE_PRIVATE).getInt("paper_width",384)==576?"80mm":"58mm")+" — أول مرة فقط").setItems(names,(d,w)->{getSharedPreferences("printer_settings",MODE_PRIVATE).edit().putString("printer_address",ds[w].getAddress()).apply();printToBluetooth(ds[w],no,customer,lines,total);}).setNegativeButton("إلغاء",null).show();
     }
 
     void printToBluetooth(BluetoothDevice device,String no,String customer,ArrayList<Line> lines,double total){
