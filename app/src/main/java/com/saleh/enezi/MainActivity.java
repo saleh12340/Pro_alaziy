@@ -8595,7 +8595,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                 fab.setOnClickListener(v->invoice());
 
                 FrameLayout.LayoutParams fp=new FrameLayout.LayoutParams(dp(54),dp(54));
-                fp.gravity=Gravity.BOTTOM|Gravity.LEFT;
+                fp.gravity=Gravity.BOTTOM|Gravity.RIGHT;
                 fp.setMargins(dp(16),0,dp(16),dp(14));
                 frame.addView(fab,fp);
 
