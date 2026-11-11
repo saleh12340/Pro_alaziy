@@ -8199,6 +8199,22 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                     rows.add(new Object[]{3,no,"فاتورة شراء "+no+" • "+supplier,pinv.getDouble(3),pinv.getString(4),id,0});
                 }
             }finally{if(pinv!=null)pinv.close();}
+            Cursor supplierTr=null;
+            try{
+                supplierTr=d.rawQuery(
+                    "SELECT st.id,COALESCE(st.invoice_no,''),COALESCE(st.details,''),COALESCE(st.amount,0),"+
+                    "COALESCE(st.date,''),COALESCE(s.name,'') FROM supplier_transactions st "+
+                    "LEFT JOIN suppliers s ON s.id=st.supplier_id",null);
+                while(supplierTr.moveToNext()){
+                    long id=supplierTr.getLong(0);
+                    String ref=supplierTr.getString(1);
+                    String details=supplierTr.getString(2);
+                    String supplier=supplierTr.getString(5);
+                    String title=(details==null||details.trim().isEmpty()?"سداد مورد":details.trim());
+                    if(supplier!=null&&!supplier.trim().isEmpty())title+=" • "+supplier.trim();
+                    rows.add(new Object[]{4,ref,title,supplierTr.getDouble(3),supplierTr.getString(4),id,2});
+                }
+            }finally{if(supplierTr!=null)supplierTr.close();}
             Collections.sort(rows,(a,b)->{
                 String da=(String)a[4], dbb=(String)b[4];
                 int x=dbb.compareTo(da);
