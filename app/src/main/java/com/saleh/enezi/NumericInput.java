@@ -1,8 +1,5 @@
 package com.saleh.enezi;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /** Locale-independent parsing for Arabic and Latin monetary/quantity input. */
 public final class NumericInput {
     private NumericInput() {}
@@ -19,9 +16,11 @@ public final class NumericInput {
             else if (c >= '۰' && c <= '۹') c = (char) ('0' + c - '۰');
             if (c == '٫') c = '\u0001'; // Explicit Arabic decimal separator.
             if (c == '٬' || Character.isWhitespace(c) || c == '\u00a0' || c == '\u202f' || c == '\'') continue;
-            if (c == '-' && mapped.length() == 0) { negative = true; continue; }
-            if ((c >= '0' && c <= '9') || c == '.' || c == ',' || c == '\u0001') mapped.append(c);
+            if (c == '-' && mapped.length() == 0 && !negative) { negative = true; continue; }
+            if ((c >= '0' && c <= '9') || c == '.' || c == ',' || c == '\\u0001') mapped.append(c);
+            else invalid = true;
         }
+        if (invalid) return "";
         String rawNumber = mapped.toString();
         if (rawNumber.isEmpty()) return "";
         int explicitArabicDecimal = rawNumber.lastIndexOf('\u0001');
