@@ -359,9 +359,31 @@ public class MainActivity extends Activity {
         t.setIncludeFontPadding(false);
         if(Build.VERSION.SDK_INT>=28){try{t.setFallbackLineSpacing(true);}catch(Throwable ignored){}}
     }
+    // يفرض اتجاه RTL على عناصر الواجهة التي ترث الاتجاه من الحاوية،
+    // مع الإبقاء على العناصر التي حُدد لها LTR صراحةً (مثل بعض صفوف الأرقام).
+    void applyRtlLayoutDirection(View view){
+        if(view==null) return;
+        int rawDirection=view.getRawLayoutDirection();
+        if(rawDirection==View.LAYOUT_DIRECTION_INHERIT || rawDirection==View.LAYOUT_DIRECTION_LOCALE){
+            view.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        }
+        if(view instanceof TextView && !(view instanceof EditText)){
+            ((TextView)view).setTextDirection(View.TEXT_DIRECTION_RTL);
+        }
+        if(view instanceof ViewGroup){
+            ViewGroup group=(ViewGroup)view;
+            group.setClipChildren(false);
+            group.setClipToPadding(false);
+            for(int i=0;i<group.getChildCount();i++){
+                applyRtlLayoutDirection(group.getChildAt(i));
+            }
+        }
+    }
+
     void finalizeAdaptiveLayout(View rootView){
         if(rootView==null) return;
         rootView.post(()->{
+            applyRtlLayoutDirection(rootView);
             normalizeInputViews(rootView);
             normalizeAppText(rootView);
             rootView.requestLayout();
@@ -1530,7 +1552,8 @@ public class MainActivity extends Activity {
         floatingAdd.setElevation(dp(6));
         floatingAdd.setMinWidth(dp(52));floatingAdd.setMinHeight(dp(52));
         floatingAdd.setOnClickListener(v->showCustomerTransactionDialog(false));
-        summary.addView(floatingAdd,new LinearLayout.LayoutParams(dp(54),dp(52)));
+        // في حاوية RTL يكون أول عنصر على أقصى اليمين؛ ضع زر الإضافة أولاً.
+        summary.addView(floatingAdd,0,new LinearLayout.LayoutParams(dp(54),dp(52)));
         bottom.addView(summary,0,new LinearLayout.LayoutParams(-1,-2));
     }
 
