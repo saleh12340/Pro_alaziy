@@ -772,7 +772,7 @@ public class MainActivity extends Activity {
         nav.setBackground(navBg);
         nav.setElevation(dp(8));
         String[] labels={"الرئيسية","فاتورة","الموردون","التقارير","المزيد"};
-        String[] icons={"🏪","🧾","🏪","📊","•••"};
+        String[] icons={"🏠","🧾","🏪","📊","•••"};
         for(int i=0;i<labels.length;i++){
             final int idx=i;
             LinearLayout tab=new LinearLayout(this); tab.setOrientation(LinearLayout.VERTICAL); tab.setGravity(Gravity.CENTER); tab.setPadding(dp(2),dp(3),dp(2),dp(3));
@@ -1437,6 +1437,25 @@ public class MainActivity extends Activity {
         pageStack.clear();
         base("الرئيسية",true);
 
+        // ملخص مختصر وثابت أعلى الرئيسية، مرتب من اليمين إلى اليسار.
+        LinearLayout homeStats=new LinearLayout(this);
+        homeStats.setOrientation(LinearLayout.VERTICAL);
+        homeStats.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        LinearLayout homeStatsTop=new LinearLayout(this);
+        homeStatsTop.setOrientation(LinearLayout.HORIZONTAL);
+        homeStatsTop.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        addHomeSummaryCell(homeStatsTop,"مبيعات اليوم",fmt(safeTodaySales())+" ر.ي",GREEN);
+        addHomeSummaryCell(homeStatsTop,"مشتريات اليوم",fmt(safeTodayPurchases())+" ر.ي",GOLD);
+        LinearLayout homeStatsBottom=new LinearLayout(this);
+        homeStatsBottom.setOrientation(LinearLayout.HORIZONTAL);
+        homeStatsBottom.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        addHomeSummaryCell(homeStatsBottom,"عليك",fmt(db.totalDebts())+" ر.ي",RED);
+        addHomeSummaryCell(homeStatsBottom,"لك",fmt(db.totalCredits())+" ر.ي",BLUE_PRIMARY);
+        homeStats.addView(homeStatsTop,new LinearLayout.LayoutParams(-1,-2));
+        homeStats.addView(homeStatsBottom,new LinearLayout.LayoutParams(-1,-2));
+        content.addView(homeStats,new LinearLayout.LayoutParams(-1,-2));
+        addSpace(5);
+
         LinearLayout searchRow=new LinearLayout(this);
         searchRow.setOrientation(LinearLayout.HORIZONTAL);
         searchRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
@@ -1611,7 +1630,7 @@ public class MainActivity extends Activity {
         cell.setOrientation(LinearLayout.VERTICAL);
         cell.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
         cell.setPadding(dp(9),dp(4),dp(9),dp(4));
-        cell.setBackground(rounded(DARK,dp(12)));
+        cell.setBackground(outlined(DARK,dp(1),dp(12)));
 
         TextView v=tv(value,15);
         v.setTextColor(Color.WHITE);
