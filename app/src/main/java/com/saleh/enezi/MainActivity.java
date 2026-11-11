@@ -69,6 +69,7 @@ public class MainActivity extends Activity {
     Uri cameraScanTempUri; Bitmap scanRawBitmap; String scanFilterMode="magic"; float scanRotation=0; String scanCategoryFilter="الكل"; String scanSearchQuery="";
     EditText transferSenderName,transferSenderPhone,transferReceiverName,transferReceiverPhone,transferContactNameTarget,transferContactPhoneTarget;
     boolean invoiceSaveInProgress=false;
+    boolean invoiceNegativeStockConfirmed=false;
     Button invoiceSaveButton;
     EditText activeVoiceField;
 
@@ -2196,6 +2197,8 @@ public class MainActivity extends Activity {
             return;
         }
         invoiceSaveInProgress=true;
+        boolean userConfirmedNegativeStock=invoiceNegativeStockConfirmed;
+        invoiceNegativeStockConfirmed=false;
         SQLiteDatabase txDb=null;
         boolean saved=false;
         String customerName=name==null?"":name.trim();
@@ -2215,10 +2218,30 @@ public class MainActivity extends Activity {
                     ||Double.isNaN(line.total)||Double.isInfinite(line.total)||line.total<0)
                     throw new IllegalArgumentException("يوجد صنف ببيانات غير صحيحة");
             }
+            stockWarning=db.saleStockWarning(lines,edit?oldId:-1);
+            if(!stockWarning.isEmpty()&&!userConfirmedNegativeStock){
+                ArrayList<Line> confirmedLines=new ArrayList<>();
+                for(Line line:lines)confirmedLines.add(new Line(line.name,line.qty,line.total));
+                final String confirmedName=storedCustomer,confirmedNo=savedNo,confirmedPhone=phone;
+                final double confirmedTotal=total,confirmedPaid=paid;
+                final boolean confirmedEdit=edit;
+                final long confirmedOldId=oldId;
+                new AlertDialog.Builder(this,android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
+                    .setTitle("المخزون غير كافٍ")
+                    .setMessage(stockWarning+"\\n\\nهل تريد متابعة حفظ الفاتورة مع تسجيل العجز في المخزون بالسالب؟")
+                    .setPositiveButton("متابعة وتسجيل العجز",(dialog,which)->{
+                        invoiceNegativeStockConfirmed=true;
+                        saveInvoice(confirmedName,confirmedNo,confirmedLines,confirmedTotal,confirmedPaid,confirmedPhone,confirmedEdit,confirmedOldId);
+                    })
+                    .setNegativeButton("إلغاء",null)
+                    .show();
+                return;
+            }
             date=db.now();
             txDb=db.getWritableDatabase();
             txDb.beginTransaction();
             try{
+                // إعادة التحقق داخل المعاملة لحماية المخزون من أي تغيير متزامن.
                 stockWarning=db.saleStockWarning(lines,edit?oldId:-1);
                 // إنشاء العميل داخل نفس المعاملة حتى لا يبقى سجل يتيم عند فشل الفاتورة.
                 if(!cashCustomer)cid=db.customer(storedCustomer,phone==null?"":phone);
@@ -8011,14 +8034,14 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                 Cursor old=d.rawQuery("SELECT name,qty FROM invoice_items WHERE invoice_id=?",new String[]{String.valueOf(oldInvoiceId)});
                 while(old.moveToNext()){
                     String raw=old.getString(0)==null?"":old.getString(0).trim();
-                    String n=raw.toLowerCase(Locale.ROOT);
+                    String n=norm(raw);
                     if(!n.isEmpty()) needed.put(n,needed.getOrDefault(n,0.0)-old.getDouble(1));
                 }
                 old.close();
             }
             if(ls!=null) for(Line l:ls){
                 String raw=l.name==null?"":l.name.trim();
-                String n=raw.toLowerCase(Locale.ROOT);
+                String n=norm(raw);
                 if(!n.isEmpty()){
                     needed.put(n,needed.getOrDefault(n,0.0)+Math.max(0,l.qty));
                     labels.put(n,raw);
@@ -8027,7 +8050,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
             StringBuilder w=new StringBuilder();
             for(Map.Entry<String,Double> e:needed.entrySet()){
                 if(e.getValue()<=0) continue;
-                Cursor q=d.rawQuery("SELECT COALESCE(qty,0) FROM items WHERE lower(trim(name))=? LIMIT 1",new String[]{e.getKey()});
+                Cursor q=d.rawQuery("SELECT COALESCE(qty,0) FROM items WHERE normalized_name=? OR lower(trim(name))=? LIMIT 1",new String[]{e.getKey(),e.getKey().toLowerCase(Locale.ROOT)});
                 boolean exists=q.moveToFirst();
                 double stock=exists?q.getDouble(0):0;
                 q.close();
