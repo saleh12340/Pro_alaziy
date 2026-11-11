@@ -6802,28 +6802,26 @@ void operationActions(long customerId,String customerName,long tid,String detail
             pYesterday.setOnClickListener(v->{currentPeriod[0]=PERIOD_YESTERDAY; updatePeriodStyle[0].run();});
             pMonth.setOnClickListener(v->{currentPeriod[0]=PERIOD_MONTH; updatePeriodStyle[0].run();});
             customPeriodBtn.setOnClickListener(v->{
-                java.util.Calendar cal=java.util.Calendar.getInstance();
-                final String[] pickedStart={customFrom[0]};
-                final String[] pickedEnd={customTo[0]};
-                java.util.function.Consumer<String> chooseEnd=start->{
-                    try{cal.setTime(isoDateFormat.parse(start));}catch(Exception ignored){}
-                    new android.app.DatePickerDialog(this,(view,y,m,day)->{
-                        cal.set(y,m,day);pickedEnd[0]=isoDateFormat.format(cal.getTime());
-                        if(pickedEnd[0].compareTo(pickedStart[0])<0){
+                java.util.Calendar startCal=java.util.Calendar.getInstance();
+                try{startCal.setTime(isoDateFormat.parse(customFrom[0]));}catch(Exception ignored){}
+                new android.app.DatePickerDialog(this,(startView,sy,sm,sd)->{
+                    java.util.Calendar selectedStart=java.util.Calendar.getInstance();
+                    selectedStart.set(sy,sm,sd);
+                    final String pickedStart=isoDateFormat.format(selectedStart.getTime());
+                    java.util.Calendar endCal=(java.util.Calendar)selectedStart.clone();
+                    new android.app.DatePickerDialog(this,(endView,ey,em,ed)->{
+                        endCal.set(ey,em,ed);
+                        String pickedEnd=isoDateFormat.format(endCal.getTime());
+                        if(pickedEnd.compareTo(pickedStart)<0){
                             Toast.makeText(this,"تاريخ النهاية يجب أن يكون بعد تاريخ البداية",Toast.LENGTH_LONG).show();return;
                         }
-                        customFrom[0]=pickedStart[0];customTo[0]=pickedEnd[0];
-                        java.util.Calendar exclusive=java.util.Calendar.getInstance();
-                        exclusive.setTime(cal.getTime());exclusive.add(java.util.Calendar.DAY_OF_MONTH,1);
+                        customFrom[0]=pickedStart;customTo[0]=pickedEnd;
+                        java.util.Calendar exclusive=(java.util.Calendar)endCal.clone();
+                        exclusive.add(java.util.Calendar.DAY_OF_MONTH,1);
                         customToExclusive[0]=isoDateFormat.format(exclusive.getTime());
                         currentPeriod[0]=PERIOD_CUSTOM;updatePeriodStyle[0].run();
-                    },cal.get(java.util.Calendar.YEAR),cal.get(java.util.Calendar.MONTH),cal.get(java.util.Calendar.DAY_OF_MONTH)).show();
-                };
-                try{cal.setTime(isoDateFormat.parse(customFrom[0]));}catch(Exception ignored){}
-                new android.app.DatePickerDialog(this,(view,y,m,day)->{
-                    cal.set(y,m,day);pickedStart[0]=isoDateFormat.format(cal.getTime());
-                    chooseEnd.accept(pickedStart[0]);
-                },cal.get(java.util.Calendar.YEAR),cal.get(java.util.Calendar.MONTH),cal.get(java.util.Calendar.DAY_OF_MONTH)).show();
+                    },endCal.get(java.util.Calendar.YEAR),endCal.get(java.util.Calendar.MONTH),endCal.get(java.util.Calendar.DAY_OF_MONTH)).show();
+                },startCal.get(java.util.Calendar.YEAR),startCal.get(java.util.Calendar.MONTH),startCal.get(java.util.Calendar.DAY_OF_MONTH)).show();
             });
 
             fAll.setOnClickListener(v->{currentFilter[0]=FILTER_ALL; updateCategoryStyle[0].run();});
