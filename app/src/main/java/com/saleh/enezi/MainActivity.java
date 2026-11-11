@@ -2344,7 +2344,7 @@ public class MainActivity extends Activity {
             for(int i=3;i<a.length;i++){
                 if(a[i].trim().isEmpty())continue;
                 String[] p=a[i].split("\t",-1);
-                if(p.length>=3)lines.add(new Line(unb64(p[0]),Double.parseDouble(p[1]),Double.parseDouble(p[2])));
+                if(p.length>=3)lines.add(new Line(unb64(p[0]),parseDoubleSafe(p[1],0),parseDoubleSafe(p[2],0)));
             }
             refresh.run();Toast.makeText(this,"تم استعادة الحفظ المؤقت",Toast.LENGTH_SHORT).show();
         }catch(Exception e){Toast.makeText(this,"الحفظ المؤقت غير صالح",Toast.LENGTH_SHORT).show();}
@@ -3789,7 +3789,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 isAutoUpdating[0]=false;
                 return;
             }
-            double a=parseDoubleSafe(av.replace(",",""),0);
+            double a=parseDoubleSafe(av,0);
             StringBuilder live=new StringBuilder();
             live.append(a>0?fmt(a)+" صافي":"المبلغ: "+(av.isEmpty()?"—":av));
             if(!r.isEmpty()) live.append("\nالمستلم ").append(r);
@@ -5568,39 +5568,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
         redraw[0].run();
     }
 
-    String normalizeNumericInput(String raw){
-        if(raw==null)return "";
-        StringBuilder out=new StringBuilder();
-        String value=raw.trim();
-        for(int i=0;i<value.length();i++){
-            char ch=value.charAt(i);
-            if(ch>='٠'&&ch<='٩') ch=(char)('0'+(ch-'٠'));
-            else if(ch>='۰'&&ch<='۹') ch=(char)('0'+(ch-'۰'));
-            if(ch=='٫') ch='.';
-            if(ch=='٬'||ch==' '||ch==' ') continue;
-            if(ch==','||ch=='،'){
-                int digitsAfter=0;
-                for(int j=i+1;j<value.length();j++){
-                    char next=value.charAt(j);
-                    if(next>='٠'&&next<='٩'||next>='۰'&&next<='۹'||next>='0'&&next<='9')digitsAfter++;
-                    else if(next==','||next=='،'||next=='٫'||next=='.')break;
-                    else if(!Character.isWhitespace(next))break;
-                }
-                if(digitsAfter>0&&digitsAfter<=2&&value.indexOf(',')==i&&value.indexOf('،')<0)out.append('.');
-                else if(digitsAfter>0&&digitsAfter<=2&&value.indexOf('،')==i&&value.indexOf(',')<0)out.append('.');
-                continue;
-            }
-            if(ch=='.'||ch=='-'||ch>='0'&&ch<='9')out.append(ch);
-        }
-        return out.toString();
-    }
-    double parseDoubleSafe(String value,double fallback){
-        try{
-            String normalized=normalizeNumericInput(value);
-            if(normalized.isEmpty()||".".equals(normalized)||"-".equals(normalized))return fallback;
-            return Double.parseDouble(normalized);
-        }catch(Exception e){return fallback;}
-    }
+    String normalizeNumericInput(String raw){ return NumericInput.normalize(raw); }
+    double parseDoubleSafe(String value,double fallback){ return NumericInput.parseDouble(value,fallback); }
 
     void saveUnifiedPurchase(String supplierName,String no,ArrayList<PurchaseLine> lines,double sum,double paid){
         if(invoiceSaveInProgress){
