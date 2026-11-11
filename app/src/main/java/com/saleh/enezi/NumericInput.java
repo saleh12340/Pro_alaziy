@@ -17,7 +17,7 @@ public final class NumericInput {
             if (c == '٫') c = '\u0001'; // Explicit Arabic decimal separator.
             if (c == '٬' || Character.isWhitespace(c) || c == '\u00a0' || c == '\u202f' || c == '\'') continue;
             if (c == '-' && mapped.length() == 0 && !negative) { negative = true; continue; }
-            if ((c >= '0' && c <= '9') || c == '.' || c == ',' || c == '\\u0001') mapped.append(c);
+            if ((c >= '0' && c <= '9') || c == '.' || c == ',' || c == '\u0001') mapped.append(c);
             else invalid = true;
         }
         if (invalid) return "";
