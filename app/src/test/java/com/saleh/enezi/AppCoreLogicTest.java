@@ -33,9 +33,11 @@ public class AppCoreLogicTest {
     public void testPaperSizesAndThermalFlags() {
         assertTrue(PrintEngine.PaperSize.THERMAL_58MM.isThermal());
         assertEquals(384, PrintEngine.PaperSize.THERMAL_58MM.thermalWidthPx);
+        assertEquals(164, PrintEngine.PaperSize.THERMAL_58MM.pdfWidthPt);
 
         assertTrue(PrintEngine.PaperSize.THERMAL_80MM.isThermal());
         assertEquals(576, PrintEngine.PaperSize.THERMAL_80MM.thermalWidthPx);
+        assertEquals(227, PrintEngine.PaperSize.THERMAL_80MM.pdfWidthPt);
 
         assertFalse(PrintEngine.PaperSize.A4.isThermal());
         assertEquals(595, PrintEngine.PaperSize.A4.pdfWidthPt);
