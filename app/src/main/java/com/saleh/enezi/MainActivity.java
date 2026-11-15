@@ -11483,41 +11483,34 @@ void account(long id,String name){
                 row.setClipChildren(false);
                 row.setClipToPadding(false);
 
-                // اليمين: نوع العملية والمبلغ، والتاريخ المختصر أسفله.
+                // ترتيب الأعمدة من اليمين إلى اليسار: النوع والتاريخ، التفاصيل، عليه/له، الرصيد.
                 LinearLayout operationBox=new LinearLayout(this);
                 operationBox.setOrientation(LinearLayout.VERTICAL);
                 operationBox.setGravity(Gravity.CENTER);
-                operationBox.setPadding(dp(3),dp(2),dp(3),dp(2));
+                operationBox.setPadding(dp(1),dp(2),dp(1),dp(2));
                 operationBox.setClipChildren(false);
 
-                TextView opType=denseText(type==1?"قيد سحب":"دفعة سداد",11f,9f,type==1?RED:BLUE);
+                TextView opType=denseText(type==1?"سحب":"سداد",10f,8.5f,type==1?RED:GREEN);
                 opType.setGravity(Gravity.CENTER);
                 opType.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
                 opType.setMaxLines(1);
-                TextView amt=denseText((type==1?"عليه: ":"له: ")+fmt(a)+" ر.ي",12f,9f,type==1?RED:BLUE);
-                amt.setGravity(Gravity.CENTER);
-                amt.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-                amt.setMaxLines(1);
-                amt.setPadding(dp(3),dp(2),dp(3),dp(2));
-                amt.setBackground(glassFill(type==1?Color.argb(210,255,225,228):Color.argb(200,225,235,255)));
 
                 String shortDate=date==null?"":date.replace('T',' ');
                 if(shortDate.length()>16) shortDate=shortDate.substring(0,16);
-                TextView dateTv=denseText(shortDate,9.5f,8.5f,MUTED);
+                TextView dateTv=denseText(shortDate,9f,7.5f,MUTED);
                 dateTv.setGravity(Gravity.CENTER);
-                dateTv.setMaxLines(1);
+                dateTv.setMaxLines(2);
                 dateTv.setPadding(0,dp(1),0,0);
 
                 operationBox.addView(opType,new LinearLayout.LayoutParams(-1,-2));
-                operationBox.addView(amt,new LinearLayout.LayoutParams(-1,-2));
                 operationBox.addView(dateTv,new LinearLayout.LayoutParams(-1,-2));
-                row.addView(operationBox,new LinearLayout.LayoutParams(dp(104),-2));
+                row.addView(operationBox,new LinearLayout.LayoutParams(dp(66),-2));
 
-                // الوسط: التفاصيل فقط. لا نضع التاريخ هنا حتى لا يضغط النص.
+                // عمود التفاصيل ظاهر دائماً، ومربع التحديد محفوظ للمشاركة الجماعية.
                 LinearLayout info=new LinearLayout(this);
                 info.setOrientation(LinearLayout.HORIZONTAL);
                 info.setGravity(Gravity.CENTER_VERTICAL);
-                info.setPadding(dp(6),0,dp(6),0);
+                info.setPadding(dp(2),0,dp(2),0);
                 info.setClipChildren(false);
 
                 CheckBox ck=new CheckBox(this);
@@ -11527,11 +11520,11 @@ void account(long id,String name){
                     if(on){if(!selectedIds.contains(tid))selectedIds.add(tid);}
                     else selectedIds.remove(tid);
                 });
-                info.addView(ck,new LinearLayout.LayoutParams(dp(28),-2));
+                info.addView(ck,new LinearLayout.LayoutParams(dp(24),-2));
 
                 String detailText=isInv?"فاتورة #"+inv:
                     (d==null||d.trim().isEmpty()?(type==1?"قيد سحب":"دفعة سداد"):d.trim());
-                TextView main=denseText(detailText,13f,9f,DARK);
+                TextView main=denseText(detailText,11.5f,8.5f,DARK);
                 main.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
                 main.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
                 main.setSingleLine(false);
@@ -11540,19 +11533,27 @@ void account(long id,String name){
                 main.setHorizontallyScrolling(false);
                 main.setIncludeFontPadding(true);
                 main.setPadding(0,dp(2),0,dp(2));
-                autoFitText(main,13f,9f,0.5f);
+                autoFitText(main,11.5f,8.5f,0.5f);
                 info.addView(main,new LinearLayout.LayoutParams(0,-2,1f));
                 row.addView(info,new LinearLayout.LayoutParams(0,-2,1f));
 
-                // اليسار: الرصيد التراكمي فقط.
-                TextView bal=denseText(fmt(Math.abs(balanceAfter))+" ريال",12f,9.5f,
+                // خلية مستقلة للمبلغ: عليه بالأحمر وله بالأخضر، بلا إطار أو تسطير.
+                TextView amt=denseText((type==1?"عليه":"له")+"\\n"+fmt(a)+" ر.ي",
+                    10.5f,8f,type==1?RED:GREEN);
+                amt.setGravity(Gravity.CENTER);
+                amt.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+                amt.setMaxLines(2);
+                amt.setPadding(dp(1),dp(2),dp(1),dp(2));
+                row.addView(amt,new LinearLayout.LayoutParams(dp(82),-2));
+
+                // الرصيد بعد العملية في خلية مستقلة بلا خلفية أو حدود.
+                TextView bal=denseText(fmt(Math.abs(balanceAfter))+" ريال",10.5f,8f,
                     balanceAfter>0.005?RED:(balanceAfter<-0.005?BLUE:GREEN));
                 bal.setGravity(Gravity.CENTER);
                 bal.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
                 bal.setMaxLines(2);
-                bal.setPadding(dp(4),dp(3),dp(4),dp(3));
-                bal.setBackground(glassFill(Color.argb(210,248,250,248)));
-                row.addView(bal,new LinearLayout.LayoutParams(dp(96),-2));
+                bal.setPadding(dp(1),dp(2),dp(1),dp(2));
+                row.addView(bal,new LinearLayout.LayoutParams(dp(76),-2));
 
                 // تفاصيل كل عملية قابلة للتوسعة داخل السجل نفسه، مع تصميم جدولي مسطر ومضغوط.
                 LinearLayout expansion=new LinearLayout(this);
@@ -11665,9 +11666,6 @@ void account(long id,String name){
                     main.setText(detailText+(expanded?"  ▸":"  ▾"));
                 });
                 row.setOnLongClickListener(v->{operationActions(id,name,tid,d,a,type);return true;});
-                View separator=new View(this);
-                separator.setBackgroundColor(Color.rgb(210,218,228));
-                entry.addView(separator,new LinearLayout.LayoutParams(-1,dp(1)));
                 LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);
                 rp.setMargins(0,0,0,0);
                 list.addView(entry,rp);
