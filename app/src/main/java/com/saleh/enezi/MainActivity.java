@@ -5516,7 +5516,13 @@ void operationActions(long customerId,String customerName,long tid,String detail
         item.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,db.itemNames()));
 
         EditText unit=numberField("سعر الوحدة");
-        unit.setTextColor(TEXT); unit.setBackground(outline(CARD,10));
+        unit.setTextColor(TEXT); unit.setBackground(outline(Color.rgb(242,245,250),10));
+        unit.setEnabled(false);
+        unit.setFocusable(false);
+        unit.setFocusableInTouchMode(false);
+        unit.setCursorVisible(false);
+        unit.setKeyListener(null);
+        unit.setHint("يُحسب تلقائياً");
 
         EditText sale=numberField("سعر البيع");
 
@@ -5524,8 +5530,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
             String selectedName=(String)parent.getItemAtPosition(pos);
             double costP=db.itemCostPrice(selectedName);
             double saleP=db.itemSalePrice(selectedName);
-            if(costP>0 && unit.getText().toString().trim().isEmpty()){
-                unit.setText(fmt(costP));
+            if(costP>0 && total.getText().toString().trim().isEmpty()){
                 double q=1;
                 try{q=Double.parseDouble(qty.getText().toString().trim());}catch(Exception ignored){}
                 if(q<=0)q=1;
@@ -5636,29 +5641,13 @@ void operationActions(long customerId,String customerName,long tid,String detail
             pCountTv.setText(lines.size()+" صنف");
         };
 
-        final boolean[] updatingTotal={false};
-        final boolean[] updatingUnit={false};
-
         Runnable calcFromTotal=()->{
-            if(updatingUnit[0]) return;
-            updatingTotal[0]=true;
             try{
-                double t=Double.parseDouble(total.getText().toString().trim());
-                double q=Double.parseDouble(qty.getText().toString().trim());
-                if(q>0) unit.setText(fmt(t/q));
+                double t=NumericInput.parseDouble(total.getText().toString(),-1);
+                double q=NumericInput.parseDouble(qty.getText().toString(),-1);
+                if(t>=0&&q>0&&Double.isFinite(t)&&Double.isFinite(q)) unit.setText(fmt(t/q));
+                else unit.setText("");
             }catch(Exception e){unit.setText("");}
-            updatingTotal[0]=false;
-        };
-
-        Runnable calcFromUnit=()->{
-            if(updatingTotal[0]) return;
-            updatingUnit[0]=true;
-            try{
-                double u=Double.parseDouble(unit.getText().toString().trim());
-                double q=Double.parseDouble(qty.getText().toString().trim());
-                if(q>0) total.setText(fmt(u*q));
-            }catch(Exception e){total.setText("");}
-            updatingUnit[0]=false;
         };
 
         total.addTextChangedListener(new android.text.TextWatcher(){
@@ -5666,20 +5655,9 @@ void operationActions(long customerId,String customerName,long tid,String detail
             public void onTextChanged(CharSequence s,int st,int b,int c){calcFromTotal.run();}
             public void afterTextChanged(android.text.Editable e){}
         });
-        unit.addTextChangedListener(new android.text.TextWatcher(){
-            public void beforeTextChanged(CharSequence s,int st,int c,int a){}
-            public void onTextChanged(CharSequence s,int st,int b,int c){calcFromUnit.run();}
-            public void afterTextChanged(android.text.Editable e){}
-        });
         qty.addTextChangedListener(new android.text.TextWatcher(){
             public void beforeTextChanged(CharSequence s,int st,int c,int a){}
-            public void onTextChanged(CharSequence s,int st,int b,int c){
-                if(!unit.getText().toString().trim().isEmpty()){
-                    calcFromUnit.run();
-                }else{
-                    calcFromTotal.run();
-                }
-            }
+            public void onTextChanged(CharSequence s,int st,int b,int c){calcFromTotal.run();}
             public void afterTextChanged(android.text.Editable e){}
         });
 
@@ -5692,10 +5670,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 if(n.isEmpty()||q<=0||s<0)throw new Exception();
 
                 if(!total.getText().toString().trim().isEmpty()){
-                    t=Double.parseDouble(total.getText().toString().trim());
-                }else if(!unit.getText().toString().trim().isEmpty()){
-                    double u=Double.parseDouble(unit.getText().toString().trim());
-                    t=u*q;
+                    t=NumericInput.parseDouble(total.getText().toString(),-1);
                 }else throw new Exception();
 
                 if(t<0)throw new Exception();
@@ -5704,7 +5679,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 redraw[0].run();
                 total.setText(""); qty.setText("1"); item.setText(""); sale.setText(""); unit.setText(""); total.requestFocus();
             }catch(Exception e){
-                Toast.makeText(this,"أدخل القيمة الإجمالية أو سعر الوحدة والكمية واسم الصنف وسعر البيع بشكل صحيح",Toast.LENGTH_SHORT).show();
+                Toast.makeText(this,"أدخل الإجمالي والكمية واسم الصنف وسعر البيع بشكل صحيح",Toast.LENGTH_SHORT).show();
             }
         });
 
