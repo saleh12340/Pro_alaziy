@@ -9,5 +9,5 @@
     <color name="text_primary">#0F172A</color>
     <color name="text_muted">#64748B</color>
     <color name="green_paid">#16A34A</color>
-    <color name="red_debt">#C62828</color>
+    <color name="red_debt">#DC2626</color>
 </resources>

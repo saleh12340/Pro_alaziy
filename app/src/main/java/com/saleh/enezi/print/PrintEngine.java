@@ -248,20 +248,22 @@ public final class PrintEngine {
                 canvas.drawRoundRect(margin, y, pageW - margin, y + headerH, 8, 8, stroke);
 
                 if (logo != null) {
-                    canvas.drawBitmap(logo, margin + 8, y + (headerH - logo.getHeight()) / 2f, null);
+                    // RTL layout: place store logo on the top-right corner of the header banner
+                    canvas.drawBitmap(logo, pageW - margin - 8 - logo.getWidth(), y + (headerH - logo.getHeight()) / 2f, null);
                 }
 
+                int headerTextW = contentW - (logo != null ? logo.getWidth() + 24 : 16);
                 String hTitle = cfg.headerTitle + (cfg.headerPhone != null && !cfg.headerPhone.isEmpty() ? "  •  " + cfg.headerPhone : "");
-                StaticLayout slHead = rtlLayout(hTitle, tpTitle, contentW - (logo != null ? logo.getWidth() + 20 : 16), Layout.Alignment.ALIGN_NORMAL);
+                StaticLayout slHead = rtlLayout(hTitle, tpTitle, headerTextW, Layout.Alignment.ALIGN_NORMAL);
                 canvas.save();
-                canvas.translate(margin + (logo != null ? logo.getWidth() + 14 : 8), y + 8);
+                canvas.translate(margin + 8, y + 8);
                 slHead.draw(canvas);
                 canvas.restore();
 
                 String subLine = doc.docTitle + (cfg.showDateTime ? "  |  " + nowStr : "");
-                StaticLayout slSub = rtlLayout(subLine, tpMuted, contentW - (logo != null ? logo.getWidth() + 20 : 16), Layout.Alignment.ALIGN_NORMAL);
+                StaticLayout slSub = rtlLayout(subLine, tpMuted, headerTextW, Layout.Alignment.ALIGN_NORMAL);
                 canvas.save();
-                canvas.translate(margin + (logo != null ? logo.getWidth() + 14 : 8), y + 12 + slHead.getHeight());
+                canvas.translate(margin + 8, y + 12 + slHead.getHeight());
                 slSub.draw(canvas);
                 canvas.restore();
                 y += headerH + 10;
@@ -312,11 +314,13 @@ public final class PrintEngine {
                     tpTh.setColor(Color.WHITE);
                     tpTh.setTextSize(baseFont - 0.5f);
 
-                    float colW = (float) contentW / cols;
+                    float[] colWidths = computeColumnWidths(cols, contentW);
+                    float curRight = pageW - margin;
                     for (int cIdx = 0; cIdx < cols; cIdx++) {
-                        // RTL column order: index 0 on the right
-                        float xLeft = (pageW - margin) - (cIdx + 1) * colW;
-                        StaticLayout cellSl = rtlLayout(doc.tableHeaders[cIdx], tpTh, Math.max(20, (int) colW - 6), Layout.Alignment.ALIGN_CENTER);
+                        float cw = colWidths[cIdx];
+                        float xLeft = curRight - cw;
+                        curRight -= cw;
+                        StaticLayout cellSl = rtlLayout(doc.tableHeaders[cIdx], tpTh, Math.max(20, (int) cw - 6), Layout.Alignment.ALIGN_CENTER);
                         canvas.save();
                         canvas.translate(xLeft + 3, y + Math.max(2, (thH - cellSl.getHeight()) / 2f));
                         cellSl.draw(canvas);
@@ -329,8 +333,9 @@ public final class PrintEngine {
                         int maxRowH = 20;
                         StaticLayout[] cellLayouts = new StaticLayout[cols];
                         for (int cIdx = 0; cIdx < cols; cIdx++) {
-                            String val = (r != null && cIdx < r.length && r[cIdx] != null) ? r[cIdx] : "";
-                            cellLayouts[cIdx] = rtlLayout(val, tpBody, Math.max(20, (int) colW - 6),
+                            float cw = colWidths[cIdx];
+                            String val = (r != null && cIdx < r.length && r[cIdx] != null) ? formatCellRtlSafe(r[cIdx]) : "";
+                            cellLayouts[cIdx] = rtlLayout(val, tpBody, Math.max(20, (int) cw - 6),
                                     cIdx == 0 ? Layout.Alignment.ALIGN_NORMAL : Layout.Alignment.ALIGN_CENTER);
                             maxRowH = Math.max(maxRowH, cellLayouts[cIdx].getHeight() + 8);
                         }
@@ -342,8 +347,11 @@ public final class PrintEngine {
                             canvas.drawRect(margin, y, pageW - margin, y + maxRowH, fill);
                         }
                         canvas.drawLine(margin, y + maxRowH, pageW - margin, y + maxRowH, stroke);
+                        curRight = pageW - margin;
                         for (int cIdx = 0; cIdx < cols; cIdx++) {
-                            float xLeft = (pageW - margin) - (cIdx + 1) * colW;
+                            float cw = colWidths[cIdx];
+                            float xLeft = curRight - cw;
+                            curRight -= cw;
                             canvas.save();
                             canvas.translate(xLeft + 3, y + 4);
                             cellLayouts[cIdx].draw(canvas);
@@ -470,20 +478,20 @@ public final class PrintEngine {
 
         List<StaticLayout[]> rowLayouts = new ArrayList<>();
         int cols = doc.tableHeaders != null ? doc.tableHeaders.length : 0;
-        float colW = cols > 0 ? (float) contentW / cols : contentW;
+        float[] colWidths = cols > 0 ? computeColumnWidths(cols, contentW) : new float[0];
         if (cols > 0 && doc.tableRows != null) {
-            totalH += 34; // header bar
+            totalH += 36; // header bar
             for (String[] row : doc.tableRows) {
                 StaticLayout[] cells = new StaticLayout[cols];
                 int maxR = 22;
                 for (int i = 0; i < cols; i++) {
-                    String val = (row != null && i < row.length && row[i] != null) ? row[i] : "";
-                    cells[i] = rtlLayout(val, tpSmall, Math.max(24, (int) colW - 4),
+                    String val = (row != null && i < row.length && row[i] != null) ? formatCellRtlSafe(row[i]) : "";
+                    cells[i] = rtlLayout(val, tpSmall, Math.max(24, (int) colWidths[i] - 4),
                             i == 0 ? Layout.Alignment.ALIGN_NORMAL : Layout.Alignment.ALIGN_CENTER);
                     maxR = Math.max(maxR, cells[i].getHeight() + 6);
                 }
                 rowLayouts.add(cells);
-                totalH += maxR + 4;
+                totalH += maxR + 5;
             }
         }
 
@@ -530,31 +538,42 @@ public final class PrintEngine {
         if (cols > 0 && doc.tableHeaders != null) {
             Paint thBg = new Paint();
             thBg.setColor(Color.BLACK);
-            canvas.drawRect(margin, y, width - margin, y + 28, thBg);
+            canvas.drawRect(margin, y, width - margin, y + 30, thBg);
             TextPaint tpTh = new TextPaint(tpSmall);
             tpTh.setColor(Color.WHITE);
             tpTh.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+            float curRight = width - margin;
             for (int i = 0; i < cols; i++) {
-                float xLeft = (width - margin) - (i + 1) * colW;
-                StaticLayout sl = rtlLayout(doc.tableHeaders[i], tpTh, Math.max(24, (int) colW - 4), Layout.Alignment.ALIGN_CENTER);
+                float cw = colWidths[i];
+                float xLeft = curRight - cw;
+                curRight -= cw;
+                StaticLayout sl = rtlLayout(doc.tableHeaders[i], tpTh, Math.max(24, (int) cw - 4), Layout.Alignment.ALIGN_CENTER);
                 canvas.save();
-                canvas.translate(xLeft + 2, y + 4);
+                canvas.translate(xLeft + 2, y + 5);
                 sl.draw(canvas);
                 canvas.restore();
             }
-            y += 32;
+            y += 34;
 
+            Paint thinDiv = new Paint(Paint.ANTI_ALIAS_FLAG);
+            thinDiv.setColor(Color.rgb(200, 200, 200));
+            thinDiv.setStrokeWidth(1f);
             for (StaticLayout[] cells : rowLayouts) {
                 int maxR = 22;
+                curRight = width - margin;
                 for (int i = 0; i < cols; i++) {
-                    float xLeft = (width - margin) - (i + 1) * colW;
+                    float cw = colWidths[i];
+                    float xLeft = curRight - cw;
+                    curRight -= cw;
                     canvas.save();
                     canvas.translate(xLeft + 2, y + 2);
                     cells[i].draw(canvas);
                     canvas.restore();
                     maxR = Math.max(maxR, cells[i].getHeight() + 6);
                 }
-                y += maxR + 4;
+                y += maxR + 3;
+                canvas.drawLine(margin, y, width - margin, y, thinDiv);
+                y += 2;
             }
             canvas.drawLine(margin, y, width - margin, y, linePaint);
             y += 8;
@@ -982,6 +1001,38 @@ public final class PrintEngine {
                     Toast.makeText(a, "✓ تم حفظ قالب الطباعة المخصص", Toast.LENGTH_SHORT).show();
                     if (onSaved != null) onSaved.run();
                 }).show();
+    }
+
+    public static float[] computeColumnWidths(int cols, float totalWidth) {
+        if (cols <= 1) return new float[]{totalWidth};
+        float[] widths = new float[cols];
+        if (cols == 2) {
+            widths[0] = totalWidth * 0.56f;
+            widths[1] = totalWidth * 0.44f;
+        } else if (cols == 3) {
+            widths[0] = totalWidth * 0.50f;
+            widths[1] = totalWidth * 0.20f;
+            widths[2] = totalWidth * 0.30f;
+        } else if (cols == 4) {
+            widths[0] = totalWidth * 0.38f;
+            widths[1] = totalWidth * 0.16f;
+            widths[2] = totalWidth * 0.22f;
+            widths[3] = totalWidth * 0.24f;
+        } else {
+            float eq = totalWidth / cols;
+            for (int i = 0; i < cols; i++) widths[i] = eq;
+        }
+        return widths;
+    }
+
+    public static String formatCellRtlSafe(String raw) {
+        if (raw == null) return "";
+        String trimmed = raw.trim();
+        if (trimmed.isEmpty()) return "";
+        if (trimmed.matches(".*\\d.*") && trimmed.matches("[-+0-9.,/:\\s]+")) {
+            return "\u2066" + trimmed + "\u2069";
+        }
+        return trimmed;
     }
 
     private static StaticLayout rtlLayout(String text, TextPaint paint, int width, Layout.Alignment align) {

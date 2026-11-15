@@ -27,10 +27,10 @@ public class InventoryLevelsChartView extends View {
     private int selectedIndex = -1;
     private OnItemClickListener onItemClickListener;
 
-    private static final int COLOR_GOOD = Color.rgb(46, 125, 50);    // Dark Green
-    private static final int COLOR_LOW = Color.rgb(242, 142, 54);     // Orange
-    private static final int COLOR_EMPTY = Color.rgb(198, 40, 40);    // Red
-    private static final int TEXT_COLOR = Color.rgb(32, 45, 60);
+    private static final int COLOR_GOOD = Color.rgb(22, 163, 74);    // Success Green #16A34A
+    private static final int COLOR_LOW = Color.rgb(217, 119, 6);     // Warning Amber #D97706
+    private static final int COLOR_EMPTY = Color.rgb(220, 38, 38);    // Danger Red #DC2626
+    private static final int TEXT_COLOR = Color.rgb(15, 23, 42);      // Primary Text #0F172A
 
     public interface OnItemClickListener {
         void onItemClick(InventoryStockData item);
@@ -49,7 +49,7 @@ public class InventoryLevelsChartView extends View {
     private void init() {
         barPaint.setStyle(Paint.Style.FILL);
 
-        thresholdPaint.setColor(Color.rgb(180, 50, 50));
+        thresholdPaint.setColor(COLOR_EMPTY);
         thresholdPaint.setStyle(Paint.Style.STROKE);
         thresholdPaint.setStrokeWidth(dpToPx(2f));
 
@@ -61,7 +61,7 @@ public class InventoryLevelsChartView extends View {
         numPaint.setTextSize(dpToPx(11f));
         numPaint.setTextAlign(Paint.Align.LEFT);
 
-        bgBarPaint.setColor(Color.rgb(235, 240, 245));
+        bgBarPaint.setColor(Color.rgb(235, 243, 254));
         bgBarPaint.setStyle(Paint.Style.FILL);
     }
 

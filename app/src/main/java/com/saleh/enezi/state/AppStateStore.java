@@ -28,6 +28,7 @@ public final class AppStateStore {
     private static final String KEY_FAVS = "favorites_set";
     private static final String KEY_ACTIVITY = "activity_log_json";
     private static final String KEY_LAST_SCREEN = "last_screen";
+    private static final String KEY_NAV_HISTORY = "nav_history_v1";
     private static final int MAX_ACTIVITY_ITEMS = 80;
 
     private AppStateStore() {}
@@ -119,7 +120,7 @@ public final class AppStateStore {
         if (c != null) prefs(c).edit().putBoolean("fav_only_" + screenKey, favOnly).apply();
     }
 
-    // Last screen auto-save/restore
+    // Last screen & typed back-stack auto-save/restore
     public static void saveLastScreen(Context c, String screenName) {
         if (c != null && screenName != null && !screenName.isEmpty()) {
             prefs(c).edit().putString(KEY_LAST_SCREEN, screenName).apply();
@@ -128,6 +129,20 @@ public final class AppStateStore {
 
     public static String getLastScreen(Context c) {
         return c == null ? "الرئيسية" : prefs(c).getString(KEY_LAST_SCREEN, "الرئيسية");
+    }
+
+    public static void saveNavHistory(Context c, String serialized) {
+        if (c != null && serialized != null) {
+            prefs(c).edit().putString(KEY_NAV_HISTORY, serialized).apply();
+        }
+    }
+
+    public static String getNavHistory(Context c) {
+        return c == null ? "" : prefs(c).getString(KEY_NAV_HISTORY, "");
+    }
+
+    public static void clearNavHistory(Context c) {
+        if (c != null) prefs(c).edit().remove(KEY_NAV_HISTORY).apply();
     }
 
     // Activity Log

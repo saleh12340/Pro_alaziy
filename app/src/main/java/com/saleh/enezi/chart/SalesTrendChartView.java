@@ -38,10 +38,10 @@ public class SalesTrendChartView extends View {
     private int selectedIndex = -1;
     private OnPointClickListener onPointClickListener;
 
-    private static final int PRIMARY_COLOR = Color.rgb(30, 91, 170); // BLUE_PRIMARY
-    private static final int ACCENT_COLOR = Color.rgb(242, 142, 54); // ORANGE
-    private static final int GRID_COLOR = Color.rgb(225, 235, 245);
-    private static final int TEXT_COLOR = Color.rgb(80, 95, 110);
+    private static final int PRIMARY_COLOR = Color.rgb(27, 59, 139); // Deep Royal Navy #1B3B8B
+    private static final int ACCENT_COLOR = Color.rgb(217, 119, 6); // Amber #D97706
+    private static final int GRID_COLOR = Color.rgb(208, 215, 226);
+    private static final int TEXT_COLOR = Color.rgb(100, 116, 139);
 
     public interface OnPointClickListener {
         void onPointClick(DailySalesData data);
@@ -65,7 +65,7 @@ public class SalesTrendChartView extends View {
 
         areaPaint.setStyle(Paint.Style.FILL);
 
-        barPaint.setColor(Color.argb(70, 242, 142, 54));
+        barPaint.setColor(Color.argb(65, 27, 59, 139));
         barPaint.setStyle(Paint.Style.FILL);
 
         gridPaint.setColor(GRID_COLOR);
@@ -79,7 +79,7 @@ public class SalesTrendChartView extends View {
 
         dotPaint.setStyle(Paint.Style.FILL);
 
-        tooltipPaint.setColor(Color.rgb(32, 45, 60));
+        tooltipPaint.setColor(Color.rgb(15, 23, 42));
         tooltipPaint.setStyle(Paint.Style.FILL);
 
         tooltipTextPaint.setColor(Color.WHITE);
@@ -185,7 +185,7 @@ public class SalesTrendChartView extends View {
 
         // Area Gradient
         LinearGradient shader = new LinearGradient(0, paddingTop, 0, paddingTop + chartH,
-                Color.argb(100, 30, 91, 170), Color.argb(10, 30, 91, 170), Shader.TileMode.CLAMP);
+                Color.argb(95, 27, 59, 139), Color.argb(10, 27, 59, 139), Shader.TileMode.CLAMP);
         areaPaint.setShader(shader);
 
         canvas.drawPath(areaPath, areaPaint);
@@ -202,7 +202,7 @@ public class SalesTrendChartView extends View {
 
             // Revenue bar
             RectF barRect = new RectF(x - barWidth / 2, y, x + barWidth / 2, paddingTop + chartH);
-            barPaint.setColor(i == selectedIndex ? ACCENT_COLOR : Color.argb(60, 30, 91, 170));
+            barPaint.setColor(i == selectedIndex ? ACCENT_COLOR : Color.argb(55, 27, 59, 139));
             canvas.drawRoundRect(barRect, dpToPx(4f), dpToPx(4f), barPaint);
 
             // Date label

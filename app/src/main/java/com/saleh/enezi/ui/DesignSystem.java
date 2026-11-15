@@ -38,94 +38,86 @@ public final class DesignSystem {
     private DesignSystem() {}
 
     public static int getThemeMode(Context c) {
-        if (c == null) return THEME_AUTO;
-        return c.getSharedPreferences("app_settings", Context.MODE_PRIVATE).getInt("theme_mode", THEME_AUTO);
+        return THEME_LIGHT;
     }
 
     public static void setThemeMode(Context c, int mode) {
         if (c == null) return;
-        c.getSharedPreferences("app_settings", Context.MODE_PRIVATE).edit().putInt("theme_mode", mode).apply();
+        c.getSharedPreferences("app_settings", Context.MODE_PRIVATE).edit().putInt("theme_mode", THEME_LIGHT).apply();
     }
 
     public static boolean isDark(Context c) {
-        int mode = getThemeMode(c);
-        if (mode == THEME_DARK) return true;
-        if (mode == THEME_LIGHT) return false;
-        if (c == null) return false;
-        int night = c.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
-        return night == Configuration.UI_MODE_NIGHT_YES;
+        // Commercial Light Mode locked as confirmed by user requirements
+        return false;
     }
 
     public static String themeLabel(Context c) {
-        int mode = getThemeMode(c);
-        if (mode == THEME_DARK) return "الوضع الليلي";
-        if (mode == THEME_LIGHT) return "الوضع الفاتح";
-        return "تلقائي (حسب النظام)";
+        return "الوضع الفاتح الموحد";
     }
 
-    // Semantic Color Tokens
+    // Unified Commercial Light Color Tokens
     public static int primary(Context c) {
-        return isDark(c) ? Color.rgb(59, 130, 246) : Color.rgb(27, 59, 139);
+        return Color.rgb(27, 59, 139); // Deep Royal Navy #1B3B8B
     }
 
     public static int primaryContainer(Context c) {
-        return isDark(c) ? Color.rgb(30, 58, 138) : Color.rgb(235, 243, 254);
+        return Color.rgb(235, 243, 254); // #EBF3FE
     }
 
     public static int topBarBg(Context c) {
-        return isDark(c) ? Color.rgb(15, 23, 42) : Color.rgb(27, 59, 139);
+        return Color.rgb(27, 59, 139); // Deep Royal Navy #1B3B8B
     }
 
     public static int background(Context c) {
-        return isDark(c) ? Color.rgb(11, 17, 32) : Color.rgb(244, 246, 249);
+        return Color.rgb(244, 246, 249); // Soft cool gray #F4F6F9
     }
 
     public static int card(Context c) {
-        return isDark(c) ? Color.rgb(20, 30, 51) : Color.WHITE;
+        return Color.WHITE; // #FFFFFF
     }
 
     public static int surfaceAlt(Context c) {
-        return isDark(c) ? Color.rgb(30, 41, 59) : Color.rgb(235, 243, 254);
+        return Color.rgb(235, 243, 254); // #EBF3FE
     }
 
     public static int surfaceNav(Context c) {
-        return isDark(c) ? Color.rgb(15, 23, 42) : Color.WHITE;
+        return Color.WHITE;
     }
 
     public static int textPrimary(Context c) {
-        return isDark(c) ? Color.rgb(241, 245, 249) : Color.rgb(15, 23, 42);
+        return Color.rgb(15, 23, 42); // #0F172A
     }
 
     public static int textMuted(Context c) {
-        return isDark(c) ? Color.rgb(148, 163, 184) : Color.rgb(100, 116, 139);
+        return Color.rgb(100, 116, 139); // #64748B
     }
 
     public static int border(Context c) {
-        return isDark(c) ? Color.rgb(41, 53, 72) : Color.rgb(208, 215, 226);
+        return Color.rgb(208, 215, 226); // #D0D7E2
     }
 
     public static int success(Context c) {
-        return isDark(c) ? Color.rgb(34, 197, 94) : Color.rgb(22, 163, 74);
+        return Color.rgb(22, 163, 74); // #16A34A (مدفوع / له / ربح)
     }
 
     public static int successSoft(Context c) {
-        return isDark(c) ? Color.argb(40, 34, 197, 94) : Color.rgb(232, 248, 238);
+        return Color.rgb(232, 248, 238); // #E8F8EE
     }
 
     public static int danger(Context c) {
-        return isDark(c) ? Color.rgb(248, 113, 113) : Color.rgb(220, 38, 38);
+        return Color.rgb(220, 38, 38); // #DC2626 (عليه / ديون / نقص)
     }
 
     public static int dangerSoft(Context c) {
-        return isDark(c) ? Color.argb(40, 248, 113, 113) : Color.rgb(254, 235, 235);
+        return Color.rgb(254, 235, 235); // #FEEBEB
     }
 
     public static int warning(Context c) {
-        return isDark(c) ? Color.rgb(251, 191, 36) : Color.rgb(217, 119, 6);
+        return Color.rgb(217, 119, 6); // #D97706 (تحذيرات)
     }
 
     public static int warningSoft(Context c) {
-        return isDark(c) ? Color.argb(40, 251, 191, 36) : Color.rgb(254, 243, 199);
+        return Color.rgb(254, 243, 199); // #FEF3C7
     }
 
     public static int dp(Context c, float dp) {
@@ -149,7 +141,7 @@ public final class DesignSystem {
     }
 
     public static boolean useNavigationRail(Context c) {
-        return windowSizeClass(c) == WindowSizeClass.EXPANDED;
+        return false;
     }
 
     public static int maxContentWidthPx(Context c) {
@@ -168,11 +160,7 @@ public final class DesignSystem {
             if (Build.VERSION.SDK_INT >= 26) {
                 View decor = w.getDecorView();
                 int flags = decor.getSystemUiVisibility();
-                if (isDark(a)) {
-                    flags &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-                } else {
-                    flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-                }
+                flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
                 decor.setSystemUiVisibility(flags);
             }
         } catch (Throwable ignored) {}
