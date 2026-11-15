@@ -5,27 +5,29 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-permissions:
-  contents: read
-
+# Keep only the newest build for main. A newer push cancels the obsolete run.
 concurrency:
   group: al-azzi-android-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   build:
     name: Test and assemble debug APK
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 35
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
+      - name: Set up Java 17 with Gradle cache
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
       - name: Set up Android SDK 35
         uses: android-actions/setup-android@v3
@@ -56,19 +58,12 @@ jobs:
           fi
 
       - name: Run unit tests
-        run: ./gradlew :app:testDebugUnitTest --stacktrace --no-daemon
+        run: timeout 10m ./gradlew :app:testDebugUnitTest --stacktrace --no-daemon --console=plain --max-workers=2
 
-      - name: Run database migration tests on Android emulator
-        uses: ReactiveCircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          target: google_apis
-          arch: x86_64
-          disable-animations: true
-          script: ./gradlew :app:connectedDebugAndroidTest --stacktrace --no-daemon
-
+      # Build and publish the APK before starting the slower emulator test.
+      # This keeps a usable artifact available even if emulator boot/test fails.
       - name: Build debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
+        run: timeout 15m ./gradlew :app:assembleDebug --stacktrace --no-daemon --console=plain --max-workers=2
 
       - name: Verify install identity for side-by-side installation
         run: |
@@ -105,3 +100,16 @@ jobs:
             apk-sha256.txt
           if-no-files-found: error
           retention-days: 90
+
+      - name: Run database migration tests on Android emulator
+        uses: ReactiveCircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          emulator-boot-timeout: 600
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          disable-spellchecker: true
+          script: timeout 15m ./gradlew :app:connectedDebugAndroidTest --stacktrace --no-daemon --console=plain --max-workers=2
