@@ -4934,13 +4934,13 @@ void operationActions(long customerId,String customerName,long tid,String detail
         int maxRows=Math.max(right.size(), left.size());
         if(maxRows==0) maxRows=1;
 
-        final int maxRowsPerPage=36;
-        final float margin=10f;
+        final int maxRowsPerPage=28;
+        final float margin=14f;
         final int pageW=595;
         final float contentW=pageW - (margin * 2f);
-        final float spaceBetween=20f;
+        final float spaceBetween=24f;
         final float colW=(contentW - spaceBetween) / 2f;
-        final float rowH=24f;
+        final float rowH=30f;
 
         final float leftColLeft = margin;
         final float dividerX = margin + colW + (spaceBetween / 2f);
@@ -4948,12 +4948,12 @@ void operationActions(long customerId,String customerName,long tid,String detail
 
         TextPaint bodyP=new TextPaint(Paint.ANTI_ALIAS_FLAG);
         bodyP.setColor(Color.BLACK);
-        bodyP.setTextSize(13f);
+        bodyP.setTextSize(15f);
         bodyP.setTypeface(Typeface.create("sans",Typeface.NORMAL));
 
         TextPaint qtyP=new TextPaint(Paint.ANTI_ALIAS_FLAG);
         qtyP.setColor(Color.BLACK);
-        qtyP.setTextSize(13.5f);
+        qtyP.setTextSize(15.5f);
         qtyP.setTypeface(Typeface.create("sans",Typeface.BOLD));
 
         Paint lineP=new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -4991,6 +4991,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
 
                 drawNotesItem(canvas, rightColLeft, y, colW, rowH, rName, rQty, bodyP, qtyP);
                 drawNotesItem(canvas, leftColLeft, y, colW, rowH, lName, lQty, bodyP, qtyP);
+                canvas.drawLine(margin,y+rowH-1,pageW-margin,y+rowH-1,lineP);
 
                 y+=rowH;
             }
@@ -5811,7 +5812,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         TextView invNo=tv(displayInvoiceNo(String.valueOf(sale?db.nextInvoice():db.nextPurchaseNo())),13.5f);
         invNo.setVisibility(View.GONE);
 
-        // إدخال مدمج ومرن: يمتلئ العمود الأيمن أولاً ثم ينتقل الباقي إلى الأيسر.
+        // شريط إدخال أفقي مضغوط: من اليمين الإجمالي ثم العدد ثم التفاصيل ثم سعر الوحدة المحسوب.
         LinearLayout itemBox=card();
         itemBox.setPadding(dp(5),dp(5),dp(5),dp(5));
         itemBox.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
@@ -5819,67 +5820,94 @@ void operationActions(long customerId,String customerName,long tid,String detail
         LinearLayout fieldColumns=new LinearLayout(this);
         fieldColumns.setOrientation(LinearLayout.HORIZONTAL);
         fieldColumns.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        fieldColumns.setGravity(Gravity.TOP);
-
-        LinearLayout rightFields=new LinearLayout(this);
-        rightFields.setOrientation(LinearLayout.VERTICAL);
-        rightFields.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        rightFields.setPadding(0,0,dp(2),0);
-
-        LinearLayout leftFields=new LinearLayout(this);
-        leftFields.setOrientation(LinearLayout.VERTICAL);
-        leftFields.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        leftFields.setPadding(dp(2),0,0,0);
-
-        fieldColumns.addView(rightFields,new LinearLayout.LayoutParams(0,-2,1f));
-        fieldColumns.addView(leftFields,new LinearLayout.LayoutParams(0,-2,1f));
+        fieldColumns.setGravity(Gravity.CENTER_VERTICAL);
 
         EditText total=numberField("الإجمالي");
-        EditText qty=numberField("الكمية");
+        total.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL|InputType.TYPE_NUMBER_FLAG_SIGNED);
+        total.setSingleLine(true);
+        total.setTextSize(13);
+        total.setSelectAllOnFocus(true);
+
+        EditText qty=numberField("العدد");
+        qty.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        qty.setSingleLine(true);
         qty.setText("1");
+        qty.setTextSize(13);
+        qty.setSelectAllOnFocus(true);
 
         AutoCompleteTextView name=new AutoCompleteTextView(this);
-        name.setHint("اسم الصنف");
-        name.setTextSize(14);
+        name.setHint("التفاصيل");
+        name.setTextSize(13);
         name.setSingleLine(true);
         name.setMaxLines(1);
         name.setTextColor(TEXT);
         name.setHintTextColor(Color.rgb(105,105,105));
-        name.setPadding(dp(8),0,dp(8),0);
+        name.setPadding(dp(5),0,dp(5),0);
         name.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
         name.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         name.setTextDirection(View.TEXT_DIRECTION_RTL);
-        name.setEllipsize(null);
+        name.setEllipsize(TextUtils.TruncateAt.END);
         name.setHorizontallyScrolling(false);
         name.setSelectAllOnFocus(true);
         name.setThreshold(1);
         name.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,db.itemNames()));
-        name.setBackground(outlined(CARD,dp(1),14));
+        name.setBackground(outlined(CARD,dp(1),10));
         name.setOnClickListener(v->name.selectAll());
         name.setOnFocusChangeListener((v,has)->{
-            name.setBackground(outlined(CARD,has?dp(2):dp(1),14));
+            name.setBackground(outlined(CARD,has?dp(2):dp(1),10));
             if(has)name.postDelayed(name::selectAll,60);
         });
 
         EditText unit=numberField("سعر الوحدة");
         unit.setEnabled(false);
-        unit.setAlpha(.88f);
+        unit.setFocusable(false);
+        unit.setTextSize(12);
+        unit.setAlpha(.9f);
+        unit.setBackground(outlined(Color.rgb(242,245,250),dp(1),10));
+
         EditText salePrice=numberField("سعر البيع");
         salePrice.setVisibility(sale?View.GONE:View.VISIBLE);
+        salePrice.setTextSize(13);
 
-        java.util.function.BiConsumer<LinearLayout,View> addInvoiceField=(column,view)->{
-            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(44));
-            lp.setMargins(0,0,0,dp(4));
-            column.addView(view,lp);
-        };
-
-        addInvoiceField.accept(rightFields,total);
-        addInvoiceField.accept(rightFields,qty);
-        addInvoiceField.accept(rightFields,name);
-        addInvoiceField.accept(leftFields,unit);
-        if(!sale)addInvoiceField.accept(leftFields,salePrice);
-
+        LinearLayout.LayoutParams totalLp=new LinearLayout.LayoutParams(0,dp(42),1.0f);
+        LinearLayout.LayoutParams qtyLp=new LinearLayout.LayoutParams(0,dp(42),.62f);
+        qtyLp.setMargins(dp(3),0,dp(3),0);
+        LinearLayout.LayoutParams nameLp=new LinearLayout.LayoutParams(0,dp(42),1.35f);
+        nameLp.setMargins(dp(3),0,dp(3),0);
+        LinearLayout.LayoutParams unitLp=new LinearLayout.LayoutParams(0,dp(42),.92f);
+        fieldColumns.addView(total,totalLp);
+        fieldColumns.addView(qty,qtyLp);
+        fieldColumns.addView(name,nameLp);
+        fieldColumns.addView(unit,unitLp);
         itemBox.addView(fieldColumns,new LinearLayout.LayoutParams(-1,-2));
+
+        if(!sale){
+            TextView salePriceLabel=tv("سعر البيع للمخزون",10.5f);
+            salePriceLabel.setTextColor(MUTED);
+            salePriceLabel.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+            LinearLayout salePriceRow=new LinearLayout(this);
+            salePriceRow.setOrientation(LinearLayout.HORIZONTAL);
+            salePriceRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+            salePriceRow.setGravity(Gravity.CENTER_VERTICAL);
+            salePriceRow.addView(salePriceLabel,new LinearLayout.LayoutParams(0,dp(34),1));
+            salePriceRow.addView(salePrice,new LinearLayout.LayoutParams(dp(120),dp(36)));
+            LinearLayout.LayoutParams spr=new LinearLayout.LayoutParams(-1,-2);
+            spr.setMargins(0,dp(3),0,0);
+            itemBox.addView(salePriceRow,spr);
+        }
+
+        TextWatcher unitCalculator=new TextWatcher(){
+            public void beforeTextChanged(CharSequence s,int start,int count,int after){}
+            public void onTextChanged(CharSequence s,int start,int before,int count){
+                double t=parseDoubleSafe(total.getText().toString(),-1);
+                double q=parseDoubleSafe(qty.getText().toString(),-1);
+                if(t>=0&&q>0&&Double.isFinite(t)&&Double.isFinite(q))unit.setText(fmt(t/q));
+                else unit.setText("");
+            }
+            public void afterTextChanged(Editable e){}
+        };
+        total.addTextChangedListener(unitCalculator);
+        qty.addTextChangedListener(unitCalculator);
 
         Button add=action("＋ إضافة الصنف إلى الفاتورة",DARK);
         add.setTextSize(13.5f);
@@ -5896,17 +5924,15 @@ void operationActions(long customerId,String customerName,long tid,String detail
         tableHeader.setBackground(rounded(DARK,dp(6)));
         tableHeader.setPadding(dp(4),dp(6),dp(4),dp(6));
         
-        TextView thM=tv("م",11.5f); thM.setTextColor(Color.WHITE); thM.setGravity(Gravity.CENTER); thM.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-        TextView thDesc=tv("التفاصيل",11.5f); thDesc.setTextColor(Color.WHITE); thDesc.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL); thDesc.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-        TextView thQty=tv("العدد",11.5f); thQty.setTextColor(Color.WHITE); thQty.setGravity(Gravity.CENTER); thQty.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-        TextView thPrice=tv("سعر الوحدة",11.5f); thPrice.setTextColor(Color.WHITE); thPrice.setGravity(Gravity.CENTER); thPrice.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         TextView thTotal=tv("الإجمالي",11.5f); thTotal.setTextColor(Color.WHITE); thTotal.setGravity(Gravity.CENTER); thTotal.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        TextView thQty=tv("العدد",11.5f); thQty.setTextColor(Color.WHITE); thQty.setGravity(Gravity.CENTER); thQty.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        TextView thDesc=tv("التفاصيل",11.5f); thDesc.setTextColor(Color.WHITE); thDesc.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL); thDesc.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        TextView thPrice=tv("سعر الوحدة",11.5f); thPrice.setTextColor(Color.WHITE); thPrice.setGravity(Gravity.CENTER); thPrice.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
 
-        tableHeader.addView(thM,new LinearLayout.LayoutParams(dp(28),-2));
+        tableHeader.addView(thTotal,new LinearLayout.LayoutParams(dp(78),-2));
+        tableHeader.addView(thQty,new LinearLayout.LayoutParams(dp(48),-2));
         tableHeader.addView(thDesc,new LinearLayout.LayoutParams(0,-2,1.8f));
-        tableHeader.addView(thQty,new LinearLayout.LayoutParams(dp(44),-2));
-        tableHeader.addView(thPrice,new LinearLayout.LayoutParams(dp(64),-2));
-        tableHeader.addView(thTotal,new LinearLayout.LayoutParams(dp(64),-2));
+        tableHeader.addView(thPrice,new LinearLayout.LayoutParams(dp(78),-2));
         itemBox.addView(tableHeader,new LinearLayout.LayoutParams(-1,-2));
         addSpaceTo(itemBox,2);
 
@@ -5971,17 +5997,15 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 rBox.setBackground(outlined(Color.WHITE,1,dp(8)));
                 rBox.setPadding(dp(2),dp(4),dp(2),dp(4));
 
-                TextView tvM=tv(String.valueOf(idx++),11); tvM.setGravity(Gravity.CENTER); tvM.setTextColor(TEXT);
-                TextView tvDesc=tv(x.name,11.5f); tvDesc.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL); tvDesc.setTextColor(TEXT); tvDesc.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-                TextView tvQty=tv(fmt(x.qty),11); tvQty.setGravity(Gravity.CENTER); tvQty.setTextColor(TEXT);
-                TextView tvPrice=tv(fmt(x.unitPrice),11); tvPrice.setGravity(Gravity.CENTER); tvPrice.setTextColor(TEXT);
                 TextView tvTotal=tv(fmt(x.total),11.5f); tvTotal.setGravity(Gravity.CENTER); tvTotal.setTextColor(DARK); tvTotal.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+                TextView tvQty=tv(fmt(x.qty),11); tvQty.setGravity(Gravity.CENTER); tvQty.setTextColor(TEXT);
+                TextView tvDesc=tv(x.name,11.5f); tvDesc.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL); tvDesc.setTextColor(TEXT); tvDesc.setTypeface(Typeface.DEFAULT,Typeface.BOLD); tvDesc.setSingleLine(true); tvDesc.setEllipsize(TextUtils.TruncateAt.END);
+                TextView tvPrice=tv(fmt(x.unitPrice),11); tvPrice.setGravity(Gravity.CENTER); tvPrice.setTextColor(TEXT);
 
-                rBox.addView(tvM,new LinearLayout.LayoutParams(dp(28),-2));
+                rBox.addView(tvTotal,new LinearLayout.LayoutParams(dp(78),-2));
+                rBox.addView(tvQty,new LinearLayout.LayoutParams(dp(48),-2));
                 rBox.addView(tvDesc,new LinearLayout.LayoutParams(0,-2,1.8f));
-                rBox.addView(tvQty,new LinearLayout.LayoutParams(dp(44),-2));
-                rBox.addView(tvPrice,new LinearLayout.LayoutParams(dp(64),-2));
-                rBox.addView(tvTotal,new LinearLayout.LayoutParams(dp(64),-2));
+                rBox.addView(tvPrice,new LinearLayout.LayoutParams(dp(78),-2));
 
                 LinearLayout.LayoutParams rLp=new LinearLayout.LayoutParams(-1,-2);
                 rLp.setMargins(0,0,0,dp(3));
