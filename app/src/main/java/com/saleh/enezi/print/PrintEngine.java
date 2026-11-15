@@ -73,8 +73,8 @@ import java.util.UUID;
 public final class PrintEngine {
 
     public enum PaperSize {
-        THERMAL_58MM("حراري 58mm", 384, 210, 0),
-        THERMAL_80MM("حراري 80mm", 576, 280, 0),
+        THERMAL_58MM("حراري 58mm", 384, 164, 0),
+        THERMAL_80MM("حراري 80mm", 576, 227, 0),
         A4("ورق A4", 595, 595, 842),
         A5("ورق A5", 420, 420, 595),
         LETTER("ورق Letter", 612, 612, 792);
@@ -194,7 +194,7 @@ public final class PrintEngine {
         int pageH = cfg.paperSize.isThermal() ? 842 : cfg.paperSize.pdfHeightPt;
         int margin = cfg.paperSize.isThermal() ? 14 : 28;
         int contentW = pageW - margin * 2;
-        float baseFont = cfg.paperSize.isThermal() ? 9.5f : (cfg.paperSize == PaperSize.A5 ? 10f : 11.5f);
+        float baseFont = cfg.paperSize.isThermal() ? 13f : (cfg.paperSize == PaperSize.A5 ? 10f : 11.5f);
 
         PdfDocument pdf = new PdfDocument();
         List<PdfDocument.Page> createdPages = new ArrayList<>();
@@ -744,7 +744,11 @@ public final class PrintEngine {
         PrintManager pm = (PrintManager) a.getSystemService(Context.PRINT_SERVICE);
         if (pm == null) { Toast.makeText(a, "خدمة الطباعة غير متوفرة", Toast.LENGTH_SHORT).show(); return; }
         PrintAttributes.MediaSize media = PrintAttributes.MediaSize.ISO_A4;
-        if (paper == PaperSize.A5) media = PrintAttributes.MediaSize.ISO_A5;
+        if (paper == PaperSize.THERMAL_58MM) {
+            media = new PrintAttributes.MediaSize("ALAZZI_THERMAL_58", "حراري 58mm", 2283, 11693);
+        } else if (paper == PaperSize.THERMAL_80MM) {
+            media = new PrintAttributes.MediaSize("ALAZZI_THERMAL_80", "حراري 80mm", 3150, 11693);
+        } else if (paper == PaperSize.A5) media = PrintAttributes.MediaSize.ISO_A5;
         else if (paper == PaperSize.LETTER) media = PrintAttributes.MediaSize.NA_LETTER;
 
         PrintAttributes attrs = new PrintAttributes.Builder()
