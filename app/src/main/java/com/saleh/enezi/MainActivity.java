@@ -9184,9 +9184,23 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
             catch(SQLiteConstraintException e){Cursor x=getReadableDatabase().rawQuery("SELECT id FROM customers WHERE normalized_name=? LIMIT 1",new String[]{key});long id=x.moveToFirst()?x.getLong(0):-1;x.close();return id;}
         }
         void updateCustomer(long id,String oldName,String newName,String phone){
-            SQLiteDatabase d=getWritableDatabase(); ContentValues v=new ContentValues();v.put("name",newName);v.put("phone",phone);
-            d.update("customers",v,"id=?",new String[]{String.valueOf(id)});
-            if(oldName!=null&&!oldName.equals(newName)){ContentValues iv=new ContentValues();iv.put("customer",newName);d.update("invoices",iv,"customer=?",new String[]{oldName});}
+            String name=canon(newName),key=norm(name);
+            if(id<=0||key.isEmpty())throw new IllegalArgumentException("اسم العميل غير صالح");
+            SQLiteDatabase d=getWritableDatabase();
+            Cursor duplicate=d.rawQuery("SELECT id FROM customers WHERE normalized_name=? AND id<>? LIMIT 1",new String[]{key,String.valueOf(id)});
+            boolean exists=duplicate.moveToFirst();duplicate.close();
+            if(exists)throw new IllegalArgumentException("يوجد عميل آخر بالاسم نفسه");
+            d.beginTransaction();
+            try{
+                ContentValues v=new ContentValues();v.put("name",name);v.put("normalized_name",key);v.put("phone",phone==null?"":phone.trim());
+                d.update("customers",v,"id=?",new String[]{String.valueOf(id)});
+                if(oldName!=null&&!oldName.equals(name)){
+                    ContentValues iv=new ContentValues();iv.put("customer",name);
+                    d.update("invoices",iv,"customer=?",new String[]{oldName});
+                    if(tableExists(d,"orders"))d.update("orders",iv,"customer=?",new String[]{oldName});
+                }
+                d.setTransactionSuccessful();
+            }finally{if(d.inTransaction())d.endTransaction();}
         }
         long addCustomer(String n,String p){
             String name=canon(n), key=norm(name); if(key.isEmpty())return -1;
@@ -9276,7 +9290,21 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
             c.close();int n=1;while(used.contains(n))n++;return Math.max(n,max+1);
         }
         String[] supplierNames(){Cursor c=getReadableDatabase().rawQuery("SELECT name FROM suppliers ORDER BY name",null);ArrayList<String>a=new ArrayList<>();while(c.moveToNext())a.add(c.getString(0));c.close();return a.toArray(new String[0]);}
-        long supplier(String n,String p){Cursor c=getReadableDatabase().rawQuery("SELECT id FROM suppliers WHERE name=? LIMIT 1",new String[]{n});if(c.moveToFirst()){long x=c.getLong(0);c.close();return x;}c.close();ContentValues v=new ContentValues();v.put("name",n);v.put("phone",p);return getWritableDatabase().insert("suppliers",null,v);}
+        long supplier(String n,String p){
+            String name=canon(n),key=norm(name);
+            if(key.isEmpty())return -1;
+            SQLiteDatabase d=getWritableDatabase();
+            Cursor c=d.rawQuery("SELECT id FROM suppliers WHERE normalized_name=? LIMIT 1",new String[]{key});
+            if(c.moveToFirst()){
+                long id=c.getLong(0);c.close();
+                if(p!=null&&!p.trim().isEmpty()){ContentValues update=new ContentValues();update.put("phone",p.trim());d.update("suppliers",update,"id=?",new String[]{String.valueOf(id)});}
+                return id;
+            }
+            c.close();
+            ContentValues v=new ContentValues();v.put("name",name);v.put("normalized_name",key);v.put("phone",p==null?"":p.trim());
+            try{return d.insertOrThrow("suppliers",null,v);}
+            catch(SQLiteConstraintException duplicate){Cursor existing=d.rawQuery("SELECT id FROM suppliers WHERE normalized_name=? LIMIT 1",new String[]{key});long id=existing.moveToFirst()?existing.getLong(0):-1;existing.close();return id;}
+        }
         long addPurchase(String no,String supplier,double total,String date){
             SQLiteDatabase d=getWritableDatabase(); String requested=canon(no); if(requested.isEmpty())requested=String.valueOf(nextPurchaseNo());
             ContentValues v=new ContentValues();v.put("no",requested);v.put("supplier",supplier);v.put("total",total);v.put("date",date);
@@ -9388,7 +9416,7 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                     if(!c.moveToFirst()){
                         c.close(); c=null;
                         ContentValues nv=new ContentValues();
-                        nv.put("name",name); nv.put("qty",-q); nv.put("min_qty",0); nv.put("cost",0); nv.put("sale",0);
+                        nv.put("name",name); nv.put("normalized_name",norm(name));nv.put("qty",-q); nv.put("min_qty",0); nv.put("cost",0); nv.put("sale",0);
                         long iid=d.insert("items",null,nv);
                         if(iid>0){
                             ContentValues mv=new ContentValues(); mv.put("item_id",iid); mv.put("item_name",name); mv.put("qty",-q); mv.put("unit_cost",0); mv.put("source_type","sale"); mv.put("source_id",invoiceId); mv.put("created_at",now());
@@ -9412,10 +9440,10 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         double itemCostPrice(String n){if(n==null||n.trim().isEmpty())return 0;Cursor c=getReadableDatabase().rawQuery("SELECT COALESCE(cost,0) FROM items WHERE name=? LIMIT 1",new String[]{n.trim()});double p=c.moveToFirst()?c.getDouble(0):0;c.close();return p;}
         double itemQty(String n){if(n==null||n.trim().isEmpty())return 0;Cursor c=getReadableDatabase().rawQuery("SELECT COALESCE(qty,0) FROM items WHERE name=? LIMIT 1",new String[]{n.trim()});double q=c.moveToFirst()?c.getDouble(0):0;c.close();return q;}
         void learnItemPrice(String name, double sale, double cost){
-            if(name==null||name.trim().isEmpty())return;
-            String n=name.trim();
+            String n=canon(name),key=norm(n);
+            if(key.isEmpty())return;
             SQLiteDatabase d=getWritableDatabase();
-            Cursor c=d.rawQuery("SELECT id FROM items WHERE name=? LIMIT 1",new String[]{n});
+            Cursor c=d.rawQuery("SELECT id FROM items WHERE normalized_name=? LIMIT 1",new String[]{key});
             if(c.moveToFirst()){
                 long id=c.getLong(0);c.close();
                 ContentValues v=new ContentValues();
@@ -9425,14 +9453,49 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
             }else{
                 c.close();
                 ContentValues v=new ContentValues();
-                v.put("name",n);v.put("qty",0);v.put("min_qty",0);v.put("cost",cost);v.put("sale",sale);
-                d.insert("items",null,v);
+                v.put("name",n);v.put("normalized_name",key);v.put("qty",0);v.put("min_qty",0);v.put("cost",cost);v.put("sale",sale);
+                try{d.insertOrThrow("items",null,v);}catch(SQLiteConstraintException ignored){}
             }
         }
         Cursor items(){return getReadableDatabase().rawQuery("SELECT id,name,qty,min_qty,cost,sale FROM items ORDER BY name",null);}
         boolean itemExists(String n){String key=norm(n);Cursor c=getReadableDatabase().rawQuery("SELECT id FROM items WHERE normalized_name=? LIMIT 1",new String[]{key});boolean x=c.moveToFirst();c.close();return x;}
-        void addItem(String n,double q,double m){if(n.isEmpty()||q<0||m<0)throw new IllegalArgumentException();SQLiteDatabase d=getWritableDatabase();Cursor c=d.rawQuery("SELECT id FROM items WHERE name=? LIMIT 1",new String[]{n});if(c.moveToFirst()){long id=c.getLong(0);c.close();ContentValues v=new ContentValues();v.put("qty",q);v.put("min_qty",m);d.update("items",v,"id=?",new String[]{String.valueOf(id)});return;}c.close();ContentValues v=new ContentValues();v.put("name",n);v.put("qty",q);v.put("min_qty",m);d.insert("items",null,v);}
-        void updateItem(long id,String n,double q,double m){if(id<1||n==null||n.trim().isEmpty()||q<0||m<0)throw new IllegalArgumentException();ContentValues v=new ContentValues();v.put("name",n.trim());v.put("qty",q);v.put("min_qty",m);getWritableDatabase().update("items",v,"id=?",new String[]{String.valueOf(id)});}
+        void addItem(String n,double q,double m){
+            String name=canon(n),key=norm(name);
+            if(key.isEmpty()||q<0||m<0||Double.isNaN(q)||Double.isInfinite(q)||Double.isNaN(m)||Double.isInfinite(m))throw new IllegalArgumentException();
+            SQLiteDatabase d=getWritableDatabase();
+            Cursor c=d.rawQuery("SELECT id FROM items WHERE normalized_name=? LIMIT 1",new String[]{key});
+            if(c.moveToFirst()){
+                long id=c.getLong(0);c.close();
+                ContentValues v=new ContentValues();v.put("name",name);v.put("normalized_name",key);v.put("qty",q);v.put("min_qty",m);
+                d.update("items",v,"id=?",new String[]{String.valueOf(id)});return;
+            }
+            c.close();
+            ContentValues v=new ContentValues();v.put("name",name);v.put("normalized_name",key);v.put("qty",q);v.put("min_qty",m);
+            try{d.insertOrThrow("items",null,v);}catch(SQLiteConstraintException ignored){}
+        }
+        void updateItem(long id,String n,double q,double m){
+            String name=canon(n),key=norm(name);
+            if(id<1||key.isEmpty()||q<0||m<0||Double.isNaN(q)||Double.isInfinite(q)||Double.isNaN(m)||Double.isInfinite(m))throw new IllegalArgumentException();
+            SQLiteDatabase d=getWritableDatabase();
+            Cursor duplicate=d.rawQuery("SELECT id FROM items WHERE normalized_name=? AND id<>? LIMIT 1",new String[]{key,String.valueOf(id)});
+            boolean exists=duplicate.moveToFirst();duplicate.close();
+            if(exists)throw new IllegalArgumentException("يوجد صنف آخر بالاسم نفسه");
+            Cursor old=d.rawQuery("SELECT name FROM items WHERE id=? LIMIT 1",new String[]{String.valueOf(id)});
+            if(!old.moveToFirst()){old.close();throw new IllegalArgumentException("الصنف غير موجود");}
+            String oldName=old.getString(0);old.close();
+            d.beginTransaction();
+            try{
+                ContentValues v=new ContentValues();v.put("name",name);v.put("normalized_name",key);v.put("qty",q);v.put("min_qty",m);
+                d.update("items",v,"id=?",new String[]{String.valueOf(id)});
+                if(oldName!=null&&!oldName.equals(name)){
+                    ContentValues rename=new ContentValues();rename.put("name",name);
+                    d.update("invoice_items",rename,"name=?",new String[]{oldName});
+                    d.update("purchase_items",rename,"name=?",new String[]{oldName});
+                    if(tableExists(d,"stock_movements")){ContentValues movementName=new ContentValues();movementName.put("item_name",name);d.update("stock_movements",movementName,"item_id=?",new String[]{String.valueOf(id)});}
+                }
+                d.setTransactionSuccessful();
+            }finally{if(d.inTransaction())d.endTransaction();}
+        }
         void deleteItem(long id){if(id>0)getWritableDatabase().delete("items","id=?",new String[]{String.valueOf(id)});}
         int transactionCount(long id){Cursor c=getReadableDatabase().rawQuery("SELECT COUNT(*) FROM transactions WHERE customer_id=?",new String[]{String.valueOf(id)});int x=c.moveToFirst()?c.getInt(0):0;c.close();return x;}
         String invoiceNoFromTransaction(String details){if(details==null)return "";String p="فاتورة مبيعات رقم ";return details.startsWith(p)?details.substring(p.length()).trim():"";}
@@ -9442,7 +9505,10 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         String purchaseNo(long id){Cursor c=getReadableDatabase().rawQuery("SELECT COALESCE(no,'') FROM purchase_invoices WHERE id=?",new String[]{String.valueOf(id)});String x=c.moveToFirst()?c.getString(0):"";c.close();return x==null?"":x;}
         void updatePurchase(long id,String no,String supplier,double total){ContentValues v=new ContentValues();v.put("no",no);v.put("supplier",supplier);v.put("total",total);getWritableDatabase().update("purchase_invoices",v,"id=?",new String[]{String.valueOf(id)});}
         void revertStockFromPurchase(long purchaseId){
-            SQLiteDatabase d=getWritableDatabase();
+            if(purchaseId<=0)return;
+            revertStockFromPurchase(getWritableDatabase(),purchaseId);
+        }
+        void revertStockFromPurchase(SQLiteDatabase d,long purchaseId){
             Cursor c=null;
             try{
                 c=d.rawQuery("SELECT name,qty,cost FROM purchase_items WHERE purchase_id=?",new String[]{String.valueOf(purchaseId)});
@@ -9451,26 +9517,38 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                     double q=c.getDouble(1),cost=c.getDouble(2);
                     Cursor ic=d.rawQuery("SELECT id,qty FROM items WHERE normalized_name=? LIMIT 1",new String[]{norm(name)});
                     if(ic.moveToFirst()){
-                        long iid=ic.getLong(0);
-                        double currentQ=ic.getDouble(1);
-                        ContentValues v=new ContentValues();
-                        // لا نصفر المخزون: قد يكون الرصيد سالباً بسبب مبيعات سابقة.
-                        v.put("qty",currentQ-q);
+                        long iid=ic.getLong(0);double currentQ=ic.getDouble(1);ic.close();
+                        ContentValues v=new ContentValues();v.put("qty",currentQ-q);
                         d.update("items",v,"id=?",new String[]{String.valueOf(iid)});
-                        ContentValues movement=new ContentValues();
-                        movement.put("item_id",iid);movement.put("item_name",name);movement.put("qty",-q);
-                        movement.put("unit_cost",cost);movement.put("source_type","purchase_reversal");
-                        movement.put("source_id",purchaseId);movement.put("created_at",now());
+                        ContentValues movement=new ContentValues();movement.put("item_id",iid);movement.put("item_name",name);movement.put("qty",-q);
+                        movement.put("unit_cost",cost);movement.put("source_type","purchase_reversal");movement.put("source_id",purchaseId);movement.put("created_at",now());
                         d.insertOrThrow("stock_movements",null,movement);
-                    }
-                    ic.close();
+                    }else{ic.close();}
                 }
-            }finally{
-                if(c!=null)c.close();
-            }
+            }finally{if(c!=null)c.close();}
             d.delete("purchase_items","purchase_id=?",new String[]{String.valueOf(purchaseId)});
         }
-        void deletePurchase(long id){if(id<=0)return;revertStockFromPurchase(id);getWritableDatabase().delete("purchase_invoices","id=?",new String[]{String.valueOf(id)});}
+        void deletePurchase(long id){deletePurchase(getWritableDatabase(),id);}
+        void deletePurchase(SQLiteDatabase d,long id){
+            if(id<=0)return;
+            d.beginTransaction();
+            try{
+                Cursor invoice=d.rawQuery("SELECT no,supplier FROM purchase_invoices WHERE id=? LIMIT 1",new String[]{String.valueOf(id)});
+                if(!invoice.moveToFirst()){invoice.close();d.setTransactionSuccessful();return;}
+                String invoiceNo=invoice.getString(0)==null?"":invoice.getString(0);
+                String supplierName=invoice.getString(1)==null?"":invoice.getString(1);
+                invoice.close();
+                long supplierId=supplierIdByName(supplierName);
+                revertStockFromPurchase(d,id);
+                if(supplierId>0&&!invoiceNo.isEmpty()){
+                    String paymentDetails="دفعة فاتورة شراء رقم "+invoiceNo;
+                    d.delete("supplier_transactions","supplier_id=? AND invoice_no=? AND details=?",
+                        new String[]{String.valueOf(supplierId),invoiceNo,paymentDetails});
+                }
+                d.delete("purchase_invoices","id=?",new String[]{String.valueOf(id)});
+                d.setTransactionSuccessful();
+            }finally{if(d.inTransaction())d.endTransaction();}
+        }
         String supplierPhoneByName(String n){Cursor c=getReadableDatabase().rawQuery("SELECT COALESCE(phone,'') FROM suppliers WHERE name=? ORDER BY id DESC LIMIT 1",new String[]{n==null?"":n});String x=c.moveToFirst()?c.getString(0):"";c.close();return x==null?"":x;}
         Cursor invoices(){return getReadableDatabase().rawQuery("SELECT id,no,customer,total,date FROM invoices ORDER BY datetime(date) DESC, id DESC LIMIT 100",null);}
         Cursor recentActivity(){

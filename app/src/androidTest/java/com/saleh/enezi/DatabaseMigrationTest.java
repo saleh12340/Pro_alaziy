@@ -91,6 +91,32 @@ public class DatabaseMigrationTest {
         assertEquals(0, scalar("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='ux_invoices_no'"));
     }
 
+    @Test public void deletingPurchaseReversesStockAndRemovesOnlyItsLinkedSupplierPayment() {
+        database.execSQL("INSERT INTO suppliers(id,name,normalized_name) VALUES(7,'مورد السكر','مورد السكر')");
+        database.execSQL("INSERT INTO items(id,name,normalized_name,qty,cost,sale) VALUES(3,'سكر','سكر',15,10,15)");
+        database.execSQL("INSERT INTO purchase_invoices(id,no,supplier,total,paid,date) VALUES(11,'P-11','مورد السكر',500,100,'2026-11-15')");
+        database.execSQL("INSERT INTO purchase_items(purchase_id,name,qty,cost,sale,total) VALUES(11,'سكر',5,10,15,500)");
+        database.execSQL("INSERT INTO supplier_transactions(supplier_id,amount,details,type,date,invoice_no) VALUES(7,100,'دفعة فاتورة شراء رقم P-11',2,'2026-11-15','P-11')");
+        database.execSQL("INSERT INTO supplier_transactions(supplier_id,amount,details,type,date,invoice_no) VALUES(7,50,'دفعة مستقلة',2,'2026-11-15','')");
+        helper.deletePurchase(database,11);
+        assertEquals(10d,doubleValue("SELECT qty FROM items WHERE id=3"),0.001d);
+        assertEquals(0,scalar("SELECT COUNT(*) FROM purchase_invoices WHERE id=11"));
+        assertEquals(0,scalar("SELECT COUNT(*) FROM purchase_items WHERE purchase_id=11"));
+        assertEquals(0,scalar("SELECT COUNT(*) FROM supplier_transactions WHERE invoice_no='P-11'"));
+        assertEquals(1,scalar("SELECT COUNT(*) FROM supplier_transactions WHERE details='دفعة مستقلة'"));
+        assertEquals(1,scalar("SELECT COUNT(*) FROM stock_movements WHERE source_type='purchase_reversal' AND source_id=11"));
+    }
+
+    @Test public void normalizeMigrationFillsCanonicalNamesForItemsAndSuppliers() {
+        database.execSQL("INSERT INTO suppliers(id,name) VALUES(7,'  مورد   الأرز ')");
+        database.execSQL("INSERT INTO items(id,name,qty,cost,sale) VALUES(3,'  سكر   أبيض ',4,10,15)");
+        helper.normalizeAndConstrain(database);
+        assertEquals("مورد الأرز",stringValue("SELECT normalized_name FROM suppliers WHERE id=7"));
+        assertEquals("مورد الأرز",stringValue("SELECT name FROM suppliers WHERE id=7"));
+        assertEquals("سكر أبيض",stringValue("SELECT normalized_name FROM items WHERE id=3"));
+        assertEquals("سكر أبيض",stringValue("SELECT name FROM items WHERE id=3"));
+    }
+
     @Test public void rejectsConflictingPricesInsteadOfDiscardingEitherPrice() {
         database.execSQL("INSERT INTO items(id,name,qty,cost,sale) VALUES(1,'حليب',2,10,15)");
         database.execSQL("INSERT INTO items(id,name,qty,cost,sale) VALUES(2,' حليب ',3,10,15)");
