@@ -1421,8 +1421,10 @@ public class MainActivity extends Activity {
         LinearLayout row2 = new LinearLayout(this);
         row2.setOrientation(LinearLayout.HORIZONTAL);
         row2.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        addDashboardKPICard(row2, "قيمة البضاعة", fmt(kpis.stockValuation) + " ر.ي", BLUE_PRIMARY, kpis.totalItemsCount + " صنف");
-        addDashboardKPICard(row2, "تقدير الأرباح", fmt(kpis.estimatedProfit) + " ر.ي", kpis.estimatedProfit >= 0 ? GREEN : RED, "إجمالي الهامش");
+        String stockKpiSub = kpis.totalItemsCount + " صنف" + (kpis.uncostedStockItems > 0 ? " (" + kpis.uncostedStockItems + " بلا تكلفة)" : "");
+        String profitKpiSub = kpis.missingCostLines > 0 ? "هامش معروف التكلفة (" + kpis.missingCostLines + " مستبعد)" : "إجمالي الهامش";
+        addDashboardKPICard(row2, "قيمة البضاعة", fmt(kpis.stockValuation) + " ر.ي", BLUE_PRIMARY, stockKpiSub);
+        addDashboardKPICard(row2, "تقدير الأرباح", fmt(kpis.estimatedProfit) + " ر.ي", kpis.estimatedProfit >= 0 ? GREEN : RED, profitKpiSub);
         kpiContainer.addView(row2, new LinearLayout.LayoutParams(-1, -2));
 
         LinearLayout row3 = new LinearLayout(this);
@@ -1431,6 +1433,13 @@ public class MainActivity extends Activity {
         addDashboardKPICard(row3, "ديون للعملاء (لك)", fmt(kpis.totalCredits) + " ر.ي", BLUE_PRIMARY, "مستحقات خارجية");
         addDashboardKPICard(row3, "ديون للموردين (عليك)", fmt(kpis.totalDebts) + " ر.ي", RED, "التزامات للموردين");
         kpiContainer.addView(row3, new LinearLayout.LayoutParams(-1, -2));
+
+        LinearLayout row4 = new LinearLayout(this);
+        row4.setOrientation(LinearLayout.HORIZONTAL);
+        row4.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        addDashboardKPICard(row4, "تحصيلات العملاء", fmt(kpis.customerCollections) + " ر.ي", GREEN, "إجمالي السدادات");
+        addDashboardKPICard(row4, "مدفوعات الموردين", fmt(kpis.supplierPayments) + " ر.ي", GOLD, "إجمالي المسدد");
+        kpiContainer.addView(row4, new LinearLayout.LayoutParams(-1, -2));
 
         content.addView(kpiContainer, new LinearLayout.LayoutParams(-1, -2));
         addSpace(8);
@@ -2418,8 +2427,8 @@ void showGeneralActions(){
 
         add.setOnClickListener(v->{
             try{
-                double t=Double.parseDouble(total.getText().toString().trim());
-                double q=Double.parseDouble(qty.getText().toString().trim());
+                double t=NumericInput.parseDouble(total.getText().toString(),-1);
+                double q=NumericInput.parseDouble(qty.getText().toString(),-1);
                 String n=item.getText().toString().trim();
                 if(n.isEmpty()||q<=0||t<0)throw new Exception();
                 lines.add(new Line(n,q,t));
@@ -2464,7 +2473,7 @@ void showGeneralActions(){
     }
 
     double totalOf(ArrayList<Line> ls){double x=0;for(Line l:ls)x+=l.total;return x;}
-    double parsePaid(EditText e){try{return Math.max(0,Double.parseDouble(e.getText().toString().trim()));}catch(Exception ex){return 0;}}
+    double parsePaid(EditText e){double v=NumericInput.parseDouble(e==null?"":e.getText().toString(),0);return Math.max(0,v);}
     void showPhoneDialog(String name,String no,ArrayList<Line> lines,double total,double paid,boolean edit,long oldId){
         EditText phone=phoneField("رقم هاتف العميل");
         phone.setText(db.phoneByName(name));
@@ -4720,8 +4729,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
 
         saveBtn.setOnClickListener(v->{
             String newName=nameEd.getText().toString().trim();
-            double newQty=0;
-            try{ newQty=Double.parseDouble(qtyEd.getText().toString().trim().replace(",", ".")); }catch(Exception ignored){}
+            double newQty=NumericInput.parseDouble(qtyEd.getText().toString(),0);
             if(newName.isEmpty()||newQty<=0){
                 Toast.makeText(this,"أدخل اسماً ورسماً صحيحاً",Toast.LENGTH_SHORT).show();
                 return;
@@ -4734,7 +4742,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
 
         showCompactDialog(dlg,box,360);
     }
-    void addNoteItem(long pid,EditText name,EditText qty,int side){String n=name.getText().toString().trim();double q=0; try { q=Double.parseDouble(qty.getText().toString().trim().replace(",", ".")); } catch(Exception ignored) {}if(n.isEmpty()){Toast.makeText(this,"اكتب اسم الصنف أولاً",Toast.LENGTH_SHORT).show();return;}if(q<=0){Toast.makeText(this,"العدد يجب أن يكون أكبر من صفر",Toast.LENGTH_SHORT).show();return;}db.addNoteItem(pid,n,q,side);name.setText("");qty.setText("1");notes();}
+    void addNoteItem(long pid,EditText name,EditText qty,int side){String n=name.getText().toString().trim();double q=NumericInput.parseDouble(qty.getText().toString(),0);if(n.isEmpty()){Toast.makeText(this,"اكتب اسم الصنف أولاً",Toast.LENGTH_SHORT).show();return;}if(q<=0){Toast.makeText(this,"العدد يجب أن يكون أكبر من صفر",Toast.LENGTH_SHORT).show();return;}db.addNoteItem(pid,n,q,side);name.setText("");qty.setText("1");notes();}
     void clearNotesPage(){if(currentNotePageId<1)return;new AlertDialog.Builder(this).setTitle("تفريغ الصفحة").setMessage("سيتم حذف عناصر الصفحة الحالية فقط. هل تريد المتابعة؟").setNegativeButton("إلغاء",null).setPositiveButton("تفريغ",(d,w)->{db.clearNoteItems(currentNotePageId);notes();}).show();}
     void newNotesPage(){if(currentNotePageId>0)db.touchNotePage(currentNotePageId);currentNotePageId=db.createNotePage("ملاحظة جديدة",db.now());notes();}
     void showNotesHistoryFiltered(String q){
@@ -6165,10 +6173,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
     }
 
     double parseDoubleSafe(String value,double fallback){
-        try{
-            if(value==null||value.trim().isEmpty())return fallback;
-            return Double.parseDouble(value.replace(",","").trim());
-        }catch(Exception e){return fallback;}
+        return NumericInput.parseDouble(value,fallback);
     }
 
     void saveUnifiedPurchase(String supplierName,String no,ArrayList<PurchaseLine> lines,double sum,double paid){
@@ -8388,14 +8393,28 @@ void operationActions(long customerId,String customerName,long tid,String detail
             d.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS ux_warehouses_name ON warehouses(name)");
             d.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS ux_items_barcode ON items(barcode) WHERE barcode IS NOT NULL AND trim(barcode)<>''");
         }
-        public void onUpgrade(SQLiteDatabase d,int o,int n){ create(d); normalizeAndConstrain(d); }
-        @Override public void onOpen(SQLiteDatabase d){ super.onOpen(d); normalizeAndConstrain(d); }
+        public void onUpgrade(SQLiteDatabase d,int o,int n){ create(d); normalizeAndConstrainSafe(d); }
+        @Override public void onOpen(SQLiteDatabase d){ super.onOpen(d); normalizeAndConstrainSafe(d); }
         String norm(String s){ return s==null?"":s.trim().replaceAll("\\s+"," ").toLowerCase(Locale.ROOT); }
         String canon(String s){ return s==null?"":s.trim().replaceAll("\\s+"," "); }
+        boolean tableExists(SQLiteDatabase d,String table){
+            Cursor c=null;
+            try{
+                c=d.rawQuery("SELECT 1 FROM sqlite_master WHERE type='table' AND name=? LIMIT 1",new String[]{table});
+                return c.moveToFirst();
+            }finally{if(c!=null)c.close();}
+        }
+        void normalizeAndConstrainSafe(SQLiteDatabase d){
+            try{
+                normalizeAndConstrain(d);
+            }catch(Exception e){
+                android.util.Log.e("AlAzziDB","Integrity migration failed",e);
+            }
+        }
 
         void normalizeAndConstrain(SQLiteDatabase d){
+            d.beginTransaction();
             try{
-                d.beginTransaction();
                 ensureColumn(d,"invoices","sale_type","TEXT");
                 d.execSQL("UPDATE invoices SET sale_type=CASE WHEN COALESCE(total,0)>0 AND COALESCE(paid,0)>=COALESCE(total,0) THEN 'cash' ELSE 'credit' END WHERE sale_type IS NULL OR trim(sale_type)=''");
                 ensureColumn(d,"customers","normalized_name","TEXT");
@@ -8403,61 +8422,160 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 ensureColumn(d,"items","normalized_name","TEXT");
                 ensureColumn(d,"items","barcode","TEXT");
                 ensureColumn(d,"items","unit","TEXT");
+                normalizeInvoiceNumbers(d,"invoices");
+                normalizeInvoiceNumbers(d,"purchase_invoices");
                 mergeCustomers(d);
                 mergeSuppliers(d);
                 mergeItems(d);
-                normalizeInvoiceNumbers(d,"invoices");
-                normalizeInvoiceNumbers(d,"purchase_invoices");
                 d.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS ux_customers_normalized_name ON customers(normalized_name)");
                 d.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS ux_suppliers_normalized_name ON suppliers(normalized_name)");
                 d.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS ux_items_normalized_name ON items(normalized_name)");
                 d.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS ux_invoices_no ON invoices(no)");
                 d.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS ux_purchase_invoices_no ON purchase_invoices(no)");
                 d.setTransactionSuccessful();
-            }catch(Exception e){
-                android.util.Log.e("AlAzziDB","Integrity migration failed",e);
             }finally{ if(d.inTransaction()) d.endTransaction(); }
         }
         void mergeCustomers(SQLiteDatabase d){
+            boolean hasCashReceipts=tableExists(d,"cash_receipts");
+            boolean hasOrders=tableExists(d,"orders");
             Cursor c=d.rawQuery("SELECT id,name,COALESCE(phone,'') FROM customers ORDER BY id ASC",null);
             HashMap<String,Long> keep=new HashMap<>(); HashMap<String,String> names=new HashMap<>();
             ArrayList<Long> del=new ArrayList<>();
             while(c.moveToNext()){
                 long id=c.getLong(0); String raw=c.getString(1); String key=norm(raw); String cn=canon(raw);
                 if(key.isEmpty())continue;
-                if(!keep.containsKey(key)){keep.put(key,id);names.put(key,cn);ContentValues v=new ContentValues();v.put("name",cn);v.put("normalized_name",key);d.update("customers",v,"id=?",new String[]{String.valueOf(id)});}
-                else{
+                if(!keep.containsKey(key)){
+                    keep.put(key,id);names.put(key,cn);
+                    ContentValues v=new ContentValues();v.put("name",cn);v.put("normalized_name",key);
+                    d.update("customers",v,"id=?",new String[]{String.valueOf(id)});
+                    if(raw!=null&&!raw.equals(cn)){
+                        d.execSQL("UPDATE invoices SET customer=? WHERE customer=?",new Object[]{cn,raw});
+                        if(hasOrders) d.execSQL("UPDATE orders SET customer=? WHERE customer=?",new Object[]{cn,raw});
+                    }
+                }else{
                     long k=keep.get(key); String kn=names.get(key);
                     d.execSQL("UPDATE transactions SET customer_id=? WHERE customer_id=?",new Object[]{k,id});
-                    d.execSQL("UPDATE cash_receipts SET customer_id=? WHERE customer_id=?",new Object[]{k,id});
+                    if(hasCashReceipts) d.execSQL("UPDATE cash_receipts SET customer_id=? WHERE customer_id=?",new Object[]{k,id});
                     d.execSQL("UPDATE invoices SET customer=? WHERE customer=?",new Object[]{kn,raw});
+                    if(hasOrders) d.execSQL("UPDATE orders SET customer=? WHERE customer=?",new Object[]{kn,raw});
                     String phone=c.getString(2); if(phone!=null&&!phone.trim().isEmpty()){Cursor pc=d.rawQuery("SELECT COALESCE(phone,'') FROM customers WHERE id=?",new String[]{String.valueOf(k)});String kp=pc.moveToFirst()?pc.getString(0):"";pc.close();if(kp.trim().isEmpty()){ContentValues pv=new ContentValues();pv.put("phone",phone.trim());d.update("customers",pv,"id=?",new String[]{String.valueOf(k)});}}
                     del.add(id);
                 }
             } c.close(); for(Long id:del)d.delete("customers","id=?",new String[]{String.valueOf(id)});
         }
         void mergeSuppliers(SQLiteDatabase d){
+            boolean hasSupplierTx=tableExists(d,"supplier_transactions");
+            boolean hasCashPay=tableExists(d,"cash_payments");
             Cursor c=d.rawQuery("SELECT id,name,COALESCE(phone,'') FROM suppliers ORDER BY id ASC",null);
             HashMap<String,Long> keep=new HashMap<>();HashMap<String,String> names=new HashMap<>();ArrayList<Long> del=new ArrayList<>();
             while(c.moveToNext()){
                 long id=c.getLong(0);String raw=c.getString(1);String key=norm(raw);String cn=canon(raw);if(key.isEmpty())continue;
                 if(!keep.containsKey(key)){keep.put(key,id);names.put(key,cn);ContentValues v=new ContentValues();v.put("name",cn);v.put("normalized_name",key);d.update("suppliers",v,"id=?",new String[]{String.valueOf(id)});}
-                else{long k=keep.get(key);String kn=names.get(key);d.execSQL("UPDATE supplier_transactions SET supplier_id=? WHERE supplier_id=?",new Object[]{k,id});d.execSQL("UPDATE cash_payments SET supplier_id=? WHERE supplier_id=?",new Object[]{k,id});d.execSQL("UPDATE purchase_invoices SET supplier=? WHERE supplier=?",new Object[]{kn,raw});String phone=c.getString(2);if(phone!=null&&!phone.trim().isEmpty()){Cursor pc=d.rawQuery("SELECT COALESCE(phone,'') FROM suppliers WHERE id=?",new String[]{String.valueOf(k)});String kp=pc.moveToFirst()?pc.getString(0):"";pc.close();if(kp.trim().isEmpty()){ContentValues pv=new ContentValues();pv.put("phone",phone.trim());d.update("suppliers",pv,"id=?",new String[]{String.valueOf(k)});}}del.add(id);}
+                else{long k=keep.get(key);String kn=names.get(key);if(hasSupplierTx)d.execSQL("UPDATE supplier_transactions SET supplier_id=? WHERE supplier_id=?",new Object[]{k,id});if(hasCashPay)d.execSQL("UPDATE cash_payments SET supplier_id=? WHERE supplier_id=?",new Object[]{k,id});d.execSQL("UPDATE purchase_invoices SET supplier=? WHERE supplier=?",new Object[]{kn,raw});String phone=c.getString(2);if(phone!=null&&!phone.trim().isEmpty()){Cursor pc=d.rawQuery("SELECT COALESCE(phone,'') FROM suppliers WHERE id=?",new String[]{String.valueOf(k)});String kp=pc.moveToFirst()?pc.getString(0):"";pc.close();if(kp.trim().isEmpty()){ContentValues pv=new ContentValues();pv.put("phone",phone.trim());d.update("suppliers",pv,"id=?",new String[]{String.valueOf(k)});}}del.add(id);}
             } c.close();for(Long id:del)d.delete("suppliers","id=?",new String[]{String.valueOf(id)});
         }
+        void checkConflictingItemPrices(SQLiteDatabase d){
+            if(!tableExists(d,"product_prices")) return;
+            Cursor c=d.rawQuery("SELECT id,name FROM items ORDER BY id ASC",null);
+            HashMap<String,Long> firstByKey=new HashMap<>();
+            try{
+                while(c.moveToNext()){
+                    long id=c.getLong(0);
+                    String key=norm(c.getString(1));
+                    if(key.isEmpty()) continue;
+                    if(!firstByKey.containsKey(key)){
+                        firstByKey.put(key,id);
+                    }else{
+                        long keepId=firstByKey.get(key);
+                        Cursor conflict=d.rawQuery(
+                            "SELECT 1 FROM product_prices p1 JOIN product_prices p2 " +
+                            "ON lower(trim(COALESCE(p1.price_type,'')))=lower(trim(COALESCE(p2.price_type,''))) " +
+                            "AND lower(trim(COALESCE(p1.unit,'')))=lower(trim(COALESCE(p2.unit,''))) " +
+                            "WHERE p1.item_id=? AND p2.item_id=? AND ABS(COALESCE(p1.price,0)-COALESCE(p2.price,0))>0.0001 LIMIT 1",
+                            new String[]{String.valueOf(keepId),String.valueOf(id)});
+                        boolean hasConflict=conflict.moveToFirst();
+                        conflict.close();
+                        if(hasConflict){
+                            throw new IllegalStateException("Conflicting product prices detected for item: "+key);
+                        }
+                    }
+                }
+            }finally{c.close();}
+        }
         void mergeItems(SQLiteDatabase d){
+            checkConflictingItemPrices(d);
+            boolean hasInvItems=tableExists(d,"invoice_items");
+            boolean hasPurchItems=tableExists(d,"purchase_items");
+            boolean hasStockMoves=tableExists(d,"stock_movements");
+            boolean hasWhTransfers=tableExists(d,"warehouse_transfers");
+            boolean hasOffers=tableExists(d,"offers");
+            boolean hasPrices=tableExists(d,"product_prices");
+
             Cursor c=d.rawQuery("SELECT id,name,COALESCE(qty,0),COALESCE(cost,0),COALESCE(sale,0) FROM items ORDER BY id ASC",null);
             HashMap<String,Long> keep=new HashMap<>();HashMap<String,String> names=new HashMap<>();ArrayList<Long> del=new ArrayList<>();
             while(c.moveToNext()){
                 long id=c.getLong(0);String raw=c.getString(1);String key=norm(raw);String cn=canon(raw);if(key.isEmpty())continue;
                 if(!keep.containsKey(key)){keep.put(key,id);names.put(key,cn);ContentValues v=new ContentValues();v.put("name",cn);v.put("normalized_name",key);d.update("items",v,"id=?",new String[]{String.valueOf(id)});}
-                else{long k=keep.get(key);String kn=names.get(key);Cursor kc=d.rawQuery("SELECT COALESCE(qty,0),COALESCE(cost,0),COALESCE(sale,0) FROM items WHERE id=?",new String[]{String.valueOf(k)});double q=0,cost=0,sale=0;if(kc.moveToFirst()){q=kc.getDouble(0);cost=kc.getDouble(1);sale=kc.getDouble(2);}kc.close();ContentValues v=new ContentValues();v.put("qty",q+c.getDouble(2));if(cost==0)cost=c.getDouble(3);if(sale==0)sale=c.getDouble(4);v.put("cost",cost);v.put("sale",sale);d.update("items",v,"id=?",new String[]{String.valueOf(k)});d.execSQL("UPDATE invoice_items SET name=? WHERE lower(trim(name))=?",new Object[]{kn,key});d.execSQL("UPDATE purchase_items SET name=? WHERE lower(trim(name))=?",new Object[]{kn,key});d.execSQL("UPDATE stock_movements SET item_id=?,item_name=? WHERE item_id=?",new Object[]{k,kn,id});del.add(id);}
+                else{
+                    long k=keep.get(key);String kn=names.get(key);
+                    Cursor kc=d.rawQuery("SELECT COALESCE(qty,0),COALESCE(cost,0),COALESCE(sale,0) FROM items WHERE id=?",new String[]{String.valueOf(k)});
+                    double q=0,cost=0,sale=0;
+                    if(kc.moveToFirst()){q=kc.getDouble(0);cost=kc.getDouble(1);sale=kc.getDouble(2);}
+                    kc.close();
+                    ContentValues v=new ContentValues();v.put("qty",q+c.getDouble(2));
+                    if(cost==0)cost=c.getDouble(3);if(sale==0)sale=c.getDouble(4);
+                    v.put("cost",cost);v.put("sale",sale);
+                    d.update("items",v,"id=?",new String[]{String.valueOf(k)});
+                    if(hasInvItems) d.execSQL("UPDATE invoice_items SET name=? WHERE lower(trim(name))=?",new Object[]{kn,key});
+                    if(hasPurchItems) d.execSQL("UPDATE purchase_items SET name=? WHERE lower(trim(name))=?",new Object[]{kn,key});
+                    if(hasStockMoves) d.execSQL("UPDATE stock_movements SET item_id=?,item_name=? WHERE item_id=?",new Object[]{k,kn,id});
+                    if(hasWhTransfers) d.execSQL("UPDATE warehouse_transfers SET item_id=? WHERE item_id=?",new Object[]{k,id});
+                    if(hasOffers) d.execSQL("UPDATE offers SET item_id=? WHERE item_id=?",new Object[]{k,id});
+                    if(hasPrices){
+                        Cursor pc=d.rawQuery("SELECT id,COALESCE(price_type,''),COALESCE(unit,'') FROM product_prices WHERE item_id=?",new String[]{String.valueOf(id)});
+                        while(pc.moveToNext()){
+                            long pid=pc.getLong(0);
+                            String pt=pc.getString(1);
+                            String u=pc.getString(2);
+                            Cursor ex=d.rawQuery("SELECT 1 FROM product_prices WHERE item_id=? AND lower(trim(COALESCE(price_type,'')))=lower(trim(?)) AND lower(trim(COALESCE(unit,'')))=lower(trim(?)) LIMIT 1",
+                                new String[]{String.valueOf(k),pt,u});
+                            boolean exists=ex.moveToFirst();
+                            ex.close();
+                            if(exists){
+                                d.delete("product_prices","id=?",new String[]{String.valueOf(pid)});
+                            }else{
+                                d.execSQL("UPDATE product_prices SET item_id=? WHERE id=?",new Object[]{k,pid});
+                            }
+                        }
+                        pc.close();
+                    }
+                    del.add(id);
+                }
             } c.close();for(Long id:del)d.delete("items","id=?",new String[]{String.valueOf(id)});
         }
         void normalizeInvoiceNumbers(SQLiteDatabase d,String table){
+            Cursor dup=d.rawQuery("SELECT trim(no) FROM "+table+" WHERE no IS NOT NULL AND trim(no)<>'' GROUP BY trim(no) HAVING COUNT(*)>1 LIMIT 1",null);
+            try{
+                if(dup.moveToFirst()){
+                    throw new IllegalStateException("Duplicate invoice number in "+table+": "+dup.getString(0));
+                }
+            }finally{dup.close();}
             Cursor c=d.rawQuery("SELECT id,no FROM "+table+" ORDER BY id ASC",null);HashSet<String> used=new HashSet<>();int next=1;
             ArrayList<long[]> fixes=new ArrayList<>();ArrayList<String> vals=new ArrayList<>();
-            while(c.moveToNext()){long id=c.getLong(0);String no=c.getString(1)==null?"":c.getString(1).trim();String digits=no.replaceAll("[^0-9]","");if(!digits.isEmpty()&&!used.contains(digits)){used.add(digits);try{next=Math.max(next,Integer.parseInt(digits)+1);}catch(Exception ignored){}continue;}while(used.contains(String.valueOf(next)))next++;fixes.add(new long[]{id});vals.add(String.valueOf(next));used.add(String.valueOf(next));next++;}
+            while(c.moveToNext()){
+                long id=c.getLong(0);String no=c.getString(1)==null?"":c.getString(1).trim();
+                if(!no.isEmpty()){
+                    used.add(no);
+                    String digits=no.replaceAll("[^0-9]","");
+                    if(!digits.isEmpty()){
+                        used.add(digits);
+                        try{next=Math.max(next,Integer.parseInt(digits)+1);}catch(Exception ignored){}
+                    }
+                    continue;
+                }
+                while(used.contains(String.valueOf(next)))next++;
+                fixes.add(new long[]{id});vals.add(String.valueOf(next));used.add(String.valueOf(next));next++;
+            }
             c.close();for(int i=0;i<fixes.size();i++){ContentValues v=new ContentValues();v.put("no",vals.get(i));d.update(table,v,"id=?",new String[]{String.valueOf(fixes.get(i)[0])});}
         }
         Cursor scannedInvoices(String q,String category){
@@ -10606,9 +10724,8 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         addSpaceTo(box,8);
 
         Runnable calcChange=()->{
-            double r=0, p=0;
-            try{r=Double.parseDouble(reqEt.getText().toString().trim());}catch(Exception ignored){}
-            try{p=Double.parseDouble(paidEt.getText().toString().trim());}catch(Exception ignored){}
+            double r=NumericInput.parseDouble(reqEt.getText().toString(),0);
+            double p=NumericInput.parseDouble(paidEt.getText().toString(),0);
             double change=p-r;
             if(p<=0){
                 chVal.setText("0.00 ريال");
@@ -11449,7 +11566,7 @@ void account(long id,String name){
         Runnable save=( )->{};
         View.OnClickListener addTx=v->{
             try{
-                double a=Double.parseDouble(amount.getText().toString().trim());if(a<=0)throw new Exception();
+                double a=NumericInput.parseDouble(amount.getText().toString(),-1);if(a<=0)throw new Exception();
                 String d=detail.getText().toString().trim();int type=v==debit?1:0;
                 db.addTransaction(id,a,d,type,db.now());
                 AppStateStore.logActivity(this,"حسابات العملاء",(type==1?"سحب على ":"سداد من ")+name,fmt(a)+" ر.ي"+(d.isEmpty()?"":" • "+d),type==1?"🔴":"🟢");

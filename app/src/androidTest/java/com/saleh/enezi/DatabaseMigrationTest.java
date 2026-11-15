@@ -24,7 +24,7 @@ public class DatabaseMigrationTest {
         databaseFile = new File(context.getCacheDir(), "migration-fixture.db");
         if (databaseFile.exists()) databaseFile.delete();
         database = SQLiteDatabase.openOrCreateDatabase(databaseFile, null);
-        helper = new MainActivity().new DB(context);
+        helper = new MainActivity.DB(context);
         database.execSQL("CREATE TABLE customers(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,phone TEXT)");
         database.execSQL("CREATE TABLE invoices(id INTEGER PRIMARY KEY AUTOINCREMENT,no TEXT,customer TEXT,total REAL,paid REAL DEFAULT 0,date TEXT)");
         database.execSQL("CREATE TABLE transactions(id INTEGER PRIMARY KEY AUTOINCREMENT,customer_id INTEGER,amount REAL,details TEXT,type INTEGER,date TEXT)");
