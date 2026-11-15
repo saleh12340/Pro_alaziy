@@ -393,13 +393,16 @@ public class MainActivity extends Activity {
     void normalizeAppText(View v){
         if(v instanceof EditText){
             normalizeInputText((TextView)v);
-        }else if(v instanceof TextView && !(v instanceof Button)){
-            // توحيد معالجة النص العربي فقط؛ لا نكسر singleLine أو maxLines أو الارتفاع
-            // الذي حددته الشاشة عمداً لعناوينها وخلاياها.
+        }else if(v instanceof TextView){
             TextView t=(TextView)v;
-            t.setIncludeFontPadding(true);
-            if(Build.VERSION.SDK_INT>=23){try{t.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);}catch(Throwable ignored){}}
-            if(Build.VERSION.SDK_INT>=28){try{t.setFallbackLineSpacing(true);}catch(Throwable ignored){}try{t.setElegantTextHeight(true);}catch(Throwable ignored){}}
+            // فرض اتجاه عربي موحّد للنصوص والأزرار دون تغيير أحجامها أو عدد أسطرها.
+            t.setTextDirection(View.TEXT_DIRECTION_RTL);
+            t.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+            if(!(t instanceof Button)){
+                t.setIncludeFontPadding(true);
+                if(Build.VERSION.SDK_INT>=23){try{t.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);}catch(Throwable ignored){}}
+                if(Build.VERSION.SDK_INT>=28){try{t.setFallbackLineSpacing(true);}catch(Throwable ignored){}try{t.setElegantTextHeight(true);}catch(Throwable ignored){}}
+            }
         }
         if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;g.setClipChildren(false);for(int i=0;i<g.getChildCount();i++)normalizeAppText(g.getChildAt(i));}
     }
@@ -1269,7 +1272,7 @@ public class MainActivity extends Activity {
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(CARD);
         bg.setCornerRadius(dp(12));
-        bg.setStroke(dp(1), Color.rgb(220,220,220));
+        bg.setStroke(dp(1), BORDER);
         card.setBackground(bg);
         card.setElevation(dp(2));
         card.setClickable(true);
@@ -2158,7 +2161,7 @@ void showGeneralActions(){
         GradientDrawable noBg=new GradientDrawable();
         noBg.setColor(CARD);
         noBg.setCornerRadius(dp(10));
-        noBg.setStroke(dp(1),Color.rgb(220,220,220));
+        noBg.setStroke(dp(1),BORDER);
         no.setBackground(noBg);
         no.setContentDescription("رقم الفاتورة");
         metaRow.addView(no,new LinearLayout.LayoutParams(0,dp(36),0.75f));
@@ -2170,7 +2173,7 @@ void showGeneralActions(){
         GradientDrawable custBg=new GradientDrawable();
         custBg.setColor(CARD);
         custBg.setCornerRadius(dp(10));
-        custBg.setStroke(dp(1),Color.rgb(220,220,220));
+        custBg.setStroke(dp(1),BORDER);
         customer.setBackground(custBg);
         customer.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
         customer.setLayoutDirection(View.LAYOUT_DIRECTION_RTL); customer.setTextDirection(View.TEXT_DIRECTION_RTL);
@@ -2183,7 +2186,7 @@ void showGeneralActions(){
         GradientDrawable dtBg=new GradientDrawable();
         dtBg.setColor(CARD);
         dtBg.setCornerRadius(dp(10));
-        dtBg.setStroke(dp(1),Color.rgb(220,220,220));
+        dtBg.setStroke(dp(1),BORDER);
         dt.setBackground(dtBg);
         metaRow.addView(dt,new LinearLayout.LayoutParams(0,dp(36),1.1f));
 
@@ -2281,7 +2284,7 @@ void showGeneralActions(){
         GradientDrawable btBg=new GradientDrawable();
         btBg.setColor(CARD);
         btBg.setCornerRadius(dp(12));
-        btBg.setStroke(dp(1),Color.rgb(220,220,220));
+        btBg.setStroke(dp(1),BORDER);
         boxTotal.setBackground(btBg);
         invoiceBox.addView(boxTotal,new LinearLayout.LayoutParams(-1,-2));
         spaceTo(invoiceBox,6);
@@ -5555,7 +5558,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         head.setOrientation(LinearLayout.HORIZONTAL);
         head.setGravity(Gravity.CENTER_VERTICAL);
         head.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        head.setBackground(outlined(Color.WHITE,1,8));
+        head.setBackground(outlined(CARD,1,8));
 
         for(int i=0;i<heads.length;i++){
             TextView h=tv(heads[i],8.5f);
