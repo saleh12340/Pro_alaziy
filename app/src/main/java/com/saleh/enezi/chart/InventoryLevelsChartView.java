@@ -81,6 +81,9 @@ public class InventoryLevelsChartView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+        android.content.Context ctx = getContext();
+        int textColor = com.saleh.enezi.ui.DesignSystem.textPrimary(ctx);
+        bgBarPaint.setColor(com.saleh.enezi.ui.DesignSystem.surfaceAlt(ctx));
 
         if (dataList.isEmpty()) {
             drawEmptyState(canvas);
@@ -114,7 +117,7 @@ public class InventoryLevelsChartView extends View {
 
             // Item Name on Right (RTL)
             textPaint.setTextAlign(Paint.Align.RIGHT);
-            textPaint.setColor(TEXT_COLOR);
+            textPaint.setColor(textColor);
             String displayTitle = item.itemName;
             if (displayTitle.length() > 14) {
                 displayTitle = displayTitle.substring(0, 12) + "…";

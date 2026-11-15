@@ -100,9 +100,20 @@ public class SalesTrendChartView extends View {
         this.onPointClickListener = listener;
     }
 
+    private void applyThemeColors() {
+        android.content.Context ctx = getContext();
+        int primary = com.saleh.enezi.ui.DesignSystem.primary(ctx);
+        int text = com.saleh.enezi.ui.DesignSystem.textMuted(ctx);
+        int grid = com.saleh.enezi.ui.DesignSystem.border(ctx);
+        linePaint.setColor(primary);
+        gridPaint.setColor(grid);
+        textPaint.setColor(text);
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+        applyThemeColors();
 
         if (dataList.isEmpty()) {
             drawEmptyState(canvas);
