@@ -2278,7 +2278,7 @@ void showGeneralActions(){
         head.setGravity(Gravity.CENTER_VERTICAL);
         head.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         head.setBackground(outlined(Color.WHITE,1,8));
-        String[] heads={"الإجمالي","الكمية","اسم الصنف","سعر الوحدة","حذف"};
+        String[] heads={"الإجمالي","العدد","التفاصيل","سعر الوحدة المحسوب","حذف"};
         float[] weights={1.0f,.72f,1.35f,.9f,.55f};
         for(int i=0;i<heads.length;i++){
             TextView hv=tv(heads[i],9.5f);
@@ -2784,10 +2784,16 @@ void showGeneralActions(){
     void addRow(LinearLayout parent,Line l,double running,double baseBal,ArrayList<Line> all){
         LinearLayout r=new LinearLayout(this);r.setOrientation(LinearLayout.HORIZONTAL);r.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);r.setGravity(Gravity.CENTER_VERTICAL);r.setPadding(dp(2),dp(2),dp(2),dp(2));
         float[] w={1.0f,.72f,1.35f,.9f,.55f};
+        // الإجمالي هو القيمة الأساسية القابلة للتعديل داخل صندوق العرض.
         TextView total=tv(fmt(l.total),13);total.setGravity(Gravity.CENTER);total.setSingleLine(true);
+        total.setTextColor(GREEN);total.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        total.setBackground(outlined(Color.rgb(239,248,242),1,6));
         TextView qty=tv(fmt(l.qty),13);qty.setGravity(Gravity.CENTER);qty.setSingleLine(true);
         TextView item=tv(l.name,12);item.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);item.setMaxLines(Integer.MAX_VALUE);item.setEllipsize(null);
-        TextView unit=tv(l.qty==0?"0":fmt(l.total/l.qty),12);unit.setTextColor(MUTED);unit.setGravity(Gravity.CENTER);unit.setSingleLine(true);
+        // سعر الوحدة للعرض فقط ويُستنتج دائماً من إجمالي الصنف ÷ العدد.
+        TextView unit=tv(l.qty<=0?"—":fmt(l.total/l.qty),12);unit.setTextColor(MUTED);unit.setGravity(Gravity.CENTER);unit.setSingleLine(true);
+        unit.setContentDescription("سعر الوحدة محسوب تلقائياً وغير قابل للتحرير");
+        unit.setBackground(outline(Color.rgb(242,245,250),6));
         Button del=button("حذف");del.setTextSize(10);del.setTextColor(Color.RED);del.setBackgroundColor(Color.TRANSPARENT);
         total.setBackground(outline(Color.WHITE,6));qty.setBackground(outline(Color.WHITE,6));item.setBackground(outline(Color.WHITE,6));
         total.setContentDescription("تعديل إجمالي الصنف");qty.setContentDescription("تعديل كمية الصنف");item.setContentDescription("تعديل اسم الصنف أو التفاصيل");
