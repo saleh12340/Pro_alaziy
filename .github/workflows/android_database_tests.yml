@@ -46,6 +46,16 @@ jobs:
           gradle wrapper --gradle-version 8.9 --distribution-type bin
           chmod +x gradlew
 
+      # This workflow runs on a separate GitHub-hosted runner from the APK build.
+      # Generate the same local debug key required by app/build.gradle before
+      # connectedDebugAndroidTest attempts to install the debug test APK.
+      - name: Ensure debug keystore
+        run: |
+          if [ ! -f debug.keystore ]; then
+            keytool -genkeypair -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          test -s debug.keystore
+
       - name: Run database migration tests
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
