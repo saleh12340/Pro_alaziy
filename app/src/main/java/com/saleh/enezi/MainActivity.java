@@ -756,7 +756,8 @@ public class MainActivity extends Activity {
 
         content=new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(10),dp(8),dp(10),dp(14));
+        // هامش موحّد ومضغوط لجميع الشاشات مع مساحة كافية للقراءة.
+        content.setPadding(dp(8),dp(6),dp(8),dp(10));
         content.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         content.setBackgroundColor(BG);
         int maxW = DesignSystem.maxContentWidthPx(this);
@@ -1224,7 +1225,7 @@ public class MainActivity extends Activity {
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(CARD);
         bg.setCornerRadius(dp(10));
-        bg.setStroke(dp(1), Color.rgb(220,220,220));
+        bg.setStroke(dp(1), BORDER);
         card.setBackground(bg);
         card.setElevation(dp(3));
 
@@ -1691,7 +1692,7 @@ public class MainActivity extends Activity {
         quick.setOrientation(LinearLayout.HORIZONTAL);
         quick.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         String[] qLabels={"＋ بيع جديد","📥 شراء جديد","👤 سداد عميل","🏪 سداد مورد"};
-        int[] qColors={BLUE_PRIMARY, Color.rgb(30,91,170), GREEN, Color.rgb(51,65,85)};
+        int[] qColors={BLUE_PRIMARY, BLUE_PRIMARY, GREEN, GOLD};
         View.OnClickListener[] qActions={
             v->unifiedInvoiceForm(InvoiceType.SALE),
             v->unifiedInvoiceForm(InvoiceType.PURCHASE),
@@ -1733,14 +1734,14 @@ public class MainActivity extends Activity {
         int[] iconBgColors={
             BLUE_PRIMARY,
             GREEN,
-            Color.rgb(30, 91, 170),
-            Color.rgb(15, 76, 129),
-            Color.rgb(51, 65, 85),
+            GREEN,
             BLUE_PRIMARY,
-            Color.rgb(16, 185, 129),
-            Color.rgb(71, 85, 105),
-            Color.rgb(109, 40, 217),
-            Color.rgb(100, 116, 139)
+            MUTED,
+            BLUE_PRIMARY,
+            GOLD,
+            MUTED,
+            BLUE_PRIMARY,
+            MUTED
         };
         View.OnClickListener[] actions={
             v->dashboard(),
@@ -2077,7 +2078,7 @@ void showGeneralActions(){
         invFooter.setPadding(dp(6),dp(2),dp(6),dp(3));
         GradientDrawable ifBg=new GradientDrawable();
         ifBg.setColor(CARD);
-        ifBg.setStroke(dp(1),Color.rgb(220,220,220));
+        ifBg.setStroke(dp(1),BORDER);
         invFooter.setBackground(ifBg);
         if(Build.VERSION.SDK_INT>=21) invFooter.setElevation(dp(8));
 
@@ -7201,7 +7202,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                         GradientDrawable rBg=new GradientDrawable();
                         rBg.setColor(CARD);
                         rBg.setCornerRadius(dp(12));
-                        rBg.setStroke(dp(1),kind==1?Color.rgb(220,220,220):(kind==3?Color.rgb(220,220,220):(operationType==1?Color.rgb(220,220,220):Color.rgb(220,220,220))));
+                        rBg.setStroke(dp(1),BORDER);
                         row.setBackground(rBg);
 
                         String label=kind==1?"🧾 فاتورة مبيعات":(kind==3?"🛒 فاتورة شراء":(operationType==1?"🔴 عليه (مدين)":"🔵 له (دائن)"));
@@ -7916,7 +7917,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 selectedCat[0]=cat;
                 for(int j=0;j<categories.length;j++){
                     catButtons[j].setTextColor(categories[j].equals(cat)?Color.WHITE:TEXT);
-                    catButtons[j].setBackgroundColor(categories[j].equals(cat)?GREEN:Color.rgb(220,220,220));
+                    catButtons[j].setBackgroundColor(categories[j].equals(cat)?GREEN:SURFACE_ALT);
                 }
             });
             catRow.addView(cb,new LinearLayout.LayoutParams(0,dp(46),1));
@@ -8188,13 +8189,13 @@ void operationActions(long customerId,String customerName,long tid,String detail
             chips[i]=chip;
             boolean active=cat.equals(scanCategoryFilter);
             chip.setTextColor(active?Color.WHITE:TEXT);
-            chip.setBackgroundColor(active?DARK:Color.rgb(220,220,220));
+            chip.setBackgroundColor(active?DARK:SURFACE_ALT);
             chip.setOnClickListener(v->{
                 scanCategoryFilter=cat;
                 for(int j=0;j<cats.length;j++){
                     boolean sel=cats[j].equals(cat);
                     chips[j].setTextColor(sel?Color.WHITE:TEXT);
-                    chips[j].setBackgroundColor(sel?DARK:Color.rgb(220,220,220));
+                    chips[j].setBackgroundColor(sel?DARK:SURFACE_ALT);
                 }
                 refreshScannedList(content);
             });
@@ -8242,7 +8243,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 // Thumbnail
                 ImageView thumb=new ImageView(this);
                 thumb.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                thumb.setBackground(outlined(Color.rgb(220,220,220),1,6));
+                thumb.setBackground(outlined(CARD,dp(1),6));
                 if(imgPath!=null&&new File(imgPath).exists()){
                     Bitmap b=BitmapFactory.decodeFile(imgPath);
                     if(b!=null) thumb.setImageBitmap(b);
@@ -11533,7 +11534,7 @@ void account(long id,String name){
                 expansion.setOrientation(LinearLayout.VERTICAL);
                 expansion.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
                 expansion.setPadding(dp(8),dp(6),dp(8),dp(6));
-                expansion.setBackground(outlined(Color.rgb(246,249,253),dp(1),8));
+                expansion.setBackground(outlined(SURFACE_ALT,dp(1),8));
                 expansion.setVisibility(View.GONE);
 
                 TextView meta=denseText((type==1?"نوع العملية: قيد سحب":"نوع العملية: دفعة سداد")
