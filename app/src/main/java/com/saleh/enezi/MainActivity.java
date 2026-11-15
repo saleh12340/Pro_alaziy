@@ -2155,7 +2155,7 @@ void showGeneralActions(){
         TextView no=tv(displayInvoiceNo(edit?db.invoiceNo(invoiceId):String.valueOf(db.nextInvoice())),14);
         no.setTextColor(GREEN); no.setTypeface(Typeface.DEFAULT,Typeface.BOLD); no.setGravity(Gravity.CENTER);
         GradientDrawable noBg=new GradientDrawable();
-        noBg.setColor(Color.WHITE);
+        noBg.setColor(CARD);
         noBg.setCornerRadius(dp(10));
         noBg.setStroke(dp(1),Color.rgb(220,220,220));
         no.setBackground(noBg);
@@ -2167,7 +2167,7 @@ void showGeneralActions(){
         customer.setTextColor(TEXT); customer.setHintTextColor(MUTED);
         customer.setPadding(dp(10),dp(4),dp(10),dp(4));
         GradientDrawable custBg=new GradientDrawable();
-        custBg.setColor(Color.WHITE);
+        custBg.setColor(CARD);
         custBg.setCornerRadius(dp(10));
         custBg.setStroke(dp(1),Color.rgb(220,220,220));
         customer.setBackground(custBg);
@@ -2180,7 +2180,7 @@ void showGeneralActions(){
 
         TextView dt=tv(db.now(),11); dt.setTextColor(MUTED); dt.setGravity(Gravity.CENTER);
         GradientDrawable dtBg=new GradientDrawable();
-        dtBg.setColor(Color.WHITE);
+        dtBg.setColor(CARD);
         dtBg.setCornerRadius(dp(10));
         dtBg.setStroke(dp(1),Color.rgb(220,220,220));
         dt.setBackground(dtBg);
@@ -2252,7 +2252,7 @@ void showGeneralActions(){
         head.setOrientation(LinearLayout.HORIZONTAL);
         head.setGravity(Gravity.CENTER_VERTICAL);
         head.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        head.setBackground(outlined(Color.WHITE,1,8));
+        head.setBackground(outlined(CARD,1,8));
         String[] heads={"الإجمالي","العدد","التفاصيل","سعر الوحدة المحسوب","حذف"};
         float[] weights={1.0f,.72f,1.35f,.9f,.55f};
         for(int i=0;i<heads.length;i++){
@@ -2278,7 +2278,7 @@ void showGeneralActions(){
         boxTotal.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
         boxTotal.setPadding(dp(6),dp(2),dp(6),dp(2));
         GradientDrawable btBg=new GradientDrawable();
-        btBg.setColor(Color.WHITE);
+        btBg.setColor(CARD);
         btBg.setCornerRadius(dp(12));
         btBg.setStroke(dp(1),Color.rgb(220,220,220));
         boxTotal.setBackground(btBg);
@@ -3754,9 +3754,9 @@ void operationActions(long customerId,String customerName,long tid,String detail
             alertBanner.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
             alertBanner.setPadding(dp(12),dp(8),dp(12),dp(8));
             GradientDrawable abBg=new GradientDrawable();
-            abBg.setColor(Color.WHITE);
+            abBg.setColor(CARD);
             abBg.setCornerRadius(dp(12));
-            abBg.setStroke(dp(1),Color.rgb(220,220,220));
+            abBg.setStroke(dp(1),BORDER);
             alertBanner.setBackground(abBg);
 
             TextView abIcon=tv("⚠️",18);
@@ -4234,7 +4234,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         preview.setVerticalScrollBarEnabled(true);
         preview.setScrollBarStyle(View.SCROLLBARS_INSIDE_INSET);
         preview.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
-        preview.setBackground(rounded(Color.WHITE,dp(8)));
+        preview.setBackground(rounded(CARD,dp(8)));
         preview.setPadding(dp(10),dp(10),dp(10),dp(10));
         preview.setSelectAllOnFocus(false);
         preview.setOnFocusChangeListener((v,has)->{
@@ -5576,9 +5576,9 @@ void operationActions(long customerId,String customerName,long tid,String detail
         grand.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
         grand.setPadding(dp(10),dp(4),dp(10),dp(4));
         GradientDrawable gBg=new GradientDrawable();
-        gBg.setColor(Color.WHITE);
+        gBg.setColor(CARD);
         gBg.setCornerRadius(dp(10));
-        gBg.setStroke(dp(1),Color.rgb(220,220,220));
+        gBg.setStroke(dp(1),BORDER);
         grand.setBackground(gBg);
         box.addView(grand,new LinearLayout.LayoutParams(-1,dp(44)));
 
@@ -5738,7 +5738,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         addSpace(3);
         TextView invoiceHeaderNo=tv((sale?"فاتورة مبيعات رقم ":"فاتورة شراء رقم ")+displayInvoiceNo(String.valueOf(sale?db.nextInvoice():db.nextPurchaseNo())),15.5f);
         invoiceHeaderNo.setTextColor(DARK); invoiceHeaderNo.setTypeface(Typeface.DEFAULT,Typeface.BOLD); invoiceHeaderNo.setGravity(Gravity.CENTER);
-        invoiceHeaderNo.setBackground(outlined(Color.WHITE,1,dp(10)));
+        invoiceHeaderNo.setBackground(outlined(CARD,1,dp(10)));
         content.addView(invoiceHeaderNo,new LinearLayout.LayoutParams(-1,dp(36)));
         addSpace(3);
 
@@ -5948,7 +5948,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 rBox.setOrientation(LinearLayout.HORIZONTAL);
                 rBox.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
                 rBox.setGravity(Gravity.CENTER_VERTICAL);
-                rBox.setBackground(outlined(Color.WHITE,1,dp(8)));
+                rBox.setBackground(outlined(CARD,1,dp(8)));
                 rBox.setPadding(dp(2),dp(4),dp(2),dp(4));
 
                 TextView tvTotal=tv(fmt(x.total),11.5f); tvTotal.setGravity(Gravity.CENTER); tvTotal.setTextColor(DARK); tvTotal.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
@@ -9635,9 +9635,9 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
         amountCard.setGravity(Gravity.CENTER);
         amountCard.setPadding(dp(10),dp(6),dp(10),dp(6));
         GradientDrawable acBg=new GradientDrawable();
-        acBg.setColor(Color.WHITE);
+        acBg.setColor(CARD);
         acBg.setCornerRadius(dp(12));
-        acBg.setStroke(dp(1),Color.rgb(220,220,220));
+        acBg.setStroke(dp(1),BORDER);
         amountCard.setBackground(acBg);
 
         TextView amtVal=tv("إجمالي المشتريات: "+fmt(total)+" ريال",16);
