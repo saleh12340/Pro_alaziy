@@ -16,8 +16,8 @@ permissions:
 jobs:
   database-tests:
     name: Database migration tests on Android emulator
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -63,9 +63,9 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_2
-          emulator-boot-timeout: 600
-          # Keep snapshots enabled for faster boot; avoid a forced cold boot each run.
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-boot-timeout: 900
+          # Use a clean emulator boot on the stable Ubuntu 24.04 runner to avoid stale snapshot hangs.
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
           disable-animations: true
           disable-spellchecker: true
           script: timeout 15m ./gradlew :app:connectedDebugAndroidTest --stacktrace --no-daemon --console=plain --max-workers=2
