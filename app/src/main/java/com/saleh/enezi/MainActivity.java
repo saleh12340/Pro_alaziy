@@ -11538,7 +11538,7 @@ void account(long id,String name){
                 row.addView(info,new LinearLayout.LayoutParams(0,-2,1f));
 
                 // خلية مستقلة للمبلغ: عليه بالأحمر وله بالأخضر، بلا إطار أو تسطير.
-                TextView amt=denseText((type==1?"عليه":"له")+"\\n"+fmt(a)+" ر.ي",
+                TextView amt=denseText((type==1?"عليه":"له")+"\n"+fmt(a)+" ر.ي",
                     10.5f,8f,type==1?RED:GREEN);
                 amt.setGravity(Gravity.CENTER);
                 amt.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
