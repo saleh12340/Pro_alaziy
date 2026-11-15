@@ -368,7 +368,7 @@ public class MainActivity extends Activity {
         int top=e.getPaddingTop();
         int bottomPad=e.getPaddingBottom();
         e.setPadding(lr,Math.max(dp(4),top),rr,Math.max(dp(4),bottomPad));
-        e.setHorizontallyScrolling(false);
+        // لا نلغي التمرير الأفقي هنا: الحقول الرقمية الطويلة يجب أن تبقى مقروءة.
     }
 
     void normalizeInputViews(View v){
@@ -383,48 +383,23 @@ public class MainActivity extends Activity {
     }
 
     void normalizeInputText(TextView t){
-        if(t==null) return;
-        t.setIncludeFontPadding(true);
-        t.setEllipsize(null);
-        if(t instanceof EditText){
-            EditText e=(EditText)t;
-            if(e.isSingleLine() || e.getMaxLines()<=1){
-                e.setSingleLine(true);
-                e.setMaxLines(1);
-                e.setHorizontallyScrolling(false);
-                if(Build.VERSION.SDK_INT>=26){
-                    try{
-                        float current=e.getTextSize()/getResources().getDisplayMetrics().scaledDensity;
-                        int max=Math.max(13,Math.round(current));
-                        e.setAutoSizeTextTypeUniformWithConfiguration(11,max,1,android.util.TypedValue.COMPLEX_UNIT_SP);
-                    }catch(Throwable ignored){}
-                }
-            }else{
-                e.setSingleLine(false);
-                e.setMaxLines(Integer.MAX_VALUE);
-                e.setHorizontallyScrolling(false);
-                e.setEllipsize(null);
-                if(Build.VERSION.SDK_INT>=26){
-                    try{
-                        float current=e.getTextSize()/getResources().getDisplayMetrics().scaledDensity;
-                        int max=Math.max(13,Math.round(current));
-                        e.setAutoSizeTextTypeUniformWithConfiguration(11,max,1,android.util.TypedValue.COMPLEX_UNIT_SP);
-                    }catch(Throwable ignored){}
-                }
-                ViewGroup.LayoutParams lp=e.getLayoutParams();
-                if(lp!=null && lp.height>0){lp.height=ViewGroup.LayoutParams.WRAP_CONTENT;e.setLayoutParams(lp);}
-            }
-            e.post(()->{e.requestLayout();e.invalidate();});
-        }
+        if(!(t instanceof EditText)) return;
+        EditText e=(EditText)t;
+        // استخدم قواعد الحقول الموحدة مع الحفاظ على إعدادات كل شاشة.
+        // لا نحوّل الحقول متعددة الأسطر إلى ارتفاع غير محدود ولا نغيّر قيود الصفوف عمومًا.
+        configureFullTextInput(e);
+        e.post(()->{e.requestLayout();e.invalidate();});
     }
     void normalizeAppText(View v){
         if(v instanceof EditText){
             normalizeInputText((TextView)v);
         }else if(v instanceof TextView && !(v instanceof Button)){
-            TextView t=(TextView)v;t.setIncludeFontPadding(true);t.setSingleLine(false);t.setMaxLines(Integer.MAX_VALUE);t.setEllipsize(null);t.setHorizontallyScrolling(false);
+            // توحيد معالجة النص العربي فقط؛ لا نكسر singleLine أو maxLines أو الارتفاع
+            // الذي حددته الشاشة عمداً لعناوينها وخلاياها.
+            TextView t=(TextView)v;
+            t.setIncludeFontPadding(true);
             if(Build.VERSION.SDK_INT>=23){try{t.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);}catch(Throwable ignored){}}
             if(Build.VERSION.SDK_INT>=28){try{t.setFallbackLineSpacing(true);}catch(Throwable ignored){}try{t.setElegantTextHeight(true);}catch(Throwable ignored){}}
-            ViewGroup.LayoutParams lp=t.getLayoutParams();if(lp!=null&&lp.height>0){lp.height=ViewGroup.LayoutParams.WRAP_CONTENT;t.setLayoutParams(lp);}
         }
         if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;g.setClipChildren(false);for(int i=0;i<g.getChildCount();i++)normalizeAppText(g.getChildAt(i));}
     }
@@ -2773,13 +2748,13 @@ void showGeneralActions(){
     }
     GradientDrawable bg(int color,float radius){return rounded(color,dp((int)radius));}
     GradientDrawable outline(int color,float radius){return outlined(color,1,dp((int)radius));}
-    LinearLayout card(){LinearLayout c=new LinearLayout(this);c.setOrientation(LinearLayout.VERTICAL);c.setPadding(dp(12),dp(10),dp(12),dp(10));GradientDrawable cBg=new GradientDrawable();cBg.setColor(CARD);cBg.setCornerRadius(dp(16));cBg.setStroke(dp(1),BORDER);c.setBackground(cBg);c.setElevation(dp(2));c.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);return c;}
+    LinearLayout card(){LinearLayout c=new LinearLayout(this);c.setOrientation(LinearLayout.VERTICAL);c.setPadding(dp(12),dp(10),dp(12),dp(10));c.setBackground(DesignSystem.outlined(CARD,BORDER,dp(1),dp(16)));c.setElevation(dp(2));c.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);return c;}
     void addCard(View v,int h){content.addView(v,new LinearLayout.LayoutParams(-1,dp(Math.max(50,h-18))));space(4);}
     void add(View v,int h){content.addView(v,new LinearLayout.LayoutParams(-1,dp(Math.max(42,h-12))));space(4);}
     void space(int h){addSpace(dp(h));}
     void spaceInside(LinearLayout p,int h){Space x=new Space(this);p.addView(x,new LinearLayout.LayoutParams(1,dp(h)));}
-    Button action(String text,int color){Button b=button(text);b.setTextColor(Color.WHITE);b.setTextSize(14.5f);b.setTypeface(Typeface.DEFAULT,Typeface.BOLD);b.setBackground(rounded(color,dp(12)));b.setElevation(dp(2));b.setMinHeight(dp(42));b.setMinimumHeight(dp(42));return b;}
-    Button btn(String text){Button b=button(text);b.setTextColor(TEXT);b.setTypeface(Typeface.DEFAULT,Typeface.BOLD);b.setBackground(outline(CARD,14));return b;}
+    Button action(String text,int color){Button b=button(text);b.setTextColor(Color.WHITE);b.setTextSize(14.5f);b.setTypeface(Typeface.DEFAULT,Typeface.BOLD);DesignSystem.applyInteractiveFeedback(b,this,color,Color.TRANSPARENT,12);b.setElevation(dp(2));return b;}
+    Button btn(String text){Button b=button(text);b.setTextColor(TEXT);b.setTypeface(Typeface.DEFAULT,Typeface.BOLD);DesignSystem.applyInteractiveFeedback(b,this,CARD,BORDER,14);return b;}
     static class Line{String name;double qty,total;Line(String n,double q,double t){name=n;qty=q;total=t;}}
     void addRow(LinearLayout parent,Line l,double running,double baseBal,ArrayList<Line> all){
         LinearLayout r=new LinearLayout(this);r.setOrientation(LinearLayout.HORIZONTAL);r.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);r.setGravity(Gravity.CENTER_VERTICAL);r.setPadding(dp(2),dp(2),dp(2),dp(2));
@@ -4157,7 +4132,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
         TextView netBadge=tv("0 صافي",14.5f);
         netBadge.setTextColor(GREEN); netBadge.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         netBadge.setGravity(Gravity.CENTER);
-        netBadge.setBackground(rounded(Color.WHITE,dp(10)));
+        netBadge.setBackground(rounded(CARD,dp(10)));
         netBadge.setPadding(dp(12),dp(5),dp(12),dp(5));
         form.addView(netBadge,new LinearLayout.LayoutParams(-1,-2));
         addSpaceTo(form,8);
@@ -4507,9 +4482,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
 
     void notes(){
         base("الملاحظات");
-        TextView title=tv("📝 الملاحظات",20);title.setTextColor(GREEN);title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);content.addView(title,new LinearLayout.LayoutParams(-1,dp(42)));
-        addSpace(4);
-
+        // عنوان الصفحة موحّد في الشريط العلوي؛ لا نكرر العنوان داخل المحتوى.
         final EditText searchInput=field("🔍 ابحث في عناصر الملاحظة الحالية تلقائياً...");
         searchInput.setTextSize(14f);
         if(!noteSearchQuery.isEmpty()){
@@ -11829,7 +11802,7 @@ void customers(){
         box.setOrientation(LinearLayout.VERTICAL);
         box.setGravity(Gravity.CENTER);
         box.setPadding(dp(4),dp(4),dp(4),dp(4));
-        box.setBackground(outlined(Color.argb(225,255,255,255),dp(1),dp(21)));
+        box.setBackground(DesignSystem.outlined(CARD,BORDER,dp(1),dp(16)));
         box.setElevation(dp(2));
         TextView l=tv(label,11); l.setTextColor(MUTED); l.setGravity(Gravity.CENTER);
         TextView v=tv(value,13); v.setTextColor(accent); v.setTypeface(Typeface.DEFAULT,Typeface.BOLD); v.setGravity(Gravity.CENTER);
