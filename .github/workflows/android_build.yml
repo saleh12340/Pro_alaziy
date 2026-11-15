@@ -5,7 +5,7 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-# Keep only the newest build for main. A newer push cancels the obsolete run.
+# Keep the APK build independent from the slower emulator test workflow.
 concurrency:
   group: al-azzi-android-${{ github.ref }}
   cancel-in-progress: true
@@ -15,9 +15,9 @@ permissions:
 
 jobs:
   build:
-    name: Test and assemble debug APK
+    name: Unit-test and assemble debug APK
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 20
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -101,15 +101,3 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Run database migration tests on Android emulator
-        uses: ReactiveCircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          target: google_apis
-          arch: x86_64
-          profile: pixel_2
-          emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
-          disable-animations: true
-          disable-spellchecker: true
-          script: timeout 15m ./gradlew :app:connectedDebugAndroidTest --stacktrace --no-daemon --console=plain --max-workers=2
