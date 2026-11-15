@@ -6021,7 +6021,6 @@ void operationActions(long customerId,String customerName,long tid,String detail
                 fBox.setBackground(outlined(Color.rgb(250,252,255),1,dp(8)));
                 fBox.setPadding(dp(2),dp(3),dp(2),dp(3));
 
-                TextView fM=tv(String.valueOf(idx++),11); fM.setGravity(Gravity.CENTER); fM.setTextColor(MUTED);
                 AutoCompleteTextView fDesc=new AutoCompleteTextView(this);
                 fDesc.setHint("أدخل اسم الصنف..."); fDesc.setTextSize(12); fDesc.setSingleLine(true);
                 fDesc.setTextColor(TEXT); fDesc.setHintTextColor(MUTED); fDesc.setBackgroundColor(Color.TRANSPARENT);
@@ -6038,11 +6037,10 @@ void operationActions(long customerId,String customerName,long tid,String detail
 
                 TextView fTotal=tv("0",12); fTotal.setGravity(Gravity.CENTER); fTotal.setTextColor(MUTED);
 
-                fBox.addView(fM,new LinearLayout.LayoutParams(dp(28),-2));
+                fBox.addView(fTotal,new LinearLayout.LayoutParams(dp(78),-2));
+                fBox.addView(fQty,new LinearLayout.LayoutParams(dp(48),dp(36)));
                 fBox.addView(fDesc,new LinearLayout.LayoutParams(0,dp(36),1.8f));
-                fBox.addView(fQty,new LinearLayout.LayoutParams(dp(44),dp(36)));
-                fBox.addView(fPrice,new LinearLayout.LayoutParams(dp(64),dp(36)));
-                fBox.addView(fTotal,new LinearLayout.LayoutParams(dp(64),-2));
+                fBox.addView(fPrice,new LinearLayout.LayoutParams(dp(78),dp(36)));
 
                 // تحديث الإجمالي تلقائياً عند التعديل في الصف المسطر
                 TextWatcher tw=new TextWatcher(){
