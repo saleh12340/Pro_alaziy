@@ -9538,7 +9538,13 @@ long createNotePage(String title,String date){ContentValues v=new ContentValues(
                 String invoiceNo=invoice.getString(0)==null?"":invoice.getString(0);
                 String supplierName=invoice.getString(1)==null?"":invoice.getString(1);
                 invoice.close();
-                long supplierId=supplierIdByName(supplierName);
+                long supplierId=-1;
+                String supplierKey=norm(supplierName);
+                if(!supplierKey.isEmpty()){
+                    Cursor supplierCursor=d.rawQuery("SELECT id FROM suppliers WHERE normalized_name=? LIMIT 1",new String[]{supplierKey});
+                    if(supplierCursor.moveToFirst())supplierId=supplierCursor.getLong(0);
+                    supplierCursor.close();
+                }
                 revertStockFromPurchase(d,id);
                 if(supplierId>0&&!invoiceNo.isEmpty()){
                     String paymentDetails="دفعة فاتورة شراء رقم "+invoiceNo;
