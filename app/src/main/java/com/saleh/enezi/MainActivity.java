@@ -11554,11 +11554,72 @@ void account(long id,String name){
                 bal.setBackground(glassFill(Color.argb(210,248,250,248)));
                 row.addView(bal,new LinearLayout.LayoutParams(dp(96),-2));
 
-                row.setOnClickListener(v->showOperationDetails(name,tid,d,a,type));
+                // معاينة الفاتورة داخل سجل العميل: مختصرة افتراضياً، وتُفتح عند الضغط دون مغادرة الشاشة.
+                LinearLayout invoiceExpansion=new LinearLayout(this);
+                invoiceExpansion.setOrientation(LinearLayout.VERTICAL);
+                invoiceExpansion.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+                invoiceExpansion.setPadding(dp(10),dp(7),dp(10),dp(7));
+                invoiceExpansion.setBackground(outlined(Color.rgb(246,249,253),dp(1),10));
+                invoiceExpansion.setVisibility(View.GONE);
+                if(isInv){
+                    long invoiceId=db.invoiceIdByNo(inv);
+                    if(invoiceId>0){
+                        double invoiceTotal=db.invoiceTotal(invoiceId);
+                        double invoicePaid=db.invoicePaid(invoiceId);
+                        TextView invMeta=denseText("الفاتورة #"+inv+"  •  الإجمالي: "+fmt(invoiceTotal)+"  •  المسدد: "+fmt(invoicePaid)+"  •  المتبقي: "+fmt(Math.max(0,invoiceTotal-invoicePaid)),11.5f,9f,DARK);
+                        invMeta.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+                        invMeta.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+                        invMeta.setPadding(0,0,0,dp(5));
+                        invoiceExpansion.addView(invMeta,new LinearLayout.LayoutParams(-1,-2));
+                        Cursor invoiceRows=db.invoiceLines(invoiceId);
+                        int invoiceLineCount=0;
+                        while(invoiceRows.moveToNext()){
+                            String itemName=invoiceRows.getString(1);
+                            double itemQty=invoiceRows.getDouble(2), itemTotal=invoiceRows.getDouble(3);
+                            LinearLayout itemRow=new LinearLayout(this);
+                            itemRow.setOrientation(LinearLayout.HORIZONTAL);
+                            itemRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+                            itemRow.setGravity(Gravity.CENTER_VERTICAL);
+                            TextView itemNameTv=denseText(itemName==null?"":itemName,11.5f,9f,TEXT);
+                            itemNameTv.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+                            TextView itemQtyTv=denseText(fmt(itemQty),11f,9f,MUTED);
+                            itemQtyTv.setGravity(Gravity.CENTER);
+                            TextView itemUnitTv=denseText(itemQty>0?fmt(itemTotal/itemQty):"—",11f,9f,MUTED);
+                            itemUnitTv.setGravity(Gravity.CENTER);
+                            TextView itemTotalTv=denseText(fmt(itemTotal),11.5f,9f,GREEN);
+                            itemTotalTv.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+                            itemTotalTv.setGravity(Gravity.CENTER);
+                            itemRow.addView(itemNameTv,new LinearLayout.LayoutParams(0,-2,1.7f));
+                            itemRow.addView(itemQtyTv,new LinearLayout.LayoutParams(0,-2,.65f));
+                            itemRow.addView(itemUnitTv,new LinearLayout.LayoutParams(0,-2,.8f));
+                            itemRow.addView(itemTotalTv,new LinearLayout.LayoutParams(0,-2,.9f));
+                            invoiceExpansion.addView(itemRow,new LinearLayout.LayoutParams(-1,-2));
+                            invoiceLineCount++;
+                        }
+                        invoiceRows.close();
+                        if(invoiceLineCount==0){
+                            TextView noLines=denseText("لا توجد تفاصيل أصناف محفوظة لهذه الفاتورة",10.5f,9f,MUTED);
+                            invoiceExpansion.addView(noLines,new LinearLayout.LayoutParams(-1,-2));
+                        }
+                    }
+                }
+                LinearLayout entry=new LinearLayout(this);
+                entry.setOrientation(LinearLayout.VERTICAL);
+                entry.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+                entry.addView(row,new LinearLayout.LayoutParams(-1,-2));
+                if(isInv) entry.addView(invoiceExpansion,new LinearLayout.LayoutParams(-1,-2));
+                row.setOnClickListener(v->{
+                    if(isInv){
+                        boolean expanded=invoiceExpansion.getVisibility()==View.VISIBLE;
+                        invoiceExpansion.setVisibility(expanded?View.GONE:View.VISIBLE);
+                        main.setText(detailText+(expanded?"":"  ▲"));
+                        if(!expanded) main.setText(detailText+"  ▼");
+                    }else showOperationDetails(name,tid,d,a,type);
+                });
                 row.setOnLongClickListener(v->{operationActions(id,name,tid,d,a,type);return true;});
                 LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);
-                rp.setMargins(0,0,0,dp(4));
-                list.addView(row,rp);
+                rp.setMargins(0,0,0,dp(5));
+                list.addView(entry,rp);
             }
             if(count==0){
                 LinearLayout emptyBox=card();emptyBox.setPadding(dp(16),dp(14),dp(16),dp(14));emptyBox.setGravity(Gravity.CENTER);
