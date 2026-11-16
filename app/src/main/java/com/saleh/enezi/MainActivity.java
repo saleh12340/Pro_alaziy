@@ -6229,7 +6229,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
 
             // حذف أو إفراغ السطر
             fDel.setOnClickListener(v->{
-                if(rowHolders.size()>2){
+                if(rowHolders.size()>1){
                     rowsContainer.removeView(fBox);
                     rowHolders.remove(r);
                     updateTotalsDisplay.run();
@@ -6417,13 +6417,14 @@ void operationActions(long customerId,String customerName,long tid,String detail
             InvoiceRowHolder last=rowHolders.get(rowHolders.size()-1);
             String d=last.descCell.getText().toString().trim();
             String t=last.totalCell.getText().toString().trim();
-            if(!d.isEmpty() || !t.isEmpty()){
+            double q=parseDoubleSafe(last.qtyCell.getText().toString(),0);
+            double totalValue=parseDoubleSafe(t,-1);
+            if(!d.isEmpty() && q>0 && totalValue>=0 && Double.isFinite(q) && Double.isFinite(totalValue)){
                 addNewRow[0].run();
             }
         };
 
-        // صندوق عرض الفاتورة يبدأ بسطرين مسطرين افتراضياً
-        addNewRow[0].run();
+        // تبدأ الفاتورة بسطر إدخال واحد فقط، وتُضاف الأسطر تلقائياً عند اكتمال السطر الحالي.
         addNewRow[0].run();
 
         // تنقل الكيبورد في مربعات الإدخال العلوية من اليمين إلى اليسار
@@ -6915,10 +6916,10 @@ void operationActions(long customerId,String customerName,long tid,String detail
         printStmt.setOnClickListener(v->showCompactPrintPreview("معاينة كشف المورد 58mm",statement,()->printTextBluetooth(statement),()->shareSupplierStatement(name,phone,statement)));
         pay.setOnClickListener(v->showSupplierPaymentDialog(supplierId,name,()->supplierAccount(supplierId,name,phone)));
         LinearLayout list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);list.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);content.addView(list);
-        Cursor c=db.getReadableDatabase().rawQuery("SELECT kind,id,ref,details,amount,date FROM (SELECT 1 kind,pi.id id,pi.no ref,'فاتورة شراء' details,pi.total amount,pi.date date FROM purchase_invoices pi WHERE lower(trim(pi.supplier))=lower(trim(?)) UNION ALL SELECT 2 kind,st.id id,st.invoice_no ref,st.details details,-st.amount amount,st.date date FROM supplier_transactions st WHERE st.supplier_id=? ) ORDER BY datetime(date),id",new String[]{name,String.valueOf(supplierId)});
-        double running=0;int count=0;
+        Cursor c=db.getReadableDatabase().rawQuery("SELECT kind,id,ref,details,amount,date FROM (SELECT 1 kind,pi.id id,pi.no ref,'فاتورة شراء' details,pi.total amount,pi.date date FROM purchase_invoices pi WHERE lower(trim(pi.supplier))=lower(trim(?)) UNION ALL SELECT 2 kind,st.id id,st.invoice_no ref,st.details details,-st.amount amount,st.date date FROM supplier_transactions st WHERE st.supplier_id=?  ) ORDER BY datetime(date) DESC,kind DESC,id DESC",new String[]{name,String.valueOf(supplierId)});
+        double running=supplierBalance(name);int count=0;
         while(c.moveToNext()){
-            int kind=c.getInt(0);long id=c.getLong(1);String ref=c.getString(2);String details=c.getString(3);double amount=c.getDouble(4);String date=c.getString(5);running+=amount;
+            int kind=c.getInt(0);long id=c.getLong(1);String ref=c.getString(2);String details=c.getString(3);double amount=c.getDouble(4);String date=c.getString(5);
             if(Math.abs(running)<.005)running=0;
             final double fAmount=amount,fRunning=running;final String fDate=date,fDetails=details,fRef=ref;final long fId=id;final int fKind=kind;
             LinearLayout row=card();row.setPadding(dp(9),dp(6),dp(9),dp(6));
@@ -6928,6 +6929,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
             row.addView(title,new LinearLayout.LayoutParams(-1,-2));row.addView(meta,new LinearLayout.LayoutParams(-1,-2));row.addView(vals,new LinearLayout.LayoutParams(-1,-2));
             row.setOnClickListener(v->showSupplierOperationDetails(supplierId,name,phone,fKind,fId,fRef,fDetails,fAmount,fDate,fRunning));
             LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.setMargins(0,0,0,dp(6));list.addView(row,rp);count++;
+            running-=amount;
         } c.close();
         if(count==0){TextView e=tv("لا توجد عمليات بعد.",12);e.setGravity(Gravity.CENTER);e.setTextColor(MUTED);list.addView(e,new LinearLayout.LayoutParams(-1,dp(70)));}
         content.setPadding(dp(6),dp(4),dp(6),dp(18));
@@ -6935,8 +6937,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
 
     String supplierStatement(String name,long supplierId){
         StringBuilder out=new StringBuilder("بقالة العزي للمواد الغذائية\nكشف حساب المورد\nالمورد: ").append(name).append("\nالتاريخ: ").append(db.now()).append("\n------------------------------\n");
-        Cursor c=db.getReadableDatabase().rawQuery("SELECT kind,ref,details,amount,date FROM (SELECT 1 kind,pi.no ref,'فاتورة شراء' details,pi.total amount,pi.date date FROM purchase_invoices pi WHERE lower(trim(pi.supplier))=lower(trim(?)) UNION ALL SELECT 2 kind,st.invoice_no ref,st.details,-st.amount,st.date FROM supplier_transactions st WHERE st.supplier_id=?) ORDER BY datetime(date),kind",new String[]{name,String.valueOf(supplierId)});
-        double run=0;while(c.moveToNext()){double a=c.getDouble(3);run+=a;out.append(c.getString(2)).append(" | ").append(c.getString(1)==null?"":c.getString(1)).append("\n").append(c.getString(4)).append(" | ").append(a>=0?"+":"").append(fmt(Math.abs(a))).append(" | الرصيد ").append(fmt(Math.abs(run))).append(" ").append(supplierBalanceLabel(run)).append("\n");}c.close();
+        Cursor c=db.getReadableDatabase().rawQuery("SELECT kind,ref,details,amount,date FROM (SELECT 1 kind,pi.no ref,'فاتورة شراء' details,pi.total amount,pi.date date FROM purchase_invoices pi WHERE lower(trim(pi.supplier))=lower(trim(?)) UNION ALL SELECT 2 kind,st.invoice_no ref,st.details,-st.amount,st.date FROM supplier_transactions st WHERE st.supplier_id=? ) ORDER BY datetime(date) DESC,kind DESC",new String[]{name,String.valueOf(supplierId)});
+        double run=supplierBalance(name);while(c.moveToNext()){double a=c.getDouble(3);out.append(c.getString(2)).append(" | ").append(c.getString(1)==null?"":c.getString(1)).append("\n").append(c.getString(4)).append(" | ").append(a>=0?"+":"").append(fmt(Math.abs(a))).append(" | الرصيد ").append(fmt(Math.abs(run))).append(" ").append(supplierBalanceLabel(run)).append("\n");run-=a;}c.close();
         out.append("------------------------------\nالرصيد الحالي: ").append(fmt(Math.abs(supplierBalance(name)))).append(" ").append(supplierBalanceLabel(supplierBalance(name)));return out.toString();
     }
     void shareSupplierStatement(String name,String phone,String statement){
