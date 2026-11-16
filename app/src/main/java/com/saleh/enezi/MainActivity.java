@@ -6193,6 +6193,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
                     }
                 }catch(Exception ignored){fUnit.setText("-");}
                 updateTotalsDisplay.run();
+                // افحص اكتمال السطر بعد تعديل الإجمالي أو الكمية أيضاً؛ فقد يُدخل المستخدم الاسم أولاً.
+                if(checkAutoSpawn[0]!=null) checkAutoSpawn[0].run();
             };
 
             TextWatcher tw=new TextWatcher(){
