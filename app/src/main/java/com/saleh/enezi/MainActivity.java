@@ -6206,6 +6206,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
             fDesc.addTextChangedListener(new TextWatcher(){
                 public void beforeTextChanged(CharSequence s,int a,int b,int c){}
                 public void onTextChanged(CharSequence s,int a,int b,int c){
+                    // تحديث الإجمالي عند تغيير اسم الصنف أيضاً، وليس فقط عند تغيير الكمية أو الإجمالي.
+                    updateTotalsDisplay.run();
                     if(checkAutoSpawn[0]!=null) checkAutoSpawn[0].run();
                 }
                 public void afterTextChanged(Editable e){}
@@ -6224,6 +6226,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
                     double sp=db.itemSalePrice(selected);
                     if(sp>0) r.salePrice=sp;
                 }
+                // اعتماد الصنف المحدد فوراً في الإجمالي حتى قبل الانتقال إلى خلية أخرى.
+                updateTotalsDisplay.run();
                 if(checkAutoSpawn[0]!=null) checkAutoSpawn[0].run();
             });
 
