@@ -6971,8 +6971,8 @@ void operationActions(long customerId,String customerName,long tid,String detail
         String nowDate=db.now();
 
         ArrayList<String[]> txList=new ArrayList<>();
-        Cursor c=db.getReadableDatabase().rawQuery("SELECT kind,ref,details,amount,date FROM (SELECT 1 kind,pi.no ref,'فاتورة شراء' details,pi.total amount,pi.date date FROM purchase_invoices pi WHERE lower(trim(pi.supplier))=lower(trim(?)) UNION ALL SELECT 2 kind,st.invoice_no ref,st.details,-st.amount,st.date FROM supplier_transactions st WHERE st.supplier_id=?) ORDER BY datetime(date),kind",new String[]{name,String.valueOf(supplierId)});
-        double run=0;
+        Cursor c=db.getReadableDatabase().rawQuery("SELECT kind,ref,details,amount,date FROM (SELECT 1 kind,pi.no ref,'فاتورة شراء' details,pi.total amount,pi.date date FROM purchase_invoices pi WHERE lower(trim(pi.supplier))=lower(trim(?)) UNION ALL SELECT 2 kind,st.invoice_no ref,st.details,-st.amount,st.date FROM supplier_transactions st WHERE st.supplier_id=?) ORDER BY datetime(date) DESC,kind DESC",new String[]{name,String.valueOf(supplierId)});
+        double run=currentBal;
         double totalPurchases=0;
         double totalPayments=0;
         while(c.moveToNext()){
@@ -6988,6 +6988,7 @@ void operationActions(long customerId,String customerName,long tid,String detail
             String payStr = kind!=1 ? fmt(Math.abs(amt)) : "-";
             String balStr = fmt(Math.abs(run)) + " " + supplierBalanceLabel(run);
             txList.add(new String[]{date,details==null?"":details,ref==null?"-":"#"+ref,purchStr,payStr,balStr});
+            run -= amt;
         }
         c.close();
 
